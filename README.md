@@ -7,7 +7,8 @@ WHAT IS delv FOR?
 delv is a Python module that allows users to manipulate the archives of games
 based on the "Delver" engine, written 1995-1999 by Glenn Andreas. It was only
 used, as far as is known, in the 1999 game "Cythera," published by Ambrosia
-Software, inc. 
+Software, inc. ("Cythera" and "Delver" are trademarks of Ambrosia Software inc 
+or Glenn Andreas.)
 
 Extensive technical documentation of this engine and game, which were used to
 produce delv, can be found at http://www.ferazelhosting.net/wiki/Cythera
@@ -88,7 +89,7 @@ functions and classes if you like.
 
 GETTING AT SOUNDS AND GRAPHICS
 
-Multimedia formats are provided in reasonably universal formats, e.g. arrays,
+Multimedia formats are provided in reasonably universal formats, e.g. arrays;
 you will probably have to write glue code if you want to display them as PNG,
 use them with pygame, or whatever. delv couldn't practically support all the
 different ways of getting multimedia to the output device using python, and it
