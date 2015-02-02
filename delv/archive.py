@@ -29,6 +29,7 @@ import os
 import util
 import numpy as np
 import operator
+import json
 
 def decrypt(data, prokey):
     """Decrypt the data provided with the given pro-key. The prokey is
@@ -64,9 +65,10 @@ def validate_resource_id(resid):
        does not imply the resource currently exists in an archive.
        (use .get for that.)"""
     return 0x0100 <= resid <= 0xFFFF
-def resid(subindex, n):
+def resid(subindex, n=0):
     """Given a major (master) index page subindex and minor (page) index n,
        return the resource ID."""
+    if isinstance(subindex,Resource): subindex,n=subindex.subindex,subindex.n
     assert n < 0x100 and subindex < 0x100
     return ((subindex+1)<<8) | n
 def master_index(resid):
@@ -205,8 +207,19 @@ class Resource(object):
             dest.write(self.data)
         else:
             assert False,"Writing %s - undefined encryption status"%repr(self)
+    def get_metadata(self):
+        return self.canon_encryption
     def write_index(self,dest):
         dest.write_offlen(self.offset, len(self.data))
+    def save_to_file(self, dest):
+        """Saves a resource to an individual file. Never encrypted."""
+        if not self.loaded: self.load()
+        dest.seek(0)
+        dest.write(self.data)
+        self.dirty = False  
+    def load_from_file(self, src):
+        self.data = bytearray(src.read())
+        self.loaded = True
     def load(self):
         fpos = self.archive.arcfile.tell()
         self.archive.arcfile.seek(self.offset)
@@ -229,6 +242,7 @@ class Resource(object):
 class Archive(object):
     """Class for representing Delver Archives. The implementation is 
        eager; the entire file is loaded into memory when it is opened."""
+    encryption_knowledge = {}
     def __init__(self, src=None, archive_type='scenario'):
         """If src is None, then the constructor creates a new empty archive.
            If src is a file-like object, it will read in an archive from 
@@ -243,28 +257,51 @@ class Archive(object):
                 assert False, "'%s' isn't a directory or file."%src
         elif src is None:
             self.arcfile = None
+            self.source_string = 'Created de novo by delv'
             self.create_header()
             self.create_index()
         else:
             self.from_file(src)
     def from_directory(self, path):
         """Load a delver archive from the provided path."""
+        self.source_string = 'Packed from %s'%src
         raise util.UnimplementedFeature("Can't load from directories yet.")
     def from_file(self, src): 
         """Load a delver archive from a file-like object."""
         self.arcfile = util.BinaryHandler(src)
         self.load_header()
         self.load_index()
+        self.source_string = "Loaded from file object %s"%src
     def from_string(self, src):
         """Load a delver archive from an indexable object."""
         self.from_file(cStringIO.StringIO(src))
+        self.source_string = "Loaded from string"
     def from_path(self, path):
         """Load a Delver archive from a file system path."""
-        self.from_file(open(path, 'rb'))
-
+        if os.path.isdir(path):
+            self.from_directory(path)
+        else:
+            self.from_file(open(path, 'rb'))
+        self.source_string = "Loaded from path %s"%path
+    def source(self):
+        '''Return a string explaining where this archive came from.'''
+        return self.source_string
     def to_directory(self, path):
         """Dump the contents of the archive, unencrypted, to path."""
-        raise util.UnimplementedFeature("Can't save to directories yet.")
+        assert os.path.isdir(path)
+        metadata = {'source': self.source(), 
+            'creator': 'delv (www.ferazelhosting.net/wiki/delv)'}
+        encrypt = {}
+        for resource in self.resources():
+            if not resource: continue # don't preserve empties
+            outf = open(os.path.join(path, "%04X.data"%resid(resource)), 'w')
+            resource.save_to_file(outf)
+            encrypt["%04X"%resid(resource)] = resource.get_metadata()
+            outf.close()
+        metadata['should_encrypt'] = encrypt
+        metafile = open(os.path.join(path, "metadata.json"), 'w')
+        json.dump(metadata, metafile)
+        metafile.close
     def to_file(self, dest):
         """Write a Delver archive to the destination file-like
            object (must be open for writing, obviously)"""
@@ -361,8 +398,12 @@ class Archive(object):
            the subindex is empty or does not exist. If subindex is None,
            it returns a list of all resource IDs that are valid for this
            archive in toto."""
-        return [resid(subindex, n) for n in self.resources(subindex)]
-                  
+        if subindex is not None:
+            sx = self.all_subindices[subindex]
+            return [resid(subindex,n) for n,r in enumerate(sx) if r]
+        else:
+            return reduce(operator.add, 
+                [self.resource_ids(si) for si in self.subindices()])
     def subindices(self):
         """Return a list of valid subindices for this archive."""
         return [n for n in xrange(len(self.master_index)
@@ -375,7 +416,7 @@ class Archive(object):
            returns a list of all the resources in the archvie."""
         if subindex is not None:
             sx = self.all_subindices[subindex]
-            return [n for n,r in enumerate(sx) if r]
+            return [r for r in sx if r]
         else:
             return reduce(operator.add, 
                 [self.resources(si) for si in self.subindices()])
@@ -444,7 +485,9 @@ class Player(Archive):
 
 class Scenario(Archive):
     """Class for manipulating Delver Scenario files."""
-    pass
+    encryption_knowledge = {
+        
+    }
 
 class Patch(Archive):
     """Class for manipulating Delver patchfiles (i.e. Magpie patches.)"""
