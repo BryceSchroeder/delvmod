@@ -192,6 +192,10 @@ class Resource(object):
            then this returns the original encryption state from that archive.
            (Recall that all resources are saved unencrypted when saving to
            a directory.)"""
+        hint = self.archive.canon_encryption_of(self.subindex)
+        if hint is not None:
+            self.canon_encryption = hint
+            return hint
         if self.canon_encryption is None: self.load()
         return self.canon_encryption
     # Private methods
@@ -227,7 +231,15 @@ class Resource(object):
         self.loaded=True
         self.archive.arcfile.seek(fpos)
         if self.encrypted is None:
+            self.encrypted = self.archive.canon_encryption_of(self.subindex)
+            if self.canon_encryption is None: 
+                self.canon_encryption = self.encrypted
+        if self.encrypted is None:
             self.decrypt_if_required()
+        elif self.encrypted is True:
+            self.data = decrypt(self.data, resid(self.subindex,self.n))
+        
+        
     def decrypt_if_required(self):
         presumptive = decrypt(self.data, resid(self.subindex, self.n))
         if entropy(self.data) > entropy(presumptive):
@@ -242,12 +254,17 @@ class Resource(object):
 class Archive(object):
     """Class for representing Delver Archives. The implementation is 
        eager; the entire file is loaded into memory when it is opened."""
-    encryption_knowledge = {}
+    known_encrypted = []
+    known_clear = []
     def __init__(self, src=None, archive_type='scenario'):
         """If src is None, then the constructor creates a new empty archive.
            If src is a file-like object, it will read in an archive from 
            that file. If src is a string, it will attempt to open it as
            a file read-only."""
+        self.encryption_knowledge = {}
+        for si in self.known_encrypted: self.encryption_knowledge[si] = True
+        for si in self.known_clear: self.encryption_knowledge[si] = False
+
         if type(src) is str:
             if os.path.isfile(src):
                 self.from_file(open(src, 'rb'))
@@ -338,7 +355,8 @@ class Archive(object):
         for offset,length in self.master_index:
             dest.write_offlen(offset,length)
                 
-                
+    def canon_encryption_of(self, subindex):
+        return self.encryption_knowledge.get(subindex, None)
 
     def to_string(self):
         """Produces one (possibly very large) string with the 
@@ -485,9 +503,10 @@ class Player(Archive):
 
 class Scenario(Archive):
     """Class for manipulating Delver Scenario files."""
-    encryption_knowledge = {
-        
-    }
+    known_encrypted = [1,2,4,7,8,9,10,11,12,13,14,15,16,
+                       19,20,23,24,25,26,27,29,47]
+    known_clear = [0,3,127,128,131,135,137,141,142,143,
+                   144,239]
 
 class Patch(Archive):
     """Class for manipulating Delver patchfiles (i.e. Magpie patches.)"""

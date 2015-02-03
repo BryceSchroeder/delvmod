@@ -60,8 +60,10 @@ if len(sys.argv) < 2:
     print 'Usage: ./archive_example.py "Cythera Data" ["Modded Cythera Data"]'
     sys.exit(-1)
 
-# open a Delver Archive
-archive = delv.archive.Archive(sys.argv[1])
+# open a Delver Archive - specifically as a Scenario (greatly speeds this
+# program, because the Scenario class knows which resources are supposed to
+# be encrypted, sparing delv the difficulty of guessing for each one.)
+archive = delv.archive.Scenario(sys.argv[1])
 
 print "Loaded archive '%s'"%archive.scenario_title
 
@@ -74,7 +76,7 @@ for idx in archive.subindices():
 
 # Modify a resource, as an array: 
 # (This changes the text of the Sapphire Book of Wisdom)
-archive[0x021B][0xDA7:0xDAA] = 'hax'
+archive[0x021B][0xDA7:0xDAA] = 'zap'
 
 # Create a resource one way
 archive[0xBC00] = "This file written by delv %s"%delv.version
@@ -89,7 +91,7 @@ rfile = about_resource.as_file()
 rfile.write(ABOUT)
 
 if len(sys.argv)>2:
-    print "Writing modified file to %s"%sys.argv[2]
+    print "Writing modified scenario to %s"%sys.argv[2]
     archive.to_path(sys.argv[2])
 
 # Functionality remaining to be added for Archive objects -

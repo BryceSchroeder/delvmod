@@ -46,7 +46,9 @@ Self-evidently, you could use it to make a third-party RPG editor suite that is
 interoperable with a Delver engine based game like Cythera. Another application
 would, e.g. be map viewers or dynamic walkthrough/guide websites for the game.
 
+
 WHAT CAN I DO WITH delv?
+
 Anything permitted by the GPL version 3, but we ask you to please not attempt 
 to use it to circumvent Cythera's shareware restrictions, and not to distribute
 any modified versions of "Cythera Data" (i.e. the scenario file). This latter 
