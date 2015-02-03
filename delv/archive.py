@@ -154,11 +154,13 @@ class Resource(object):
         return self.data[n]
     def __setitem__(self, n, v):
         """Set the nth byte of the resource to v."""
+        if not self.loaded: self.load()
         self.dirty = True
         self.data[n] = v
     def set_data(self, data):
         """Replace the data of this resource."""
         self.dirty = True
+        self.loaded = True
         self.data = bytearray(data)
     def get_data(self):
         """Return the data of this resource as a mutable bytearray.
@@ -227,6 +229,7 @@ class Resource(object):
         self.encrypted = False
         self.canon_encryption = self.archive.canon_encryption_of(self.subindex)
     def load(self):
+        
         fpos = self.archive.arcfile.tell()
         self.archive.arcfile.seek(self.offset)
         self.data = bytearray(self.archive.arcfile.read(len(self.data)))
@@ -243,6 +246,7 @@ class Resource(object):
         
         
     def decrypt_if_required(self):
+        print "Decrypt if required", repr(self), self.archive
         presumptive = decrypt(self.data, resid(self.subindex, self.n))
         if entropy(self.data) > entropy(presumptive):
             self.encrypted = True
@@ -340,7 +344,7 @@ class Archive(object):
         dest = util.BinaryHandler(dest)
         self.save_header(dest)
         # Skip to just past the spot where we'll put the master index later
-        dest.write(bytearray(0x800-8))
+        dest.write(bytearray(0x800))
         # Write all the resources. 
         for n,subindex in enumerate(self.all_subindices):
             if not subindex:
@@ -430,6 +434,8 @@ class Archive(object):
             if not self.master_index[subindex]:
                 self.master_index[subindex] = (-1,-1)
             self.all_subindices[subindex][n] = value
+            if not value.loaded: value.load()
+            value.archive = self
         else:
             res = self.get(idx, True)
             res.set_data(value)
@@ -531,18 +537,50 @@ class Scenario(Archive):
     known_encrypted = [1,2,4,7,8,9,10,11,12,13,14,15,16,
                        19,20,23,24,25,26,27,29,47]
     known_clear = [0,3,127,128,131,135,137,141,142,143,
-                   144,239]
+                   144,187,239,254]
 
-class Patch(Archive):
-    """Class for manipulating Delver patchfiles (i.e. Magpie patches.)"""
+class Patch(Scenario):
+    """Class for manipulating Delver patchfiles."""
+    # public:
+    patch_info = "This patch created by delv.archive.Patch"
     def patch_info(self, infostring):
-        "Get the description of the patch."
-        pass
-    def apply(self, target):
+        "Set the description of the patch."
+        self[0xFFFF] = 'MAGPY'+infostring
+        self.patch_info = infostring
+    def get_patch_info(self):
+        """Return the patch info string. mag.py and Magpie formats supported."""
+        patchres = self.get(0xFFFF)
+        if not patchres: return ''
+        data = patchres.as_file()
+        if data.read(5) == 'MAGPY': # mag.py format
+            self.patch_info = data.read()
+        else: # Magpie format
+            self.patch_info = data.read_pstring(0x138)
+        return self.patch_info
+        
+        
+    def compatible(self, other_patch, exclude = [0xFFFF,0xBC00,0xBC35]):
+        """Returns False if two patches are not compatible. Returns True
+           if they might be compatible. ;) """
+        exclude = set(exclude)
+        set_res = set(self.resource_ids())
+        patch_res = set(other_patch.resource_ids())
+        return not (set_res-exclude).intersection(patch_res-exclude)
+    def patch(self, target):
         "Apply this patch to the target."
-        pass
-    def diff(self, base, modified):
+        for resource in self:
+            target[resid(resource)] = resource
+    def diff(self, base, modified,exclude=[0xFFFF]):
         """Add the differences between Archives base and modified to this
            patch archive, such that if .apply(base) is subsequently used,
            base will come to contain the same data as modified."""
-        pass
+        exclude = set(exclude)
+        for resid in modified.resource_ids():
+            if resid in exclude: continue
+            eq = base.get(resid)
+            if (not eq) or (eq.get_data() != modified.get(resid).get_data()):
+                nd = modified.get(resid)
+                if not nd.loaded: nd.load() 
+                self[resid] = nd
+         
+            
