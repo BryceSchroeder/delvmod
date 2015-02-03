@@ -124,10 +124,7 @@ successfully reverse engineered and documented by the Technical Documentation
 Project. Therefore, the delv.script module remains unfinished and will likely 
 remain so for some time. 
 
-Features related to the creation of "Magpie"-type patches in delv.archive
-remain unimplemented, pending complete documentation of the Magpie patch
-format. (It is based on a delver archive, but the patch resource proper has
-not been carefully investigated.)
-
-
-
+It would be nice if someone made a GUI patch manager (see the example mag.py
+for how to implement patches with delv; delv has all of the actual patching
+and even conflict-detection logic built in, it's just a matter of keeping
+track of what patches are applied, etc.) 
