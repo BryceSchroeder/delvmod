@@ -46,6 +46,8 @@ Self-evidently, you could use it to make a third-party RPG editor suite that is
 interoperable with a Delver engine based game like Cythera. Another application
 would, e.g. be map viewers or dynamic walkthrough/guide websites for the game.
 
+Several examples and utilties are provided to showcase the usage of delv.
+
 
 WHAT CAN I DO WITH delv?
 
@@ -99,6 +101,21 @@ would introduce huge testing complexity and lots of dependencies for something
 that is intended to also make simple command line tools and maybe even run in
 a browser-based python implementation someday. Sorry about that.
 
+
+EXAMPLE PROGRAMS
+
+delv comes with some examples. Probably, it'll come with more someday, but now
+there are two:
+
+"archive\_example.py" - Shows how one can load, modify, and save archives.
+
+"mag.py" - Command-line tool for creating and applying patches. (It can apply
+patches created for the first-party patch manager Magpie, and create patches
+that it can apply, but it can't create patches that can be applied by Magpie.)
+
+"delvpack.py" - This just converts Delver Archives back and forth between
+archive files and scripts. First arguement is source, second is destination,
+it'll figure out what needs to happen. Very simple.
 
 FUTURE DIRECTIONS
 
