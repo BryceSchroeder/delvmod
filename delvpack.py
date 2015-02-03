@@ -29,8 +29,22 @@ import delv
 import delv.archive
 import sys
 
+USAGE = '''Usage: ./delvpack.py src dest
+
+Packs or unpacks Delver archives. If dest is an existing directory, 
+it will unpack src into it. Otherwise, it writes a new Delver Archive
+at dest. src itself can be either an archive or a directory containing
+an unpacked Delver Archive.
+
+Note that when copying archives, it produces an archive containing the
+same data, not a copy like you'd get with cp; in particular, delv does
+not leave cruft in the archive like DelvEd does, and so if you copy
+"Cythera Data" the resulting copy will be smaller (but still fully
+functional.)
+'''
+
 if len(sys.argv)<3:
-    print >> sys.stderr, "Usage: ./delvpack.py src dest"
+    print >> sys.stderr, USAGE
     sys.exit(-1)
 
 delv.archive.Scenario(sys.argv[1]).to_path(sys.argv[2])
