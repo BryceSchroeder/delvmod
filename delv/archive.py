@@ -224,6 +224,8 @@ class Resource(object):
     def load_from_file(self, src):
         self.data = bytearray(src.read())
         self.loaded = True
+        self.encrypted = False
+        self.canon_encryption = self.archive.canon_encryption_of(self.subindex)
     def load(self):
         fpos = self.archive.arcfile.tell()
         self.archive.arcfile.seek(self.offset)
@@ -281,8 +283,21 @@ class Archive(object):
             self.from_file(src)
     def from_directory(self, path):
         """Load a delver archive from the provided path."""
-        self.source_string = 'Packed from %s'%src
-        raise util.UnimplementedFeature("Can't load from directories yet.")
+        metadata = json.load(open(os.path.join(path, "metadata.json"),'r'))
+        self.source_string = metadata['source']+' (From directory %s)'%path
+        encrypt = metadata['should_encrypt']
+        self.create_header()
+        self.create_index()
+        for rid,canon_e in encrypt.items():
+            rid = int(rid,16)
+            subindex,ri = indices(rid)
+            nres = Resource(0,0,subindex,ri, self)
+            dfile = open(os.path.join(path, '%04X.data'%rid), 'r')
+            nres.load_from_file(dfile)
+            nres.hint_encryption(False, canon_e)
+            self[rid] = nres
+            
+        self.source_string = 'Packed from %s'%path
     def from_file(self, src): 
         """Load a delver archive from a file-like object."""
         self.arcfile = util.BinaryHandler(src)
@@ -295,11 +310,11 @@ class Archive(object):
         self.source_string = "Loaded from string"
     def from_path(self, path):
         """Load a Delver archive from a file system path."""
+        self.source_string = "Loaded from path %s"%path
         if os.path.isdir(path):
             self.from_directory(path)
         else:
             self.from_file(open(path, 'rb'))
-        self.source_string = "Loaded from path %s"%path
     def source(self):
         '''Return a string explaining where this archive came from.'''
         return self.source_string
@@ -408,8 +423,16 @@ class Archive(object):
         """idx sematics are the same as __getitem__. If value is not 
            already a Resource object, it will be automatically wrapped.
            New resources are created if needed."""
-        res = self.get(idx, True)
-        res.set_data(value)
+        subindex,n = indices(idx)
+        if isinstance(value, Resource):
+            if not self.all_subindices[subindex]:
+                self.all_subindices[subindex] = [None]*256
+            if not self.master_index[subindex]:
+                self.master_index[subindex] = (-1,-1)
+            self.all_subindices[subindex][n] = value
+        else:
+            res = self.get(idx, True)
+            res.set_data(value)
     def resource_ids(self, subindex=None):
         """If subindex is not None, returns a list of valid resource IDs
            (not resource objects) for that subindex, possibly empty if
@@ -458,6 +481,8 @@ class Archive(object):
         self.master_index_length = 2048
     def create_index(self, size=256):
         self.master_index = [None]*size
+        self.all_subindices = []
+        for _ in xrange(size): self.all_subindices.append([])
         self.master_index_length = 8*size
     def load_header(self):
         self.scenario_title = self.arcfile.read_pstring(0)

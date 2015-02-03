@@ -76,7 +76,7 @@ for idx in archive.subindices():
 
 # Modify a resource, as an array: 
 # (This changes the text of the Sapphire Book of Wisdom)
-archive[0x021B][0xDA7:0xDAA] = 'zap'
+archive[0x021B][0xDA7:0xDAA] = 'hax'
 
 # Create a resource one way
 archive[0xBC00] = "This file written by delv %s"%delv.version
