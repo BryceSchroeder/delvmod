@@ -27,7 +27,7 @@
 
 import os
 import util
-import numpy as np
+#import numpy as np
 import operator
 import json
 
@@ -54,11 +54,18 @@ def entropy(data):
        not infallable and if the cleartext has very high entropy, e.g. in
        the case of compressed data, it may not be able to distinguish
        a successful decryption, at least in principle."""
-    counts = np.zeros(256)
+    counts = [0]*256
+    #counts = np.zeros(256) # Uncomment for faster entropy calculations
+    # in exchange for a numpy dependency
     for c in data: counts[c] += 1
-    counts -= len(data)/256.0
-    counts *= counts
-    return 1 - ((counts.sum()**0.5)/len(data))
+    base = len(data)/256.0
+    for i in enumerate(counts):
+         counts[i] -= base
+         counts[i] *= counts[i]
+    #counts -= len(data)/256.0
+    #counts *= counts
+    #return 1 - ((counts.sum()**0.5)/len(data))
+    return 1 - sum(counts)**0.5/len(data)
 
 def validate_resource_id(resid):
     """Returns True if resid is valid, False otherwise. Note that validity

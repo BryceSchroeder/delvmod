@@ -2,6 +2,13 @@
 A Python module and demonstration programs for modding a classic computer RPG
 
 
+INSTALLING / USING
+
+python setup.py install
+
+(You will need to run it as root, e.g. "sudo python setup.py install". You can
+also use "python setup.py develop" if you anticipate modifying the program.)
+
 WHAT IS delv FOR?
 
 delv is a Python module that allows users to manipulate the archives of games
@@ -104,8 +111,9 @@ a browser-based python implementation someday. Sorry about that.
 
 EXAMPLE PROGRAMS
 
-delv comes with some examples. Probably, it'll come with more someday, but now
-there are two:
+delv comes with some examples. Probably, it'll come with more someday. You 
+will need to install delv (python setup.py install) before they will work.
+All of them are, unsurprisingly, in the examples/ directory.
 
 "archive\_example.py" - Shows how one can load, modify, and save archives.
 
