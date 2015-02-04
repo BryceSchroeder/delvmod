@@ -59,7 +59,7 @@ def entropy(data):
     # in exchange for a numpy dependency
     for c in data: counts[c] += 1
     base = len(data)/256.0
-    for i in enumerate(counts):
+    for i in xrange(256):
          counts[i] -= base
          counts[i] *= counts[i]
     #counts -= len(data)/256.0
