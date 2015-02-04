@@ -28,4 +28,7 @@ setup(name='delv',
       author_email='bryce.schroeder@gmail.com',
       license='GPL-3',
       url='http://www.ferazelhosting.net/wiki/delv',
+	classifiers=["Development Status :: 2 - Pre-Alpha",
+                     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+                     "Topic :: Games/Entertainment :: Role-Playing"],
       packages=['delv'])
