@@ -29,6 +29,65 @@ import cStringIO, struct
 # This whole file is intended to be 'private' to delv; it isn't part of the 
 # public API.
 
+
+def bits_pack(target, value, size, index):
+    """Alter bytearray target so that size bits of target starting
+       at index are replaced by value."""
+    pass
+
+def ncbits_pack(target, value, *fields):
+    """Alter target to contain the value given, broken up into
+       nonconsecutive bitfields using the same sematics as ncbits_of.
+       
+       Look on this, ye coders, and repeat the sacred mantra:
+          "Premature optimization is the root of all evil."
+    """
+    pass
+
+def ncbits_of(data, *fields):
+    """Returns an integer bit field from the bytearray data, 
+       the integer being made up of all the fields combined.
+       Each field is a tuple in the format (size,index). 
+       e.g. if  you had a bytearray foo of three bytes as follows:
+       
+         -----AB-, ---CDEFG, HI--JKL-   
+
+       And you wanted to extract the bits ABCDEFGHIJKL as one
+       12-bit integer, you'd say:
+         ncbits_of(foo, (5,2), (11,7), (20,3))
+
+       Note that if you ever use this function other than to be
+       compatible with something already using nonconsecutive bits,
+       I am pretty sure that D. E. Knuth will come to your home and
+       perform an exorcism involving a shotgun and rock salt. Or at least,
+       he ought to.
+    """
+    result = 0
+    position = 0
+    for size,index in fields:
+        result <<= size
+        result |= bits_of(data, size, index)
+    return result
+
+def bits_of(data, size, index):
+    "Read a slice of the bytearray data bitwise - indices in bits"
+    byte_index = index // 8
+    bit_index = index % 8
+    byte_end = (size+index) // 8 
+    bit_size = size % 8 
+    #print index,size,",",byte_index,bit_index,byte_end,bit_size
+    result = data[byte_index] & (0xFF >> bit_index)
+    #print "Headbytes %02X"%result
+    while byte_index < byte_end:
+        byte_index += 1
+        result = (result << 8) | data[byte_index]
+        #print "intermediate", byte_index, "%08X"%result
+    #print "Tailbytes %08X"%result, "shift >>",8 -(bit_index + bit_size) % 8 
+    result >>= 8 - (bit_index + bit_size) % 8
+    return result
+        
+
+
 class BinaryHandler(object):
     S_offlen = struct.Struct('>LL')
     S_uint32 = struct.Struct('>L')

@@ -25,28 +25,68 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 import colormap
+import archive
+import util
+
+# import the four horsemen of the bitpocalypse:
+from util import bits_pack, ncbits_pack, ncbits_of, bits_of
+
+def DelvImageFactory(src, *args, **kwargs):
+    """Return the appropriate kind of DelvImage subclass for the 
+       delv.archive.Resource object you provide."""
+    return _CLASS_HINTS.get(src.subindex, DelvImage)(src, *args, **kwargs)
+    
+    
+
 
 class DelvImage(object):
     """This is the base class for all forms of Delver Compressed (sprite)
        graphics, images in the proprietary format used by the Delver Engine.
-       Unless you are loading graphics from a delv Resource,
-       you should probably not instantiate this class directly, but instead
+       You should probably not instantiate this class directly, but instead
        one of its child classes (General, for sized images; TileSheet, for
        32x512 sets of sixteen 32x32 tiles; Portrait, for 64x64 character
-       portraits; or Landscape, for 288x32 level images.
+       portraits; or Landscape, for 288x32 level images. You can use 
+       DelvImageFactory (arguments same as DelvImage's constructor) to 
+       automatically pick the right class, if you are loading from a
+       delv.archive.Resource object.
        
        The file format used, is documented here in detail:
        http://www.ferazelhosting.net/wiki/Delver%20Compressed%20Graphics
     """
-    canonical_size = None,None
+    canonical_size = 256,256
     has_header = False
     def __init__(self, src=None):
         """Create a new Delver Compressed Graphics Image. src can be None,
            the default, which creates an empty image of the default size
            for this type, or an random-access indexable item such as a list,
-           string or numpy array, which will be assumed to be compressed data, 
-           a delv Resource object (also assumed to be compressed data.)"""
-        pass
+           string or array, which will be assumed to be compressed data, 
+           or a delv Resource object (also assumed to be compressed data.)"""
+        if isinstance(src, archive.Resource):
+            self.src = bytearray(src.get_data())
+        elif hasattr(src, "__getitem__"):
+            self.src = bytearray(src)
+        
+        if self.has_header:
+            self.width = read_bits(8+5) << 3
+            self.flags = src.read_bits(3)
+            self.height = src.read_bits(16)
+            # TODO - figure out what the deal is with this.
+            # DelvTechWiki conjectures that it has something to do with 
+            # objects that have some sort of response to dragging/clicking
+            # only in certain areas.
+            if self.flags: 
+                self.width += 4
+                self.visual_width += self.flags
+        else:
+            self.width,self.height = self.canonical_size
+            self.flags = 0
+            self.visual_width = self.width
+        
+        self.image = bytearray(self.visual_width * self.height)
+        # TODO this is the "working face" of the code. Need to implement the
+        # bitslice functions to replace all the shifts and masks in the 
+        # current graphics code...
+
 
     def decompress(self, data):
         """Decompress the indexable-item data provided into this image.
@@ -125,3 +165,4 @@ class Portrait(DelvImage):
 class Landscape(DelvImage):
     canonical_size = 288,32
 
+_CLASS_HINTS = {142:General, 141:TileSheet, 135:Portrait, 131:Landscape}
