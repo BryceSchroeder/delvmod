@@ -166,3 +166,10 @@ class Landscape(DelvImage):
     canonical_size = 288,32
 
 _CLASS_HINTS = {142:General, 141:TileSheet, 135:Portrait, 131:Landscape}
+
+
+
+class SkillIcon(object):
+    """Class for handling the small skill icons that are stored
+       uncompressed as indexed color data."""
+    pass

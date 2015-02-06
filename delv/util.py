@@ -29,11 +29,45 @@ import cStringIO, struct
 # This whole file is intended to be 'private' to delv; it isn't part of the 
 # public API.
 
+def int_to_bits(value,size):
+    result = bytearray(size)
+    j =0 
+    for i in xrange(size-1,-1,-1):
+        result[j] = (value >> i)&1
+        j += 1
+    return result
+
+def bytes_to_bits(src):
+    src = bytearray(src) # Note that if src is an integer, a new empty bytearray is made.
+    # this is not efficient, but it does at least make sense semantically.
+    result = bytearray(len(src)*8)
+    ri = 0
+    for byte in src:
+        for bi in xrange(7,-1,-1): 
+            result[ri] = (byte>>bi)&1
+            ri += 1
+    return result
+
+def bits_to_bytes(src):
+    result = bytearray((len(src)+7)//8)
+    byi = 0
+    bi = 0
+    for n,bit in enumerate(src):
+        byte_index = n//8
+        bit_index = n % 8
+        result[byte_index] |= bit << (7-bit_index)
+    return result
 
 def bits_pack(target, value, size, index):
     """Alter bytearray target so that size bits of target starting
        at index are replaced by value."""
-    pass
+    bit_index = index % 8
+    startbyte = index // 8
+    endbyte = (index+size+7) // 8
+    section = bytes_to_bits(target[startbyte:endbyte])
+    section[bit_index:bit_index+size] = int_to_bits(value,size)
+    target[startbyte:endbyte] = bits_to_bytes(section)
+
 
 def ncbits_pack(target, value, *fields):
     """Alter target to contain the value given, broken up into
@@ -42,7 +76,16 @@ def ncbits_pack(target, value, *fields):
        Look on this, ye coders, and repeat the sacred mantra:
           "Premature optimization is the root of all evil."
     """
-    pass
+    # This would be more efficient if we made it only convert to
+    # bits and back once, or if we rewrote it to be like bits_of (I
+    # actually wrote that first before I thought of this simpler way)
+    # but why bother, it's only used compressing graphics, which is an
+    # infrequent operation (whereas decompression happens a lot.)
+    for size,index in fields[::-1]:
+        fieldbits = value & (0xFFFFFFFFFFFFFFFFL >> (64-size))
+        value >>= size
+        bits_pack(target, fieldbits, size, index)
+    
 
 def ncbits_of(data, *fields):
     """Returns an integer bit field from the bytearray data, 
