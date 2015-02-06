@@ -122,8 +122,8 @@ patches created for the first-party patch manager Magpie, and create patches
 that it can apply, but it can't create patches that can be applied by Magpie.)
 
 "delvpack.py" - This just converts Delver Archives back and forth between
-archive files and scripts. First arguement is source, second is destination,
-it'll figure out what needs to happen. Very simple.
+archive files and unpacked directories. First arguement is source, second is 
+destination, it'll figure out what needs to happen. Very simple.
 
 FUTURE DIRECTIONS
 
