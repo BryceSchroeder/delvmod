@@ -123,6 +123,8 @@ def bits_of(data, size, index):
     #print "Headbytes %02X"%result
     while byte_index < byte_end:
         byte_index += 1
+        if len(data) == byte_index: 
+            result <<= 8; break
         result = (result << 8) | data[byte_index]
         #print "intermediate", byte_index, "%08X"%result
     #print "Tailbytes %08X"%result, "shift >>",8 -(bit_index + bit_size) % 8 

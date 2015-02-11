@@ -36,8 +36,12 @@ def DelvImageFactory(src, *args, **kwargs):
        delv.archive.Resource object you provide."""
     return _CLASS_HINTS.get(src.subindex, DelvImage)(src, *args, **kwargs)
     
-    
+def DelvImageFactoryMode(src, mode, *args, **kwargs):
+    """Return the appropriate kind of DelvImage subclass for the 
+       specified mode, one of tiles, portrait, landscape or sized."""
+    return _NAME_HINTS.get(mode, DelvImage)(src, *args, **kwargs)
 
+class UnknownOpcode(Exception): pass
 
 class DelvImage(object):
     """This is the base class for all forms of Delver Compressed (sprite)
@@ -55,7 +59,7 @@ class DelvImage(object):
     """
     canonical_size = 256,256
     has_header = False
-    def __init__(self, src=None):
+    def __init__(self,src=None,width=256,height=256,flags=0,logical_width=256):
         """Create a new Delver Compressed Graphics Image. src can be None,
            the default, which creates an empty image of the default size
            for this type, or an random-access indexable item such as a list,
@@ -66,32 +70,91 @@ class DelvImage(object):
         elif hasattr(src, "__getitem__"):
             self.src = bytearray(src)
         
-        if self.has_header:
-            self.width = read_bits(8+5) << 3
-            self.flags = src.read_bits(3)
-            self.height = src.read_bits(16)
+        
+        if self.has_header and src:
+            header = self.src[0:4]
+            data_cursor = 4
+            self.width = self.logical_width = bits_of(header, 8+6, 0) << 2
+            self.flags = bits_of(header, 2,  14)
+            self.height = bits_of(header, 16, 16)
             # TODO - figure out what the deal is with this.
             # DelvTechWiki conjectures that it has something to do with 
             # objects that have some sort of response to dragging/clicking
             # only in certain areas.
             if self.flags: 
-                self.width += 4
-                self.visual_width += self.flags
+                self.logical_width += 4
+                self.width += self.flags
+            print self.flags, "x"
+        elif self.has_header and not src:
+            self.width,self.height = width,height
+            self.flags = 0
+            data_cursor = 0
+            self.logical_width = logical_width
         else:
             self.width,self.height = self.canonical_size
             self.flags = 0
-            self.visual_width = self.width
-        
-        self.image = bytearray(self.visual_width * self.height)
-        # TODO this is the "working face" of the code. Need to implement the
-        # bitslice functions to replace all the shifts and masks in the 
-        # current graphics code...
-
-
-    def decompress(self, data):
+            data_cursor = 0
+            self.logical_width = self.width
+        self.cursor = 0
+        self.image = bytearray(self.logical_width * self.height*2)
+        if src: self.decompress(self.src, data_cursor)
+    def decompress(self, data, cursor):
         """Decompress the indexable-item data provided into this image.
            You shouldn't normally need to call this explicitly."""
-        pass
+        while cursor < len(data):
+            opcode = data[cursor]
+            if opcode < 0x80:
+                # short copy operation 0x00-0x7F
+                operation = data[cursor:cursor+2]; cursor += 2
+                index =-(ncbits_of(operation, (3,8),  (7,1)) + 1)
+                length =   bits_of(operation,  3, 13) + 3
+                literals = bits_of(operation,  2, 11)
+                self.data(data[cursor:cursor+literals]); cursor += literals
+                self.copy(length,index)
+            elif opcode < 0xC0:
+                # long copy operation 0x80-0xBF
+                operation = data[cursor:cursor+3]; cursor += 3
+                index =-(ncbits_of(operation, (6,16), (3,8), (6,2)) + 1)
+                length =   bits_of(operation,  5,11) + 3
+                literals = bits_of(operation,  2,22)
+                self.data(data[cursor:cursor+literals]); cursor += literals
+                self.copy(length,index)
+            elif opcode < 0xD0:
+                # pixel data 0xC0-0xCF
+                operation = data[cursor:cursor+1]; cursor += 1
+                size =    (bits_of(operation,  4,4) + 1) * 4
+                self.data(data[cursor:cursor+size]); cursor += size
+            elif opcode < 0xE0:
+                # unknown opcodes 0xD0 - 0xDF
+                operation = data[cursor:cursor+1]; cursor += 1
+                literals =  bits_of(operation,  2,6)
+                self.data(data[cursor:cursor+literals]); cursor += literals
+                print "Unknown opcode %02X lit=%d"%(operation[0],literals)
+                #if subcode == 2:
+                #    print "%02X %02X"%(data[cursor+1],data[cursor+2])
+                #    cursor += 2
+                #else:
+                #    print "%02X"%data[cursor+1]
+                #    cursor += 1
+            elif opcode < 0xF0:
+                # short run 0xE0-0xEF
+                operation = data[cursor:cursor+2]; cursor += 2
+                length =   bits_of(operation,  4,4) + 3
+                color =    operation[1]
+                self.run(length,color)
+            elif opcode == 0xF0:
+                # long run 0xF0
+                operation = data[cursor:cursor+3]; cursor += 3
+                length =   operation[1] + 3
+                color =    operation[2]
+                self.run(length,color)
+            elif opcode == 0xFF:
+                # terminate 0xFF
+                operation = data[cursor]; cursor += 1
+                print "Orderly termination. dc:%x pc:%X"%(cursor,self.cursor)
+            else:
+                # unknown opcode
+                raise UnknownOpcode("0x%02X at 0x%06X"%(opcode,cursor))
 
     def compress(self):
         """Create the compressed version of the graphic. You shouldn't
@@ -99,15 +162,13 @@ class DelvImage(object):
         pass
 
     def get_data(self):
-        """Return the compressed image data, as a string."""
-        pass
+        """Return the compressed image data, as a bytearray."""
+        return self.src
 
-    def get_image(self,form='numpy'):
-        """Get the whole image. By default returns a two-dimensional
-           numpy array (the internal storage format), but it will also
-           accept the form parameters 'numpy1' for a 1D array, 
-           and 'pil' for a Python Imaging Library indexed color image."""
-        pass
+    def get_image(self):
+        """Get the whole image. Returns a one-dimensional
+           bytearray."""
+        return self.image
 
     def draw_into(self,src,x=0,y=0,w=0,h=0):
         """Draw an image src into this object, optionally specifying
@@ -123,7 +184,7 @@ class DelvImage(object):
         """Conveninence method to draw to a particular tile. n has the
            same semantics as for get_tile below, including for situations
            in which non-canonical tileset shapes are addressed."""
-        pass
+        self.draw_into(*(src,)+self.tile_rect(n))
 
     def get_tile(self,n,form='numpy'):
         """Get the nth 32x32 tile of this image. Clasically meaningful only
@@ -145,13 +206,22 @@ class DelvImage(object):
     # The methods below may change freely between delv versions, and are
     # intended for the internal use of other delv code only.
     def run(self, length, color):
-        pass
+        maxcursor = self.cursor + length
+        while self.cursor < maxcursor:
+            self.image[self.cursor] = color
+            self.cursor += 1
     def copy(self, length, origin):
-        pass
+        abs_origin = self.cursor + origin
+        copy_width = -origin
+        for n in xrange(length):
+            self.image[self.cursor] = self.image[abs_origin + n%copy_width]
+            self.cursor += 1
     def data(self, pixels):
-        pass
+        self.image[self.cursor:self.cursor+len(pixels)] = pixels
+        self.cursor += len(pixels)
     def put_pixel(self, color):
-        pass
+        self.image[self.cursor] = color
+        self.cursor += 1
 
 class General(DelvImage):
     has_header = True
@@ -166,8 +236,9 @@ class Landscape(DelvImage):
     canonical_size = 288,32
 
 _CLASS_HINTS = {142:General, 141:TileSheet, 135:Portrait, 131:Landscape}
-
-
+_NAME_HINTS = {'general':General,'tiles':TileSheet,'portrait':Portrait,
+               'landscape':Landscape,'sprite':TileSheet,'sized':General,
+               }
 
 class SkillIcon(object):
     """Class for handling the small skill icons that are stored
