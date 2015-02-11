@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Delver Archive patcher / unpatcher for the Host System. Should be a useful
+# Delver Archive patcher / patch maker for the Host System. Should be a useful
 # example of how to use delv.archive.Patch
 #
 # Copyright 2015 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com

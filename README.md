@@ -72,9 +72,10 @@ Most of the classes and methods have docstrings. An overview is presented here:
 delv.archive - Reads and writes Delver Archives (e.g. "Cythera Data")
 
 delv.colormap - Contains the palette of indexed colors used by Cythera. You 
-probably won't need to access this directly.
+may need to access this if you are undertaking to display graphics.
 
-delv.graphics - Handles the Delver Engine's custom compressed graphics format
+delv.graphics - Handles the Delver Engine's custom compressed graphics format,
+and also the uncompressed icon graphics.
 
 delv.monster - Handles the special monster stats resource. (Note that in the
 course of the game, the scripting system would normally access this itself
@@ -117,13 +118,17 @@ All of them are, unsurprisingly, in the examples/ directory.
 
 "archive\_example.py" - Shows how one can load, modify, and save archives.
 
-"mag.py" - Command-line tool for creating and applying patches. (It can apply
-patches created for the first-party patch manager Magpie, and create patches
-that it can apply, but it can't create patches that can be applied by Magpie.)
+"dcg\_view.py" - Simple viewer for Delver Compressed Graphics. It can view
+them in archives or as single files, and save them to PNG. Requires the
+Python Imaging Library.
 
 "delvpack.py" - This just converts Delver Archives back and forth between
 archive files and unpacked directories. First arguement is source, second is 
 destination, it'll figure out what needs to happen. Very simple.
+
+"mag.py" - Command-line tool for creating and applying patches. (It can apply
+patches created for the first-party patch manager Magpie, and create patches
+that it can apply, but it can't create patches that can be applied by Magpie.)
 
 FUTURE DIRECTIONS
 
