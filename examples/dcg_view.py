@@ -59,6 +59,10 @@ pil_img = Image.frombuffer("P",
        image.get_image(), "raw",
        ("P",0,1))
 pil_img.putpalette(delv.colormap.pil)
-pil_img.show()
+
+if len(sys.argv)>3:
+    pil_img.save(sys.argv[3])
+else:
+    pil_img.show()
 
 print "Size:", image.logical_width,image.width, image.height

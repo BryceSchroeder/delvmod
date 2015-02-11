@@ -80,7 +80,8 @@ class DelvImage(object):
             # TODO - figure out what the deal is with this.
             # DelvTechWiki conjectures that it has something to do with 
             # objects that have some sort of response to dragging/clicking
-            # only in certain areas.
+            # only in certain areas. But it has colors similar to the main
+            # object...
             if self.flags: 
                 self.logical_width += 4
                 self.width += self.flags
@@ -129,13 +130,7 @@ class DelvImage(object):
                 operation = data[cursor:cursor+1]; cursor += 1
                 literals =  bits_of(operation,  2,6)
                 self.data(data[cursor:cursor+literals]); cursor += literals
-                print "Unknown opcode %02X lit=%d"%(operation[0],literals)
-                #if subcode == 2:
-                #    print "%02X %02X"%(data[cursor+1],data[cursor+2])
-                #    cursor += 2
-                #else:
-                #    print "%02X"%data[cursor+1]
-                #    cursor += 1
+                #print "Unknown opcode %02X lit=%d"%(operation[0],literals)
             elif opcode < 0xF0:
                 # short run 0xE0-0xEF
                 operation = data[cursor:cursor+2]; cursor += 2
@@ -151,7 +146,7 @@ class DelvImage(object):
             elif opcode == 0xFF:
                 # terminate 0xFF
                 operation = data[cursor]; cursor += 1
-                print "Orderly termination. dc:%x pc:%X"%(cursor,self.cursor)
+                #print "Orderly termination. dc:%x pc:%X"%(cursor,self.cursor)
             else:
                 # unknown opcode
                 raise UnknownOpcode("0x%02X at 0x%06X"%(opcode,cursor))
