@@ -163,11 +163,14 @@ class DelvImage(object):
 
     def get_logical_image(self):
         """Get the whole image. Returns a one-dimensional
-           bytearray."""
+           bytearray. This will include data not part of the image
+           displayed to the user, if it exists (the purpose of that data
+           is unknown at this time.)"""
         return self.image
     def get_image(self):
         """Get only the part of the image normally displayed by 
-           the engine to the user."""
+           the engine to the user. This is usually all of the image;
+           except for certain Sized image resources ID 8Fxx."""
         if self.width == self.logical_width: 
             self.cached_visual = self.image
         if self.cached_visual: return self.cached_visual
