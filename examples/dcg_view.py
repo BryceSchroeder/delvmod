@@ -51,11 +51,14 @@ if sys.argv[2] in modes: # individual file
     image = delv.graphics.DelvImageFactoryMode(data, sys.argv[2])
 else: # archive
     resource = delv.archive.Scenario(source).get(int(sys.argv[2],16))
+    if not resource:
+        print >> sys.stderr, "No resource", sys.argv[2], "found in that archive."
+        sys.exit(-1)
     image = delv.graphics.DelvImageFactory(resource)
 
 
 pil_img = Image.frombuffer("P", 
-      (image.logical_width, image.height), 
+      (image.width, image.height), 
        image.get_image(), "raw",
        ("P",0,1))
 pil_img.putpalette(delv.colormap.pil)

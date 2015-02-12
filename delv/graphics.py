@@ -99,6 +99,7 @@ class DelvImage(object):
         self.cursor = 0
         self.image = bytearray(self.logical_width * self.height*2)
         if src: self.decompress(self.src, data_cursor)
+        self.cached_visual = None
     def decompress(self, data, cursor):
         """Decompress the indexable-item data provided into this image.
            You shouldn't normally need to call this explicitly."""
@@ -160,10 +161,24 @@ class DelvImage(object):
         """Return the compressed image data, as a bytearray."""
         return self.src
 
-    def get_image(self):
+    def get_logical_image(self):
         """Get the whole image. Returns a one-dimensional
            bytearray."""
         return self.image
+    def get_image(self):
+        """Get only the part of the image normally displayed by 
+           the engine to the user."""
+        if self.width == self.logical_width: 
+            self.cached_visual = self.image
+        if self.cached_visual: return self.cached_visual
+        self.cached_visual = bytearray(self.width*self.height)
+        v_cursor = 0
+        for x in xrange(self.height):
+            self.cached_visual[v_cursor:v_cursor+self.width] = (
+                self.image[x*self.logical_width:x*self.logical_width+self.width
+                ])
+            v_cursor += self.width
+        return self.cached_visual
 
     def draw_into(self,src,x=0,y=0,w=0,h=0):
         """Draw an image src into this object, optionally specifying

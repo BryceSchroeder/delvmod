@@ -97,7 +97,7 @@ def ncbits_of(data, *fields):
 
        And you wanted to extract the bits ABCDEFGHIJKL as one
        12-bit integer, you'd say:
-         ncbits_of(foo, (5,2), (11,7), (20,3))
+         ncbits_of(foo, (2,5), (7,11), (3,20))
 
        Note that if you ever use this function other than to be
        compatible with something already using nonconsecutive bits,
