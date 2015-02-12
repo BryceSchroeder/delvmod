@@ -234,7 +234,7 @@ class DelvImage(object):
   
     def get_size(self):
         """Return (width,height)."""
-        pass
+        return self.width,self.height
     ##########################  PRIVATE METHODS  #######################
     # The methods below may change freely between delv versions, and are
     # intended for the internal use of other delv code only.
@@ -275,5 +275,28 @@ _NAME_HINTS = {'general':General,'tiles':TileSheet,'portrait':Portrait,
 
 class SkillIcon(object):
     """Class for handling the small skill icons that are stored
-       uncompressed as indexed color data."""
-    pass
+       uncompressed as indexed color data.
+       Methods with the same name generally work as in DelvImage."""
+    width = 32
+    height = 16
+    logical_width = 32
+    logical_height = 16
+    def __init__(self, data):
+        self.image = data
+    def get_image(self):
+        return self.image
+    def get_logical_image(self):
+        return self.image
+    def get_size(self):
+        return self.width,self.height
+    def draw_into(self,src,x=0,y=0,w=0,h=0):
+        """Draw an image src into this object, optionally specifying
+           destination coordinates and a width and height if you wish
+           to copy less than the entirety of the source image.
+           src may be a PIL image, or anything that can be indexed 
+           like src[x,y].
+           The source must already be 8-bit indexed color using the colormap
+           for your target game (e.g the Cythera CLUT); dithering
+           and color-matching are beyond the scope of this project."""
+        pass
+
