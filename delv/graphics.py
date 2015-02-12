@@ -76,7 +76,9 @@ class DelvImage(object):
             data_cursor = 4
             self.width = self.logical_width = bits_of(header, 8+6, 0) << 2
             self.flags = bits_of(header, 2,  14)
-            self.height = bits_of(header, 16, 16)
+            self.height = bits_of(header, 15, 16) << 1
+            self.flags2 = bits_of(header, 1, 31)
+            self.logical_height = self.height + self.flags2
             # TODO - figure out what the deal is with this.
             # DelvTechWiki conjectures that it has something to do with 
             # objects that have some sort of response to dragging/clicking
@@ -85,19 +87,31 @@ class DelvImage(object):
             if self.flags: 
                 self.logical_width += 4
                 self.width += self.flags
-            print self.flags, "x"
+            if self.flags2:
+                self.height += self.flags2
+                # interpreting 8F0C correctly seems to be mutually exclusive
+                # with 8F1A. They have the same identified or suspected flag
+                # bits. One possibility is that 8F0C is an earlier version
+                # of the graphics format (I at least do not recognize the pot
+                # as appearing in the current game); another is that the size
+                # information is encoded somewhere else e.g. in a script.
+                # Neither of the two resources mentioned above contain any
+                # unknown opcodes (and that would be a really obtuse way
+                # to encode size information anyhow.)
         elif self.has_header and not src:
             self.width,self.height = width,height
             self.flags = 0
             data_cursor = 0
             self.logical_width = logical_width
+            self.logical_height = self.height
         else:
             self.width,self.height = self.canonical_size
             self.flags = 0
             data_cursor = 0
             self.logical_width = self.width
+            self.logical_height = self.height
         self.cursor = 0
-        self.image = bytearray(self.logical_width * self.height*2)
+        self.image = bytearray(self.logical_width * self.logical_height)
         if src: self.decompress(self.src, data_cursor)
         self.cached_visual = None
     def decompress(self, data, cursor):
@@ -127,11 +141,17 @@ class DelvImage(object):
                 size =    (bits_of(operation,  4,4) + 1) * 4
                 self.data(data[cursor:cursor+size]); cursor += size
             elif opcode < 0xE0:
-                # unknown opcodes 0xD0 - 0xDF
+                # Short data
+                # They do not seem to have any visual effect.
+                # It is quite possible that this represents a short run of 
+                # literal data (< C0); it only appears as the penultimate
+                # opcode in the corpus. On this basis we assume 4 bits of
+                # literals, but only D2 is seen.
                 operation = data[cursor:cursor+1]; cursor += 1
-                literals =  bits_of(operation,  2,6)
+                literals =  bits_of(operation,  4,4)
                 self.data(data[cursor:cursor+literals]); cursor += literals
-                #print "Unknown opcode %02X lit=%d"%(operation[0],literals)
+                #print "Unknwn opcode %02X lit=%d c=%X"%(operation[0],literals,
+                #    cursor)
             elif opcode < 0xF0:
                 # short run 0xE0-0xEF
                 operation = data[cursor:cursor+2]; cursor += 2
