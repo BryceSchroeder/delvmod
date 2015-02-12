@@ -126,6 +126,8 @@ Python Imaging Library.
 archive files and unpacked directories. First arguement is source, second is 
 destination, it'll figure out what needs to happen. Very simple.
 
+"icon\_view.py" - Views uncompressed icons (Resources 8Axx / subindex 137.)
+
 "mag.py" - Command-line tool for creating and applying patches. (It can apply
 patches created for the first-party patch manager Magpie, and create patches
 that it can apply, but it can't create patches that can be applied by Magpie.)
