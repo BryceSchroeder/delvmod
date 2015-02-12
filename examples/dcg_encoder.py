@@ -43,8 +43,16 @@ if len(sys.argv)<3:
     print >> sys.stderr, USAGE
     sys.exit(-1)
 
-source = open(sys.argv[1],'rb')
+source = Image.open(sys.argv[1])
 destination = open(sys.argv[2],'wb')
 flags = int(sys.argv[3]) if len(sys.argv)>3 else None
 
-print >> sys.stderr, "This program isn't finished yet."
+if flags is None:
+    img = delv.graphics.DelvImage(None,source.size[0],source.size[1])
+else:
+    img = delv.graphics.General(None,source.size[0],source.size[1],
+        flags=flags)
+
+img.set_image(source.getdata())
+destination.write(img.get_data())
+destination.close()
