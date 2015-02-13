@@ -172,13 +172,52 @@ class DelvImage(object):
                 # unknown opcode
                 raise UnknownOpcode("0x%02X at 0x%06X"%(opcode,cursor))
 
-    def compress(self):
+    def compress(self, image):
         """Create the compressed version of the graphic. You shouldn't
            normally need to call it explicitly."""
-        pass
+        # The basic idea here is that we have each opcode make a "bid" on
+        # the image data at the current cursor position, then we use a greedy
+        # approach to pick the bidder who gives the best (local) compression
+        # ratio.
+        # Each cursor position needs to be bid on by the following operations:
+        # Short Data (Dx)               Long Data (Cx)
+        # Short Copy with 0 literals    Long Copy with 0 literals
+        # Short Copy with 1 literal     Long Copy with 1 literal
+        # Short Copy with 2 literals    Long Copy with 2 literals
+        # Short Run (Ex)                Long Run (F0)
+        operations = [
+                      lambda i,d: self.en_short_data(i,d),
+                      lambda i,d: self.en_long_data(i,d),
+                      lambda i,d: self.en_short_copy(i,d,0),
+                      lambda i,d: self.en_short_copy(i,d,1),
+                      lambda i,d: self.en_short_copy(i,d,2),
+                      lambda i,d: self.en_long_copy(i,d,0),
+                      lambda i,d: self.en_long_copy(i,d,1),
+                      lambda i,d: self.en_long_copy(i,d,2),
+                      lambda i,d: self.en_short_run(i,d),
+                      lambda i,d: self.en_long_run(i,d)
+        ]
+        codes = []
+        icursor = 0
+        while icursor < len(self.image):
+            # each of the en_* codes returns a compression_ratio, end_cursor,
+            # code tuple. We pick the best one until we're done.
+            _,icursor,code = max([op(icursor,image) for op in operations])
+            codes.append(code)
+        # The scheme above will tend to produce lots of sequences like
+        # C0 aa bb cc dd, C0 ee ff gg hh, C0 ii jj kk ll
+        # and we need to condense them into
+        # C2 aa bb cc dd ee ff gg hh ii jj kk ll
+        # which is what condense does. The whole reason for this nonsense is
+        # that we don't want greedy behavior in the literal data opcodes.
+
+        data = self.condense_opcodes(codes)
+        data += '\xFF' # Termination opcode
+        return data
 
     def get_data(self):
         """Return the compressed image data, as a bytearray."""
+        if not self.src: self.src = self.compress(self.image)
         return self.src
 
     def get_logical_image(self):
@@ -202,7 +241,14 @@ class DelvImage(object):
                 ])
             v_cursor += self.width
         return self.cached_visual
-
+    def set_image(self, data):
+        """Set the uncompressed data of the logical image. data must be a 
+           linear indexable item of size logical_width*logical_height, of
+           integer values that represent indexed color pixels. Left to right,
+           top to bottom, densely packed."""
+        self.image = bytearray(data)
+        self.cached_visual = None
+        self.src = None
     def draw_into(self,src,x=0,y=0,w=0,h=0):
         """Draw an image src into this object, optionally specifying
            destination coordinates and a width and height if you wish
@@ -255,6 +301,71 @@ class DelvImage(object):
     def put_pixel(self, color):
         self.image[self.cursor] = color
         self.cursor += 1
+    # encoder methods
+    # All of them return compression_ratio, end_cursor_position, encoded_data
+    # tuples.
+    # compression_ratio = lenth of image data / length of encoded data
+    def en_short_data(self,i,d):
+        #end = min(i+3,len(d))
+        #code = bytearray()
+        return -1,i,''
+    def en_long_data(self,i,d):
+        if len(d)-i < 4:
+            return -1,i,''
+        return 4/5.0,i+4,'\xC0'+d[i:i+4]
+    def en_short_copy(self,i,d,lits):
+        return -1,i,''
+    def en_long_copy(self,i,d,lits):
+        return -1,i,''
+    def en_short_run(self,i,d):
+        initial_color = d[i]
+        end = i
+        while end < len(d) and d[end] == initial_color:
+            end += 1
+        if end-i < 3:
+            return -1,i,''
+        runlength = min(18,end-i)
+        code = bytearray(2)
+        bits_pack(code, 0xE,           4, 0)
+        bits_pack(code, runlength-3,   4, 4)
+        bits_pack(code, initial_color, 8, 8)
+        return (runlength/2.0, i+runlength, code)
+    def en_long_run(self,i,d):
+        initial_color = d[i]
+        end = i
+        while end < len(d) and d[end] == initial_color:
+            end += 1
+        if end-i < 3:
+            return -1,i,''
+        runlength = min(258,end-i)
+        code = bytearray(3)
+        bits_pack(code, 0xF0,          8, 0)
+        bits_pack(code, runlength-3,   8, 8)
+        bits_pack(code, initial_color, 8, 16)
+        return (runlength/3.0, i+runlength, code)
+        return -1,i,''
+    def condense_opcodes(self, codes):
+        condensed = []
+        data=bytearray()
+        data_opcode = bytearray()
+        for c in codes:
+            if c[0]&0xF0 == 0xC0:
+                data_opcode.extend(c[1:])
+            else:
+                if data_opcode: data += self.merge_C0(data_opcode)
+                data += c
+                data_opcode = bytearray()
+        data += self.merge_C0(data_opcode)
+        return data
+    def merge_C0(self, ops):
+        data = bytearray()
+        assert not len(ops)%4
+        while ops:
+            chunk = min(64,len(ops))
+            data += chr(0xC0 + chunk/4 - 1)
+            data += ops[:chunk]
+            ops = ops[chunk:]
+        return data
 
 class General(DelvImage):
     has_header = True
