@@ -306,9 +306,14 @@ class DelvImage(object):
     # tuples.
     # compression_ratio = lenth of image data / length of encoded data
     def en_short_data(self,i,d):
-        #end = min(i+3,len(d))
-        #code = bytearray()
-        return -1,i,''
+        end = min(i+3,len(d))
+        datalen = end-i
+        code = bytearray(1+datalen)
+        bits_pack(code, 0xD,          4, 0)
+        bits_pack(code, datalen,      2, 6)
+        for n,m in zip(xrange(i,i+datalen),xrange(1,datalen+1)):
+            code[m]=d[n]
+        return datalen/(datalen+1.0),end,code
     def en_long_data(self,i,d):
         if len(d)-i < 4:
             return -1,i,''
