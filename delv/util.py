@@ -58,14 +58,16 @@ def bits_to_bytes(src):
         result[byte_index] |= bit << (7-bit_index)
     return result
 
-def bits_pack(target, value, size, index):
+def bits_pack(target, value, size, index,debug=False):
     """Alter bytearray target so that size bits of target starting
        at index are replaced by value."""
     bit_index = index % 8
     startbyte = index // 8
     endbyte = (index+size+7) // 8
     section = bytes_to_bits(target[startbyte:endbyte])
+    #if debug:print "BEFORE", ''.join(["%01d"%b for b in section])
     section[bit_index:bit_index+size] = int_to_bits(value,size)
+    #if debug:print "AFTER ", ''.join(["%01d"%b for b in section])
     target[startbyte:endbyte] = bits_to_bytes(section)
 
 
@@ -83,8 +85,8 @@ def ncbits_pack(target, value, *fields):
     # infrequent operation (whereas decompression happens a lot.)
     for size,index in fields[::-1]:
         fieldbits = value & (0xFFFFFFFFFFFFFFFFL >> (64-size))
-        value >>= size
         bits_pack(target, fieldbits, size, index)
+        value >>= size
     
 
 def ncbits_of(data, *fields):
@@ -118,16 +120,12 @@ def bits_of(data, size, index):
     bit_index = index % 8
     byte_end = (size+index) // 8 
     bit_size = size % 8 
-    #print index,size,",",byte_index,bit_index,byte_end,bit_size
     result = data[byte_index] & (0xFF >> bit_index)
-    #print "Headbytes %02X"%result
     while byte_index < byte_end:
         byte_index += 1
         if len(data) == byte_index: 
             result <<= 8; break
         result = (result << 8) | data[byte_index]
-        #print "intermediate", byte_index, "%08X"%result
-    #print "Tailbytes %08X"%result, "shift >>",8 -(bit_index + bit_size) % 8 
     result >>= 8 - (bit_index + bit_size) % 8
     return result
         

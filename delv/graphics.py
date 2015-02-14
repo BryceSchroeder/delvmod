@@ -29,7 +29,7 @@ import archive
 import util
 
 # import the four horsemen of the bitpocalypse:
-from util import bits_pack, ncbits_pack, ncbits_of, bits_of
+from util import bits_pack, ncbits_pack, ncbits_of, bits_of, bytes_to_bits
 
 def DelvImageFactory(src, *args, **kwargs):
     """Return the appropriate kind of DelvImage subclass for the 
@@ -69,11 +69,14 @@ class DelvImage(object):
             self.src = bytearray(src.get_data())
         elif hasattr(src, "__getitem__"):
             self.src = bytearray(src)
+        else:
+            self.src = None
         
         
-        if self.has_header and src:
+        if self.has_header and self.src:
             header = self.src[0:4]
-            data_cursor = 4
+            self.src = self.src[4:]
+            data_cursor = 0
             self.width = self.logical_width = bits_of(header, 8+6, 0) << 2
             self.flags = bits_of(header, 2,  14)
             self.height = bits_of(header, 15, 16) << 1
@@ -98,7 +101,7 @@ class DelvImage(object):
                 # Neither of the two resources mentioned above contain any
                 # unknown opcodes (and that would be a really obtuse way
                 # to encode size information anyhow.)
-        elif self.has_header and not src:
+        elif self.has_header and not self.src:
             self.width,self.height = width,height
             self.flags = 0
             data_cursor = 0
@@ -119,6 +122,7 @@ class DelvImage(object):
            You shouldn't normally need to call this explicitly."""
         while cursor < len(data):
             opcode = data[cursor]
+            print "%02X"%opcode, repr(data[cursor:cursor+5])
             if opcode < 0x80:
                 # short copy operation 0x00-0x7F
                 operation = data[cursor:cursor+2]; cursor += 2
@@ -204,6 +208,7 @@ class DelvImage(object):
             # code tuple. We pick the best one until we're done.
             _,icursor,code = max([op(icursor,image) for op in operations])
             codes.append(code)
+            #if not code[0]&0x80: break
         # The scheme above will tend to produce lots of sequences like
         # C0 aa bb cc dd, C0 ee ff gg hh, C0 ii jj kk ll
         # and we need to condense them into
@@ -211,7 +216,14 @@ class DelvImage(object):
         # which is what condense does. The whole reason for this nonsense is
         # that we don't want greedy behavior in the literal data opcodes.
 
-        data = self.condense_opcodes(codes)
+        if self.has_header:
+            data = bytearray(4)
+            bits_pack(data, self.width>>2, 14, 0 )
+            bits_pack(data, self.flags,     2, 15) 
+            bits_pack(data, self.height,   16, 16)
+        else: 
+            data = bytearray()
+        data += self.condense_opcodes(codes)
         data += '\xFF' # Termination opcode
         return data
 
@@ -319,9 +331,50 @@ class DelvImage(object):
             return -1,i,''
         return 4/5.0,i+4,'\xC0'+d[i:i+4]
     def en_short_copy(self,i,d,lits):
-        return -1,i,''
+        #if lits: return -1,i,''
+        found = -1
+        for clen in xrange(min(10,len(d)-i),2,-1):
+            found = d.rfind(d[i+lits:i+lits+clen],max(0,i-(1024-lits)),i+lits)
+            if found >= 0: break
+        if found < 0:
+            return -1,i,''
+
+        index = -(found-i+1)+lits
+
+        code = bytearray(2+lits)
+        ncbits_pack(code, index,      (3, 8), (7, 1))
+        bits_pack(  code, 0,           1, 0)
+        bits_pack(  code, clen-3,      3, 13)
+        bits_pack(  code, lits,        2, 11)
+
+        check = ncbits_of(code, (3,8), (7,1))
+        #if check != index:
+        #    print "ERROR %08X %08X"%(index,check), clen-3, lits
+        for n,m in zip(xrange(i,i+lits),xrange(2,lits+2)):
+            code[m]=d[n]
+        return (lits+clen)/(2.0+lits),i+lits+clen,code
     def en_long_copy(self,i,d,lits):
-        return -1,i,''
+        found = -1
+        for clen in xrange(min(34,len(d)-i),2,-1):
+            found = d.rfind(d[i+lits:i+lits+clen],max(0,i-(32768-lits)),i+lits)
+            if found >= 0: break
+        if found < 0:
+            return -1,i,''
+        index = -(found-i+1)+lits
+
+        code = bytearray(3+lits)
+        bits_pack(  code, 2,            2, 0)
+        ncbits_pack(code, index,       (6, 16),(3,8),(6,2))
+        bits_pack(  code, clen-3,       5, 11)
+        bits_pack(  code, lits,         2, 22)
+
+        check = ncbits_of(code, (6, 16),(3,8),(6,2))
+        #if check != index:
+        #    print "ERROR", index,check, clen-3, lits
+
+        for n,m in zip(xrange(i,i+lits),xrange(3,lits+3)):
+            code[m]=d[n]
+        return (lits+clen)/(3.0+lits),i+lits+clen,code
     def en_short_run(self,i,d):
         initial_color = d[i]
         end = i
@@ -348,7 +401,6 @@ class DelvImage(object):
         bits_pack(code, runlength-3,   8, 8)
         bits_pack(code, initial_color, 8, 16)
         return (runlength/3.0, i+runlength, code)
-        return -1,i,''
     def condense_opcodes(self, codes):
         condensed = []
         data=bytearray()
