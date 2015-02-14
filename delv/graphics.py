@@ -271,12 +271,15 @@ class DelvImage(object):
         """Draw an image src into this object, optionally specifying
            destination coordinates and a width and height if you wish
            to copy less than the entirety of the source image.
-           src may be a PIL image, or anything that can be indexed 
-           like src[x,y].
+           src must be a flat indexable of size w*h.
            The source must already be 8-bit indexed color using the colormap
            for your target game (e.g the Cythera CLUT); dithering
            and color-matching are beyond the scope of this project."""
-        pass
+        self.src = None
+        if not self.image: 
+             self.image = bytearray(self.logical_width*self.logical_height)
+        for yr in xrange(y,y+h): 
+             self.image[yr*self.logical_width+x:yr*self.logical_width+x+w] = src[(yr-y)*w:(yr-y)*w + w]
     def draw_into_tile(self,src,n):
         """Conveninence method to draw to a particular tile. n has the
            same semantics as for get_tile below, including for situations
@@ -452,35 +455,29 @@ class Portrait(DelvImage):
 class Landscape(DelvImage):
     canonical_size = 288,32
 
-_CLASS_HINTS = {142:General, 141:TileSheet, 135:Portrait, 131:Landscape}
-_NAME_HINTS = {'general':General,'tiles':TileSheet,'portrait':Portrait,
-               'landscape':Landscape,'sprite':TileSheet,'sized':General,
-               }
 
-class SkillIcon(object):
+class SkillIcon(DelvImage):
     """Class for handling the small skill icons that are stored
        uncompressed as indexed color data.
        Methods with the same name generally work as in DelvImage."""
+    canonical_size = 32,16
     width = 32
     height = 16
     logical_width = 32
     logical_height = 16
-    def __init__(self, data):
-        self.image = data
-    def get_image(self):
-        return self.image
-    def get_logical_image(self):
-        return self.image
-    def get_size(self):
-        return self.width,self.height
-    def draw_into(self,src,x=0,y=0,w=0,h=0):
-        """Draw an image src into this object, optionally specifying
-           destination coordinates and a width and height if you wish
-           to copy less than the entirety of the source image.
-           src may be a PIL image, or anything that can be indexed 
-           like src[x,y].
-           The source must already be 8-bit indexed color using the colormap
-           for your target game (e.g the Cythera CLUT); dithering
-           and color-matching are beyond the scope of this project."""
-        pass
+    #def __init__(self, data=None):
+    #    self.image = data
+    #    self.data = data
+    #    if not self.image: self.image = bytearray(32*16)
+    def decompress(self, src, *argv):
+        self.image = src
+        self.data = None
+    def compress(self, *argv):
+        self.data = self.image
 
+_CLASS_HINTS = {142:General, 141:TileSheet, 135:Portrait, 131:Landscape,
+                137:SkillIcon}
+_NAME_HINTS = {'general':General,'tiles':TileSheet,'portrait':Portrait,
+               'landscape':Landscape,'sprite':TileSheet,'sized':General,
+               'icon':SkillIcon
+               }
