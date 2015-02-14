@@ -118,6 +118,9 @@ All of them are, unsurprisingly, in the examples/ directory.
 
 "archive\_example.py" - Shows how one can load, modify, and save archives.
 
+"dcg\_encoder.py" - Saves .png images (n.b. with correct color maps) to
+the Delver Compressed Graphics format. Requires  the Python Imaging Library.
+
 "dcg\_view.py" - Simple viewer for Delver Compressed Graphics. It can view
 them in archives or as single files, and save them to PNG. Requires the
 Python Imaging Library.
