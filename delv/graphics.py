@@ -237,6 +237,13 @@ class DelvImage(object):
            displayed to the user, if it exists (the purpose of that data
            is unknown at this time.)"""
         return self.image
+    def get_from(self, x,y,w,h):
+        """Get a section of the image, bounded by the rectangle (x,y,w,h).
+           It is returned as a flat bytearray, size w*h."""
+        gf = bytearray()
+        for yr in xrange(y,y+h):
+            gf += self.image[yr*self.logical_width+x:yr*self.logical_width+x+w]
+        return gf
     def get_image(self):
         """Get only the part of the image normally displayed by 
            the engine to the user. This is usually all of the image;
@@ -276,18 +283,19 @@ class DelvImage(object):
            in which non-canonical tileset shapes are addressed."""
         self.draw_into(*(src,)+self.tile_rect(n))
 
-    def get_tile(self,n,form='numpy'):
+    def get_tile(self,n):
         """Get the nth 32x32 tile of this image. Clasically meaningful only
            for tile sheets, where it returns the nth from the top (counting
            from zero.) For the sake of completeness, though, it will work
            on other images, in which case the tiles are numbered top to 
-           bottom, left to right. formats returnable are the same as those
-           for get_image."""
-        pass
+           bottom, left to right. The format is the same as get_from."""
+        return self.get_from(*self.tile_rect(n))
 
     def tile_rect(self,n):
         """Return the bounding rectangle of the nth tile."""
-        pass
+        y = (n*32)%512
+        x = (n//16)*32
+        return (x,y,32,32)
   
     def get_size(self):
         """Return (width,height)."""

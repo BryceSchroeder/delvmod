@@ -135,6 +135,8 @@ destination, it'll figure out what needs to happen. Very simple.
 patches created for the first-party patch manager Magpie, and create patches
 that it can apply, but it can't create patches that can be applied by Magpie.)
 
+"tileshow.py" - Shows tiles from their tile ID (i.e. the ID used in maps.)
+
 FUTURE DIRECTIONS
 
 As of the present, the scripting system's virtual machine has not been 
