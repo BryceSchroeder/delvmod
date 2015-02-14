@@ -29,7 +29,7 @@ import archive
 import util
 
 # import the four horsemen of the bitpocalypse:
-from util import bits_pack, ncbits_pack, ncbits_of, bits_of, bytes_to_bits
+from util import bits_pack, ncbits_pack, ncbits_of, bits_of, bitstruct_pack
 
 def DelvImageFactory(src, *args, **kwargs):
     """Return the appropriate kind of DelvImage subclass for the 
@@ -122,7 +122,6 @@ class DelvImage(object):
            You shouldn't normally need to call this explicitly."""
         while cursor < len(data):
             opcode = data[cursor]
-            print "%02X"%opcode, repr(data[cursor:cursor+5])
             if opcode < 0x80:
                 # short copy operation 0x00-0x7F
                 operation = data[cursor:cursor+2]; cursor += 2
@@ -330,50 +329,59 @@ class DelvImage(object):
         if len(d)-i < 4:
             return -1,i,''
         return 4/5.0,i+4,'\xC0'+d[i:i+4]
+    def searchback(self, d, i, lits, start, stop, mlen,llen=3):
+        found = -1
+        match_found = -1
+        lowest_clen = llen
+        highest_clen = min(mlen,len(d)-i)
+        found_clen = 0
+        while (highest_clen >= lowest_clen):
+            mid_clen = (highest_clen-lowest_clen)/2 + lowest_clen
+            found = d.rfind(d[i+lits:i+lits+mid_clen],start,stop)
+            if found >= 0:
+                lowest_clen = mid_clen+1
+                found_clen = mid_clen
+                match_found = found
+            else:
+                highest_clen = mid_clen-1
+        return match_found,found_clen if match_found >= 0 else llen
     def en_short_copy(self,i,d,lits):
         #if lits: return -1,i,''
-        found = -1
-        for clen in xrange(min(10,len(d)-i),2,-1):
-            found = d.rfind(d[i+lits:i+lits+clen],max(0,i-(1024-lits)),i+lits)
-            if found >= 0: break
+        found,clen = self.searchback(d,i,lits,max(0,i-(1024-lits)),i+lits,10)
         if found < 0:
             return -1,i,''
 
         index = -(found-i+1)+lits
 
-        code = bytearray(2+lits)
-        ncbits_pack(code, index,      (3, 8), (7, 1))
-        bits_pack(  code, 0,           1, 0)
-        bits_pack(  code, clen-3,      3, 13)
-        bits_pack(  code, lits,        2, 11)
-
-        check = ncbits_of(code, (3,8), (7,1))
+        code = bytearray(2)
+        bitstruct_pack(code, [
+            (0,      [(1,0)       ]),
+            (index,  [(3,8), (7,1)]),
+            (clen-3, [(3,13)      ]),
+            (lits,   [(2,11)      ])])
+          
+        #check = ncbits_of(code, (3,8), (7,1))
         #if check != index:
         #    print "ERROR %08X %08X"%(index,check), clen-3, lits
-        for n,m in zip(xrange(i,i+lits),xrange(2,lits+2)):
-            code[m]=d[n]
+        code += d[i:i+lits]
         return (lits+clen)/(2.0+lits),i+lits+clen,code
     def en_long_copy(self,i,d,lits):
-        found = -1
-        for clen in xrange(min(34,len(d)-i),2,-1):
-            found = d.rfind(d[i+lits:i+lits+clen],max(0,i-(32768-lits)),i+lits)
-            if found >= 0: break
+        found,clen = self.searchback(d,i,lits, max(0,i-(32768-lits)),i+lits,34)
         if found < 0:
             return -1,i,''
         index = -(found-i+1)+lits
 
-        code = bytearray(3+lits)
-        bits_pack(  code, 2,            2, 0)
-        ncbits_pack(code, index,       (6, 16),(3,8),(6,2))
-        bits_pack(  code, clen-3,       5, 11)
-        bits_pack(  code, lits,         2, 22)
+        code = bytearray(3)
+        bitstruct_pack(code, [
+            (2,      [(2,0)             ]),
+            (index,  [(6,16),(3,8),(6,2)]),
+            (clen-3, [(5,11)            ]),
+            (lits,   [(2,22)            ])])
 
-        check = ncbits_of(code, (6, 16),(3,8),(6,2))
+        #check = ncbits_of(code, (6, 16),(3,8),(6,2))
         #if check != index:
         #    print "ERROR", index,check, clen-3, lits
-
-        for n,m in zip(xrange(i,i+lits),xrange(3,lits+3)):
-            code[m]=d[n]
+        code += d[i:i+lits]
         return (lits+clen)/(3.0+lits),i+lits+clen,code
     def en_short_run(self,i,d):
         initial_color = d[i]

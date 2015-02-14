@@ -58,6 +58,17 @@ def bits_to_bytes(src):
         result[byte_index] |= bit << (7-bit_index)
     return result
 
+def bitstruct_pack(target, pairs):
+    b = bytes_to_bits(target)
+    for value, fieldspec in pairs:
+        for size, index in fieldspec[::-1]:
+            fieldbits = value & (0xFFFFFFFFFFFFFFFFL >> (64-size))
+            b[index:index+size] = int_to_bits(value,size)
+            value >>= size
+    t =  bits_to_bytes(b)
+    for x in xrange(len(t)): target[x]=t[x]
+
+
 def bits_pack(target, value, size, index,debug=False):
     """Alter bytearray target so that size bits of target starting
        at index are replaced by value."""
@@ -69,7 +80,6 @@ def bits_pack(target, value, size, index,debug=False):
     section[bit_index:bit_index+size] = int_to_bits(value,size)
     #if debug:print "AFTER ", ''.join(["%01d"%b for b in section])
     target[startbyte:endbyte] = bits_to_bytes(section)
-
 
 def ncbits_pack(target, value, *fields):
     """Alter target to contain the value given, broken up into
