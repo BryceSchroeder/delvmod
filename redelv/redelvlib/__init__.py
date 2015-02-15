@@ -17,11 +17,34 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 
+ABOUT_TEXT = """<span font_family="monospace">
+    This program is free software: you can redistribute it and/or modify 
+    it under the terms of the GNU General Public License as published by 
+    the Free Software Foundation, either version 3 of the License, or 
+    (at your option) any later version. 
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of 
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License 
+    along with this program.  If not, see <a href="http://www.gnu.org/licenses/">the GNU website</a>.
+</span>
+
+ <i>Cythera</i> and <i>Delver</i> are trademarks of either Glenn Andreas or Ambrosia Software, Inc. 
+ redelv is copyright 2015 Bryce Schroeder, bryce.schroeder@gmail.com, <a href="http://www.bryce.pw/">bryce.pw</a>
+ Based on the <a href="http://www.ferazelhosting.net/wiki/delv">delv</a> Python module. Repository: <a href="https://github.com/BryceSchroeder/delvmod/">GitHub</a>
+"""
+
 version = '0.1.0'
+
+import delv
+import delv.archive
 
 import pygtk
 pygtk.require('2.0')
-import gtk
+import gtk, os, sys
 
 import images
 
@@ -31,6 +54,8 @@ class ReDelv(object):
         self.unsaved = False
         self.opened_file = None
         self.exported_directory = None
+
+        self.aboutbox = None
 
         # Make the main window
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -49,7 +74,8 @@ class ReDelv(object):
             ("/File/_New",       "<control>N",  self.menu_new,  0,  None),
             ("/File/_Open",      "<control>O",  self.menu_open, 0,  None),
             ("/File/_Save",      "<control>S",  self.menu_save, 0,  None),
-            ("/File/_Save _As",  None,          self.menu_save_as,0,None),
+            ("/File/_Save _Copy",None,          self.menu_save_copy,0,None),
+            ("/File/_Save _As",None,          self.menu_save_as,0,None),
             ("/File/sep1",       None,          None,          0,"<Separator>"),
             ("/File/_Import",    None,          self.menu_import,0, None),
             ("/File/_Export",    "<control>E",  self.menu_export,0, None),
@@ -101,7 +127,7 @@ class ReDelv(object):
         dc1.set_title("Subindex") # Would it be so much to ask for this to be
         # in the constructor...
         dc2 = gtk.TreeViewColumn()
-        dc2.set_title("Count")
+        dc2.set_title("Size")
         dc3 = gtk.TreeViewColumn()
         dc3.set_title("Description")
         
@@ -123,8 +149,8 @@ class ReDelv(object):
         self.data_view.append_column(dc2)
         self.data_view.append_column(dc3)
 
-        self.temporary_data = gtk.TreeStore(str,str,str)
-        self.data_view.set_model(self.temporary_data)
+        self.tree_data = gtk.TreeStore(str,str,str)
+        self.data_view.set_model(self.tree_data)
 
         sw = gtk.ScrolledWindow()
         sw.set_policy(gtk.POLICY_AUTOMATIC,gtk.POLICY_AUTOMATIC)
@@ -138,6 +164,7 @@ class ReDelv(object):
 
 
         self.window.show_all()
+        if len(sys.argv) > 1: self.open_file(sys.argv[1])
     def main(self):
         gtk.main()
 
@@ -146,29 +173,123 @@ class ReDelv(object):
         return None
     def menu_open(self, widget, data=None):
         if self.unsaved and self.warn_unsaved_changes(): return
-        chooser = gtk.FileChooserDialog(action=gtk.FILE_CHOOSER_ACTION_OPEN,
+        chooser = gtk.FileChooserDialog(title="Select a Delver Archive...",
+                  action=gtk.FILE_CHOOSER_ACTION_OPEN,
                   buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,
                            gtk.STOCK_OPEN,gtk.RESPONSE_OK))
         response = chooser.run()
         if response == gtk.RESPONSE_OK:
-            print "Pretending to open", chooser.get_filename()
+            self.open_file(chooser.get_filename())
 
         chooser.destroy()
         #t = self.temporary_data.append(None, ["131","42 Items", "Image Data"])
         #self.temporary_data.append(t, ["8E31","12 kB","Something"])
         return None
-    def menu_save(self, widget, data=None):
-        return None
+    def menu_save_copy(self, widget, data=None):
+        if not self.archive: 
+            self.error_message("There is nothing to save.")
+            return
+        rv = self.ask_save_path()
+        if not rv: return
+        try:
+            # The string is a buffer so we can overwrite in place.
+            of = open(rv, 'wb')
+            of.write(self.archive.to_string())
+            of.close()
+        except Exception,e:
+            self.error_message("Unable to write '%s': %s"%(
+                os.path.basename(self.opened_file), repr(e)))
+            return
     def menu_save_as(self, widget, data=None):
-        return None
+        print "save as"
+        if not self.archive: 
+            self.error_message("There is nothing to save.")
+            return
+        rv = self.ask_save_path()
+        if not rv: return
+        self.opened_file = rv
+        try:
+            # The string is a buffer so we can overwrite in place.
+            of = open(self.opened_file, 'wb')
+            of.write(self.archive.to_string())
+            of.close()
+            self.unsaved=False
+        except Exception,e:
+            self.error_message("Unable to write '%s': %s"%(
+                os.path.basename(self.opened_file), repr(e)))
+            return
+        self.set_open_file(rv)
+    def menu_save(self, widget, data=None):
+        if not self.archive: 
+            self.error_message("There is nothing to save.")
+            return
+        if not self.opened_file: self.opened_file = self.ask_save_path()
+        if not self.opened_file: return
+        try:
+            # The string is a buffer so we can overwrite in place.
+            of = open(self.opened_file, 'wb')
+            of.write(self.archive.to_string())
+            of.close()
+            self.unsaved = False
+        except Exception,e:
+            self.error_message("Unable to write '%s': %s"%(
+                os.path.basename(self.opened_file), repr(e)))
+            return
     def menu_export(self, widget, data=None):
-        return None
+        if not self.archive: 
+            self.error_message("There is nothing to export.")
+            return
+        if not self.exported_directory: 
+             self.exported_directory = self.ask_dir_path()
+        if not self.exported_directory: return
+        try:
+            # The string is a buffer so we can overwrite in place.
+            self.archive.to_path(self.exported_directory)
+            self.unsaved = False
+        except Exception,e:
+            self.error_message("Unable to export to '%s': %s"%(
+                self.exported_directory, repr(e)))
+            return
     def menu_export_as(self, widget, data=None):
-        return None
+        self.exported_directory = self.ask_dir_path()
+        if not self.exported_directory: return
+        try:
+            # The string is a buffer so we can overwrite in place.
+            self.archive.to_path(self.exported_directory)
+            self.unsaved = False
+        except Exception,e:
+            self.error_message("Unable to export to '%s': %s"%(
+                self.exported_directory, repr(e)))
+            return
     def menu_import(self, widget, data=None):
-        return None
+        if self.unsaved and self.warn_unsaved_changes(): return
+        self.exported_directory = self.ask_dir_path(gtk.STOCK_OPEN)
+        if not self.exported_directory: return
+        try:
+            # The string is a buffer so we can overwrite in place.
+            self.open_file(self.exported_directory)
+            self.unsaved = False
+        except Exception,e:
+            self.error_message("Unable to export to '%s': %s"%(
+                self.exported_directory, repr(e)))
+            return
+
     def menu_about(self, widget, data=None):
-        return None
+        if not self.aboutbox:
+            self.aboutbox = gtk.Window(gtk.WINDOW_TOPLEVEL)
+            self.aboutbox.set_title("About redelv")
+            self.aboutbox.set_icon(
+                gtk.gdk.pixbuf_new_from_file(images.icon_path))
+            self.aboutbox.connect("delete_event", 
+                (lambda *x: self.aboutbox.hide() or True))
+            pbox = gtk.HBox(False,0)
+            im = gtk.Image(); im.set_from_file(images.logo_path)
+            pbox.pack_start(im,True,True,10)
+            self.aboutbox.add(pbox)
+            ab = gtk.Label(); ab.set_markup(ABOUT_TEXT)
+            pbox.pack_start(ab,True,True,10)
+        self.aboutbox.show_all()
+            
     def menu_quit(self, widget, data=None):
         print "Quitting"
         if not self.delete_event(widget, None, data): self.destroy(None)
@@ -226,3 +347,55 @@ class ReDelv(object):
         rv= gtk.RESPONSE_YES != dialog.run()
         dialog.destroy()
         return rv
+    def error_message(self, message):
+        dialog = gtk.MessageDialog(self.window, 
+            gtk.DIALOG_MODAL , 
+            gtk.MESSAGE_ERROR, gtk.BUTTONS_OK,
+            message)
+        dialog.run()
+        dialog.destroy()
+    def ask_dir_path(self,button=gtk.STOCK_SAVE):
+        chooser = gtk.FileChooserDialog(
+                  title="Select import/export directory...",
+                  action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
+                  buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,
+                           button,gtk.RESPONSE_OK))
+        response = chooser.run()
+        if response == gtk.RESPONSE_OK:
+            rv =chooser.get_filename()
+        else:
+            rv = None
+        chooser.destroy()
+        return rv
+    def ask_save_path(self):
+        chooser = gtk.FileChooserDialog(title="Select destination...",
+                  action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                  buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,
+                           gtk.STOCK_SAVE,gtk.RESPONSE_OK))
+        response = chooser.run()
+        if response == gtk.RESPONSE_OK:
+            rv =chooser.get_filename()
+        else:
+            rv = None
+        chooser.destroy()
+        return rv
+        
+    def open_file(self, path,directory=False):
+        self.tree_data = gtk.TreeStore(str,str,str)
+        self.data_view.set_model(self.tree_data)
+        try:
+            self.archive = delv.archive.Scenario(path, 
+                gui_treestore=self.tree_data)
+        except Exception, e:
+            self.error_message("'%s' doesn't seem to be a valid archive: %s"%(
+                os.path.basename(path), repr(e)))
+            return
+        if directory: self.set_open_directory(path)
+        else: self.set_open_file(path)
+    def set_open_directory(self,path):
+        self.exported_directory = path
+    def set_open_file(self,path):
+        self.opened_file = path
+        self.window.set_title(
+            "redelv - %s"%(os.path.basename(path) if path else (
+                 "[No File Open]")))

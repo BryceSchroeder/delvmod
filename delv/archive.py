@@ -29,7 +29,8 @@ import os
 import util
 #import numpy as np
 import operator
-import json
+import json, string, cStringIO as StringIO
+from hints import _RES_HINTS, _SCEN_HINTS
 
 def decrypt(data, prokey):
     """Decrypt the data provided with the given pro-key. The prokey is
@@ -146,6 +147,19 @@ class Resource(object):
         # Only needed for debugging and decryption.
         self.subindex = subindex
         self.n = n
+    def preview(self): 
+        """Generate a human-readable preview."""
+        d = filter(
+            (lambda x: chr(x) in string.printable and (
+                chr(x) not in string.whitespace)), self.get_data())
+        return '"%s"'%''.join(map(chr,d[:20]))
+        
+        
+    def human_readable_size(self):
+        lend = len(self.data)
+        if lend < 9999: return "%d B"%lend
+        elif lend < 1e6: return "%.2f kB"%(lend/1000.0)
+        else: return "%.2f MB"%(lend/1e6)
     def as_file(self):
         """Return a file-like object representation of the resource.
            If you write to the object, it will indeed change the contents
@@ -269,11 +283,12 @@ class Archive(object):
        eager; the entire file is loaded into memory when it is opened."""
     known_encrypted = []
     known_clear = []
-    def __init__(self, src=None, archive_type='scenario'):
+    def __init__(self, src=None, archive_type='scenario', gui_treestore=None):
         """If src is None, then the constructor creates a new empty archive.
            If src is a file-like object, it will read in an archive from 
            that file. If src is a string, it will attempt to open it as
            a file read-only."""
+        self.gui_treestore=gui_treestore
         self.encryption_knowledge = {}
         for si in self.known_encrypted: self.encryption_knowledge[si] = True
         for si in self.known_clear: self.encryption_knowledge[si] = False
@@ -309,6 +324,7 @@ class Archive(object):
             self[rid] = nres
             
         self.source_string = 'Packed from %s'%path
+        if self.gui_treestore: self.add_gui_tree()
     def from_file(self, src): 
         """Load a delver archive from a file-like object."""
         self.arcfile = util.BinaryHandler(src)
@@ -387,7 +403,7 @@ class Archive(object):
     def to_string(self):
         """Produces one (possibly very large) string with the 
            archive in it. Mainly here for front-end web stuff."""
-        stio = cStringIO.StringIO()
+        stio = StringIO.StringIO()
         self.to_file(stio)
         return stio.getvalue()
 
@@ -525,14 +541,34 @@ class Archive(object):
             subindex = []
             self.arcfile.seek(offset)
             size = length / 8
+            rescount = 0
             for n in xrange(size):
                 res_offset, res_length = self.arcfile.read_offlen()
                 if res_offset:
                     subindex.append(Resource(res_offset, res_length, 
                        subn, n, self))
+                    rescount += 1
                 else:
                     subindex.append(None)
             self.all_subindices.append(subindex)
+        if self.gui_treestore: self.add_gui_tree()
+    def add_gui_tree(self):
+        self.gui_tree_rows = {}
+        for subn,subindex in enumerate(self.all_subindices):
+             rescount = len([r for r in subindex if r])
+             if not rescount: continue
+             t=self.gui_treestore.append(None,["%3d [%02Xxx]"%(subn,subn+1),
+                 "%3d item%s"%(rescount, '' if rescount == 1 else 's'),
+                   _SCEN_HINTS.get(subn, "Unknown")])
+             self.gui_tree_rows[subn] = t
+             for r in subindex:
+                 if not r: continue
+                 self.gui_treestore.append(t, [
+                     "%04X"%resid(r.subindex,r.n),
+                     r.human_readable_size(),
+                     _RES_HINTS.get(resid(r.subindex,r.n),"")
+                     ])
+
     
         
 class Player(Archive):
