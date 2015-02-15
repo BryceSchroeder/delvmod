@@ -44,18 +44,27 @@ import delv.archive
 
 import pygtk
 pygtk.require('2.0')
-import gtk, os, sys
+import gtk, os, sys, gobject
 
-import images
+import images, editgui
 
 class ReDelv(object):
 
     def __init__(self):
+        # Signals 
+        self.filechange = []
+        self.subindexchange = []
+        self.resourcechange = []
+        #gobject.type_register(editgui.Receiver)
+        #gobject.signal_new("filechange", editgui.Receiver, 
+        #    gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
+        # Windows and globals
         self.unsaved = False
         self.opened_file = None
         self.exported_directory = None
 
         self.aboutbox = None
+        self.file_metadata_window = None
 
         # Make the main window
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -109,7 +118,34 @@ class ReDelv(object):
             ("/_Tools",          None,           None,         0, "<Branch>"),
             ("/Tools/_Resource _Editor", 
                  "<control>R",self.menu_resource_editor,0,None),
-            ("/Tools/_Hex Editor", "<control>H",self.menu_hex_editor,0,None),
+            ("/Tools/_Use Specific Editor", None, None, 0, "<Branch>"),
+            ("/Tools/Use Specific Editor/_Hex Editor", 
+                 "<control>H",self.menu_hex_editor,0,None),
+            ("/Tools/Use Specific Editor/sep01",None,None,0,"<Separator>"),
+            ("/Tools/Use Specific Editor/_Tile Sheet",None,None,0,None),
+            ("/Tools/Use Specific Editor/_Portrait",None,None,0,None),
+            ("/Tools/Use Specific Editor/_Landscape",None,None,0,None),
+            ("/Tools/Use Specific Editor/_Sized Image",None,None,0,None),
+            ("/Tools/Use Specific Editor/_Icon",None,None,0,None),
+            ("/Tools/Use Specific Editor/sep02",None,None,0,"<Separator>"),
+            ("/Tools/Use Specific Editor/_Prop List",None,None,0,None),
+            ("/Tools/Use Specific Editor/_Map",None,None,0,None),
+            ("/Tools/Use Specific Editor/sep03",None,None,0,"<Separator>"),
+            ("/Tools/Use Specific Editor/_Music",None,None,0,None),
+            ("/Tools/Use Specific Editor/_Sound",None,None,0,None),
+            ("/Tools/Use Specific Editor/sep04",None,None,0,"<Separator>"),
+            ("/Tools/Use Specific Editor/_Script Data",None,None,0,None),
+            ("/Tools/Use Specific Editor/_Script",None,None,0,None),
+            ("/Tools/Use Specific Editor/_AI Script",None,None,0,None),
+            ("/Tools/Use Specific Editor/sep05",None,None,0,"<Separator>"),
+            ("/Tools/Use Specific Editor/_String List",None,None,0,None),
+            ("/Tools/Use Specific Editor/_Symbols",None,None,0,None),
+            ("/Tools/Use Specific Editor/sep06",None,None,0,"<Separator>"),
+            ("/Tools/Use Specific Editor/_Patch",None,None,0,None),
+            ("/Tools/sep6", None, None, 0, "<Separator>"),
+            ("/Tools/_Image _Browser", None, self.menu_image_browser,0,None),
+            ("/Tools/High Level Editors/_Monsters",None,None,0,None),
+            ("/Tools/High Level Editors/_Tiles",None,None,0,None),
             
             ("/_Help",           None,          None,           0, "<Branch>"),
             ("/Help/About",      None,          self.menu_about, 0, None),
@@ -170,6 +206,9 @@ class ReDelv(object):
 
     # Callbacks
     def menu_new(self, widget, data=None):
+        #for recp in self.filechange: recp.signal_filechange()
+        #for recp in self.subindexchange: recp.signal_subindexchange()
+        #for recp in self.resourcechange: recp.signal_resourcechange()
         return None
     def menu_open(self, widget, data=None):
         if self.unsaved and self.warn_unsaved_changes(): return
@@ -192,9 +231,9 @@ class ReDelv(object):
         rv = self.ask_save_path()
         if not rv: return
         try:
-            # The string is a buffer so we can overwrite in place.
+            buf = self.archive.to_string()
             of = open(rv, 'wb')
-            of.write(self.archive.to_string())
+            of.write(buf)
             of.close()
         except Exception,e:
             self.error_message("Unable to write '%s': %s"%(
@@ -210,8 +249,9 @@ class ReDelv(object):
         self.opened_file = rv
         try:
             # The string is a buffer so we can overwrite in place.
+            buf = self.archive.to_string()
             of = open(self.opened_file, 'wb')
-            of.write(self.archive.to_string())
+            of.write(buf)
             of.close()
             self.unsaved=False
         except Exception,e:
@@ -227,8 +267,9 @@ class ReDelv(object):
         if not self.opened_file: return
         try:
             # The string is a buffer so we can overwrite in place.
+            buf = self.archive.to_string()
             of = open(self.opened_file, 'wb')
-            of.write(self.archive.to_string())
+            of.write(buf)
             of.close()
             self.unsaved = False
         except Exception,e:
@@ -273,6 +314,9 @@ class ReDelv(object):
             self.error_message("Unable to export to '%s': %s"%(
                 self.exported_directory, repr(e)))
             return
+        for recp in self.filechange: recp.signal_filechange()
+        for recp in self.subindexchange: recp.signal_subindexchange()
+        for recp in self.resourcechange: recp.signal_resourcechange()
 
     def menu_about(self, widget, data=None):
         if not self.aboutbox:
@@ -296,13 +340,18 @@ class ReDelv(object):
     def menu_get_info(self, widget, data=None):
         return None
     def menu_file_metadata(self, widget, data=None):
-        return None
+        if not self.file_metadata_window:
+             self.file_metadata_window = editgui.FileMetadata(
+                 self, gtk.WINDOW_TOPLEVEL)
+        self.file_metadata_window.show_all()
     def menu_create_index(self, widget, data=None):
         return None
     def menu_delete(self, widget, data=None):
         print "Delete"
         return None
     def menu_create_resource(self, widget, data=None):
+        self.window.emit("filechange")
+        print "emitted signal"
         return None
     def menu_export_resource(self, widget, data=None):
         return None
@@ -326,6 +375,9 @@ class ReDelv(object):
         return None
     def menu_hex_editor(self, widget, data=None):
         return None
+    def menu_image_browser(self, widget, data=None):
+        return None
+
     def menu_check_compatibility(self,widget,data=None):
         return None
     # stub
@@ -399,3 +451,6 @@ class ReDelv(object):
         self.window.set_title(
             "redelv - %s"%(os.path.basename(path) if path else (
                  "[No File Open]")))
+        for recp in self.filechange: recp.signal_filechange()
+        for recp in self.subindexchange: recp.signal_subindexchange()
+        for recp in self.resourcechange: recp.signal_resourcechange()
