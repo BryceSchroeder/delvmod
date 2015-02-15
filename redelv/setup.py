@@ -22,15 +22,16 @@ from distutils.core import setup
 import setuptools
 
 setup(name='redelvlib',
-      version='0.1.3',
+      version='0.1.8',
       description='GUI editor using delv',
       author='Bryce Schroeder',
       author_email='bryce.schroeder@gmail.com',
       license='GPL-3',
-      install_requires=['delv','PyGTK'],
+      install_requires=['delv'],
       url='http://www.ferazelhosting.net/wiki/redelv',
 	classifiers=["Development Status :: 2 - Pre-Alpha",
                      "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
                      "Topic :: Games/Entertainment :: Role-Playing"],
       packages=['redelvlib'],
+      package_data={'redelvlib':['resources/*.png']},
       scripts=['redelv'])
