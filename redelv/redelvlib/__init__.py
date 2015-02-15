@@ -23,6 +23,8 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 
+import images
+
 class ReDelv(object):
 
     def __init__(self):
@@ -34,6 +36,8 @@ class ReDelv(object):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_default_size(480,512)
         self.window.set_title("redelv - [No File Open]")
+        self.window.set_icon(gtk.gdk.pixbuf_new_from_file(images.icon_path))
+        
         self.window.connect("delete_event", self.delete_event)
         self.window.connect("destroy", self.destroy)
         self.mvbox = gtk.VBox(homogeneous=False,spacing=0)
