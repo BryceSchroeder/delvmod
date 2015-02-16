@@ -72,6 +72,7 @@ class ReDelv(object):
         self.file_get_info_window = None
 
         # Make the main window
+        self.clipboard = gtk.clipboard_get()
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_default_size(480,512)
         self.window.set_title("redelv - [No File Open]")
@@ -221,7 +222,7 @@ class ReDelv(object):
         else:
             self.current_resource_id = delv.archive.resid(si,rn)
             self.current_resource = self.archive.get((si,rn))
-        self.current_sunbindex_id = si
+        self.current_subindex_id = si
 
         for recp in self.subindexchange: recp.signal_subindexchange()
         for recp in self.resourcechange: recp.signal_resourcechange()
@@ -384,7 +385,10 @@ class ReDelv(object):
     def menu_cut(self, widget, data=None):
         return None
     def menu_copy(self, widget, data=None):
-        return None
+        if self.current_resource:
+            self.clipboard.set_text("Resource:%04X"%(self.current_resource_id))
+        else:
+            self.clipboard.set_text("Subindex:%d"%(self.current_subindex_id))
     def menu_paste(self, widget, data=None):
         return None
     def menu_select_base(self, widget, data=None):
