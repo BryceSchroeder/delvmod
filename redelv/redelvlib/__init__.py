@@ -37,7 +37,7 @@ ABOUT_TEXT = """<span font_family="monospace">
  Based on the <a href="http://www.ferazelhosting.net/wiki/delv">delv</a> Python module. Repository: <a href="https://github.com/BryceSchroeder/delvmod/">GitHub</a>
 """
 
-version = '0.1.9'
+version = '0.1.10'
 
 import delv
 import delv.archive
@@ -110,7 +110,7 @@ class ReDelv(object):
             ("/Edit/sep4",       None,          None,          0,"<Separator>"),
             ("/Edit/_Cut",   "<control>X",           self.menu_cut,0,None),
             ("/Edit/_Copy",  "<control>C",           self.menu_copy,0,None),
-            ("/Edit/_Paste", "<control>P",           self.menu_paste,0,None),
+            ("/Edit/_Paste", "<control>V",           self.menu_paste,0,None),
 
             ("/_Patch",          None,          None,          0, "<Branch>"),
             ("/Patch/_Select _Base",None,       self.menu_select_base,0,None),

@@ -34,10 +34,10 @@ class GraphicsEditor(editors.Editor):
             ("/File/Export", "<control>E", None, 0, None),
             ("/File/Save Resource", "<control>S", self.file_save, 0, None),
             ("/File/Revert", None, self.load_image, 0, None),
-            ("/Edit/Cut", "<control>X", None, 0, None),
-            ("/Edit/Copy", "<control>C", None, 0, None),
-            ("/Edit/Paste","<control>P", None, 0, None),
-            ("/Edit/Clear", None, None, 0, None),)
+            ("/Edit/Cut", "<control>X", self.edit_cut, 0, None),
+            ("/Edit/Copy", "<control>C", self.edit_copy, 0, None),
+            ("/Edit/Paste","<control>V", self.edit_paste, 0, None),
+            ("/Edit/Clear", None, self.edit_clear, 0, None),)
         accel = gtk.AccelGroup()
         ifc = gtk.ItemFactory(gtk.MenuBar, "<main>", accel)
         self.add_accel_group(accel)
@@ -67,6 +67,7 @@ class GraphicsEditor(editors.Editor):
         self.load_image()
     def load_image(self, *args):
         data = self.image.get_logical_image()
+        self.edited = None
         self.pixmap = gtk.gdk.Pixmap(None,
             self.image.logical_width,self.image.logical_height,
                 gtk.gdk.visual_get_system().depth)
@@ -77,9 +78,38 @@ class GraphicsEditor(editors.Editor):
             gtk.gdk.RGB_DITHER_NORMAL, 
             str(data), self.image.logical_width, delv.colormap.rgb24)
         self.display.set_from_pixmap(self.pixmap,None)
-     def file_save(self, *args):
-         self.unsaved = False
-         print "FIXME save not implemented yet"
+        self.flags.set_text("0x%02X"%self.image.flags)
+    def file_save(self, *args):
+        self.unsaved = False
+        print "FIXME save not implemented yet"
+    def edit_copy(self, *args):
+        pbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, 
+            self.image.logical_width,self.image.logical_height)
+        pbuf.get_from_drawable(self.pixmap, gtk.gdk.colormap_get_system(),
+            0,0,0,0,self.image.logical_width,self.image.logical_height)
+        self.redelv.clipboard.set_image(pbuf)
+    def edit_paste(self, *args):
+        self.redelv.clipboard.request_image(self.paste,None)
+    def paste(self, clipboard, pixbuf, data):
+        if not pixbuf: return
+        self.edited = pixbuf
+        gc = self.pixmap.new_gc()
+        self.pixmap.draw_pixbuf(gc, pixbuf, 0,0,0,0,
+            pixbuf.get_width(), pixbuf.get_height())
+        self.unsaved = True 
+        self.display.set_from_pixmap(self.pixmap,None)
+        
+    def edit_cut(self, *args):
+        self.edit_copy()
+        self.edit_clear()
+    def edit_clear(self, *args):
+        gc = self.pixmap.new_gc()
+        gc.set_foreground(gtk.gdk.Color(pixel=0x00))
+        self.pixmap.draw_rectangle(gc, True,0,0,
+            self.image.height,self.image.width)
+        self.unsaved = True
+        self.display.set_from_pixmap(self.pixmap,None)
+ 
 class TileSheetEditor(GraphicsEditor): 
     has_flags = False
     default_size=320,600
@@ -89,6 +119,7 @@ class PortraitEditor(GraphicsEditor):
     name = "Portrait Editor"
 class SizedEditor(GraphicsEditor):
     has_flags = True 
+    default_size=480,480
     name = "Sized Image Editor"
 class IconEditor(GraphicsEditor):
     has_flags = False
