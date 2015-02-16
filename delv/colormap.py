@@ -69,6 +69,28 @@ html = [
 rgb = [[int(c[:2],16), int(c[2:4],16), int(c[4:],16)
     ] for c in html]
 rgb24 = [(r<<16)|(g<<8)|b for r,g,b in rgb]
+
+idx_rgb24 = {rgb24value: idx for idx,rgb24value in enumerate(rgb24)}
+
+def colormatch_rgb24(color):
+    return idx_rgb24.get(color, closest_color(rgb,
+        (color&0xFF0000)>>16,
+        (color&0x00FF00)>>8,
+        (color&0x0000FF)))
+
+def closest_color(pal, r,g,b,starts=0x10,ends=0xE0):
+    best = 0
+    best_distance = 2048
+    idx = starts
+    for rc,gc,bc in pal[starts:ends]:
+        distance = abs(r-rc)+abs(b-bc)+abs(g-gc)
+        if distance < best_distance:
+            best = idx; best_distance = distance
+        idx += 1
+    return best
+            
+        
+
 pil = []
 for c in rgb: pil.extend(c)
 

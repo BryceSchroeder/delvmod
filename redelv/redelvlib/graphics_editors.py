@@ -17,6 +17,7 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
+
 import editors
 import gtk
 import delv
@@ -80,8 +81,20 @@ class GraphicsEditor(editors.Editor):
         self.display.set_from_pixmap(self.pixmap,None)
         self.flags.set_text("0x%02X"%self.image.flags)
     def file_save(self, *args):
+        # This is so needlessly slow and complicated, probably the
+        # fault of X11
+        img = self.pixmap.get_image(0,0,self.image.logical_width,
+            self.image.logical_height)
+        # YES, REALLY vvv This is barbaric...
+        pixels = bytearray()
+        for y in xrange(self.image.logical_height):
+            for x in xrange(self.image.logical_width):
+                pixels+=chr(delv.colormap.colormatch_rgb24(img.get_pixel(x,y)))
+        self.image.set_image(pixels)
+        self.res.set_data(self.image.get_data())
         self.unsaved = False
-        print "FIXME save not implemented yet"
+        self.redelv.unsaved = True
+        self.load_image()
     def edit_copy(self, *args):
         pbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, 
             self.image.logical_width,self.image.logical_height)
@@ -98,6 +111,7 @@ class GraphicsEditor(editors.Editor):
             pixbuf.get_width(), pixbuf.get_height())
         self.unsaved = True 
         self.display.set_from_pixmap(self.pixmap,None)
+        self.redelv.unsaved = True
         
     def edit_cut(self, *args):
         self.edit_copy()
