@@ -68,6 +68,7 @@ html = [
 ]
 rgb = [[int(c[:2],16), int(c[2:4],16), int(c[4:],16)
     ] for c in html]
+rgb24 = [(r<<16)|(g<<8)|b for r,g,b in rgb]
 pil = []
 for c in rgb: pil.extend(c)
 

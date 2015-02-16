@@ -2,6 +2,19 @@ import pygtk
 pygtk.require('2.0')
 import gtk, os, sys
 import images
+import graphics_editors
+import generic_editors
+
+_EDITORS_FOR_SUBINDEX = {
+    131: graphics_editors.LandscapeEditor,
+    135: graphics_editors.PortraitEditor,
+    137: graphics_editors.IconEditor,
+    141: graphics_editors.TileSheetEditor,
+    142: graphics_editors.SizedEditor,
+}
+
+def editor_for_subindex(subindex):
+    return _EDITORS_FOR_SUBINDEX.get(subindex, generic_editors.HexEditor)
 
 class Receiver(gtk.Window):
     pass

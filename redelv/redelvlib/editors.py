@@ -17,17 +17,32 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import gtk
+import gtk, images
 class Editor(gtk.Window):
     name = "Unspecified Editor"
     def __init__(self, redelv, resource, *argv, **argk):
-        gtk.Window.__init__(gtk.WINDOW_TOPLEVEL, *argv,**argk)
+        gtk.Window.__init__(self,gtk.WINDOW_TOPLEVEL, *argv,**argk)
         self.redelv = redelv
         self.res = resource
         self.set_title(self.name)
         self.gui_setup()
         self.unsaved = False
         self.connect("delete_event", self.delete_event)
-    def delete_event(self):
+        self.set_icon(
+                gtk.gdk.pixbuf_new_from_file(images.icon_path))
+        self.editor_setup()
+    def delete_event(self, w=None, d=None):
         if self.unsaved: return self.ask_unsaved()
-        return True
+        return False
+    def gui_setup(self):
+        self.add(gtk.Label("[Unimplemented]"))
+    def ask_unsaved(self):
+        dialog = gtk.MessageDialog(self, 
+            gtk.DIALOG_MODAL , 
+            gtk.MESSAGE_QUESTION, gtk.BUTTONS_YES_NO,
+            "You will lose unsaved changes to this resource; are you sure?")
+        rv= gtk.RESPONSE_YES != dialog.run()
+        dialog.destroy()
+        return rv
+    def editor_setup(self):
+        print "The unimplemented editor is running, which is probably not good..."
