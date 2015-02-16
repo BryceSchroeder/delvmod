@@ -16,7 +16,7 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-
+import cProfile
 ABOUT_TEXT = """<span font_family="monospace">
     This program is free software: you can redistribute it and/or modify 
     it under the terms of the GNU General Public License as published by 
@@ -199,8 +199,9 @@ class ReDelv(object):
         sw.add(self.data_view)
         self.mvbox.pack_start(sw, True, True, 0)
 
-        self.data_view.connect("cursor-changed", self.cursor_changed)
 
+        self.data_view.connect("cursor-changed", self.cursor_changed)
+        self.data_view.connect("row-activated", self.row_activated)
 
 
 
@@ -211,6 +212,13 @@ class ReDelv(object):
         gtk.main()
 
     # Callbacks
+    def row_activated(self, w, path, *argv):
+        self.cursor_changed(w)
+        if self.current_resource: self.menu_resource_editor(None)
+        elif self.data_view.row_expanded(path): 
+            self.data_view.collapse_row(path)
+        else:
+            self.data_view.expand_row(path,False)
     def cursor_changed(self, w, d=None):
         tm,crow = self.data_view.get_selection().get_selected_rows()
         crow = crow[-1]
@@ -400,7 +408,11 @@ class ReDelv(object):
     def menu_apply(self, widget, data=None):
         return None
     def menu_resource_editor(self, widget, data=None):
-        return None
+        if self.current_resource:
+            editgui.editor_for_subindex(self.current_subindex_id)(
+                self, self.current_resource).show_all()
+        else:
+            self.error_message("No resource is selected.")
     def menu_hex_editor(self, widget, data=None):
         return None
     def menu_image_browser(self, widget, data=None):
