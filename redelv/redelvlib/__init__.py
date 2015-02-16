@@ -37,7 +37,7 @@ ABOUT_TEXT = """<span font_family="monospace">
  Based on the <a href="http://www.ferazelhosting.net/wiki/delv">delv</a> Python module. Repository: <a href="https://github.com/BryceSchroeder/delvmod/">GitHub</a>
 """
 
-version = '0.1.0'
+version = '0.1.9'
 
 import delv
 import delv.archive
@@ -55,6 +55,7 @@ class ReDelv(object):
         self.filechange = []
         self.subindexchange = []
         self.resourcechange = []
+        self.archive = None
         #gobject.type_register(editgui.Receiver)
         #gobject.signal_new("filechange", editgui.Receiver, 
         #    gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
@@ -62,9 +63,13 @@ class ReDelv(object):
         self.unsaved = False
         self.opened_file = None
         self.exported_directory = None
+        self.current_resource = None
+        self.current_resource_id = 0
+        self.current_subindex_id = 0
 
         self.aboutbox = None
         self.file_metadata_window = None
+        self.file_get_info_window = None
 
         # Make the main window
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -185,7 +190,7 @@ class ReDelv(object):
         self.data_view.append_column(dc2)
         self.data_view.append_column(dc3)
 
-        self.tree_data = gtk.TreeStore(str,str,str)
+        self.tree_data = gtk.TreeStore(str,str,str,int,int)
         self.data_view.set_model(self.tree_data)
 
         sw = gtk.ScrolledWindow()
@@ -193,7 +198,7 @@ class ReDelv(object):
         sw.add(self.data_view)
         self.mvbox.pack_start(sw, True, True, 0)
 
-
+        self.data_view.connect("cursor-changed", self.cursor_changed)
 
 
 
@@ -205,6 +210,22 @@ class ReDelv(object):
         gtk.main()
 
     # Callbacks
+    def cursor_changed(self, w, d=None):
+        tm,crow = self.data_view.get_selection().get_selected_rows()
+        crow = crow[-1]
+        si = tm.get_value(tm.get_iter(crow), 3)
+        rn = tm.get_value(tm.get_iter(crow), 4)
+        if rn < 0:
+            self.current_resource = None
+            self.current_resource_id = 0
+        else:
+            self.current_resource_id = delv.archive.resid(si,rn)
+            self.current_resource = self.archive.get((si,rn))
+        self.current_sunbindex_id = si
+
+        for recp in self.subindexchange: recp.signal_subindexchange()
+        for recp in self.resourcechange: recp.signal_resourcechange()
+
     def menu_new(self, widget, data=None):
         #for recp in self.filechange: recp.signal_filechange()
         #for recp in self.subindexchange: recp.signal_subindexchange()
@@ -338,7 +359,10 @@ class ReDelv(object):
         print "Quitting"
         if not self.delete_event(widget, None, data): self.destroy(None)
     def menu_get_info(self, widget, data=None):
-        return None
+        if not self.file_get_info_window:
+             self.file_get_info_window = editgui.FileInfo(
+                 self, gtk.WINDOW_TOPLEVEL)
+        self.file_get_info_window.show_all()
     def menu_file_metadata(self, widget, data=None):
         if not self.file_metadata_window:
              self.file_metadata_window = editgui.FileMetadata(
@@ -433,7 +457,7 @@ class ReDelv(object):
         return rv
         
     def open_file(self, path,directory=False):
-        self.tree_data = gtk.TreeStore(str,str,str)
+        self.tree_data = gtk.TreeStore(str,str,str,int,int)
         self.data_view.set_model(self.tree_data)
         try:
             self.archive = delv.archive.Scenario(path, 
@@ -454,3 +478,6 @@ class ReDelv(object):
         for recp in self.filechange: recp.signal_filechange()
         for recp in self.subindexchange: recp.signal_subindexchange()
         for recp in self.resourcechange: recp.signal_resourcechange()
+    def send_resourcechange(self):
+        for recp in self.resourcechange: recp.signal_resourcechange()
+        

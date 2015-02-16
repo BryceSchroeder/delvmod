@@ -88,7 +88,8 @@ def index(resid):
 def indices(resid):
     """Return the major and minor indicies associatied with a resource ID.
        If resid is infact already a tuple, return it. """
-    return resid if type(resid) is tuple else master_index(resid), index(resid)
+    return resid if isinstance(resid,tuple) else (master_index(
+        resid), index(resid))
 
 class ResourceFile(util.BinaryHandler):
     """Implements a simple file-like interface for resources, with the
@@ -559,14 +560,15 @@ class Archive(object):
              if not rescount: continue
              t=self.gui_treestore.append(None,["%3d [%02Xxx]"%(subn,subn+1),
                  "%3d item%s"%(rescount, '' if rescount == 1 else 's'),
-                   _SCEN_HINTS.get(subn, "Unknown")])
+                   _SCEN_HINTS.get(subn, "Unknown"), subn,-1])
              self.gui_tree_rows[subn] = t
              for r in subindex:
                  if not r: continue
                  self.gui_treestore.append(t, [
                      "%04X"%resid(r.subindex,r.n),
                      r.human_readable_size(),
-                     _RES_HINTS.get(resid(r.subindex,r.n),"")
+                     _RES_HINTS.get(resid(r.subindex,r.n),""),
+                     r.subindex,r.n
                      ])
 
     
