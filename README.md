@@ -66,7 +66,7 @@ EULA, as it permits only redistribution of the unmodified and complete game.)
 
 Here's an example of something to do with delv: Custom player character
 portraits in Cythera: 
-http://ferazelhosting.net/~bryce/making\_a\_custom\_portrait\_with\_redelv/tutorial.html
+http://ferazelhosting.net/~bryce/making_a_custom_portrait_with_redelv/tutorial.html
 
 HOW IS delv DOCUMENTED?
 
