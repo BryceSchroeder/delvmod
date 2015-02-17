@@ -38,6 +38,7 @@ ABOUT_TEXT = """<span font_family="monospace">
 """
 
 version = '0.1.12'
+PATCHINFO = """Created with redelv %s, based on the delv library."""%version
 
 import delv
 import delv.archive
@@ -51,6 +52,9 @@ import images, editgui
 class ReDelv(object):
 
     def __init__(self):
+        self.base_archive=None
+        self.patch_base=None
+        self.patch_output_path=None
         # Signals 
         self.filechange = []
         self.subindexchange = []
@@ -66,7 +70,6 @@ class ReDelv(object):
         self.current_resource = None
         self.current_resource_id = 0
         self.current_subindex_id = 0
-
         self.aboutbox = None
         self.file_metadata_window = None
         self.file_get_info_window = None
@@ -210,7 +213,10 @@ class ReDelv(object):
         if len(sys.argv) > 1: self.open_file(sys.argv[1])
     def main(self):
         gtk.main()
-
+    def refresh_tree(self): 
+        "Change the tree to reflect current data."
+        print "WARNING: TreeView may be out of date."
+        return
     # Callbacks
     def row_activated(self, w, path, *argv):
         self.cursor_changed(w)
@@ -240,6 +246,18 @@ class ReDelv(object):
         #for recp in self.subindexchange: recp.signal_subindexchange()
         #for recp in self.resourcechange: recp.signal_resourcechange()
         return None
+    def ask_open_path(self,msg="Select a file..."):
+        if self.unsaved and self.warn_unsaved_changes(): return
+        chooser = gtk.FileChooserDialog(title=msg,
+                  action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                  buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,
+                           gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+        response = chooser.run()
+        if response == gtk.RESPONSE_OK:
+            rv= chooser.get_filename()
+        else: rv= None
+        chooser.destroy()
+        return rv
     def menu_open(self, widget, data=None):
         if self.unsaved and self.warn_unsaved_changes(): return
         chooser = gtk.FileChooserDialog(title="Select a Delver Archive...",
@@ -400,13 +418,57 @@ class ReDelv(object):
     def menu_paste(self, widget, data=None):
         return None
     def menu_select_base(self, widget, data=None):
-        return None
+        patch_base = self.ask_open_path(
+            "Select patch basis (Unmodified scenario)")
+        if not patch_base: return
+        try:
+            self.base_archive = delv.archive.Scenario(patch_base)
+        except Exception, e:
+            self.error_message("'%s' doesn't seem to be a valid archive: %s"%(
+                os.path.basename(path), repr(e)))
+            return
+        self.patch_base = patch_base
+        
     def menu_save_patch(self, widget, data=None):
-        return None
+        if not self.base_archive:
+            self.error_message(
+                "No patch basis is set. Select one using Patch:Select Base.")
+            return
+        if not self.archive:
+            self.error_message(
+                "Nothing open. Do File:Open to open a modified scenario file.")
+            return
+        if not self.patch_output_path: 
+            self.patch_output_path = self.ask_save_path("Untitled Patch")
+        if not self.patch_output_path: return
+        newpatch = delv.archive.Patch()
+        newpatch.patch_info(PATCHINFO)
+        newpatch.diff(self.base_archive, self.archive)
+        newpatch.to_path(self.patch_output_path)
+        print "Saved patch with %d resources"%len(newpatch.resources())
+        
     def menu_save_patch_as(self, widget, data=None):
-        return None
+        patch_output_path = self.ask_save_path("Untitled Patch")
+        if not patch_output_path: return
+        self.patch_output_path = patch_output_path
+        self.menu_save_patch(self, widget, data)
     def menu_apply(self, widget, data=None):
-        return None
+        patch_path = self.ask_open_path("Select a Magpie or mag.py patch")
+        if not patch_path: return
+        try: 
+            patch = delv.archive.Patch(patch_path)
+        except Exception, e:
+            self.error_message("'%s' doesn't seem to be a valid archive: %s"%(
+                os.path.basename(patch_path), repr(e)))
+            return
+        if not patch.get(0xFFFF): 
+            self.error_message("That archive contains no patch resource.")
+            return
+        patch.patch(self.archive)
+        self.unsaved = True
+        self.refresh_tree()
+
+        delv.archive.Patch(patch_path)
     def menu_resource_editor(self, widget, data=None):
         if self.current_resource:
             editgui.editor_for_subindex(self.current_subindex_id)(
@@ -419,7 +481,31 @@ class ReDelv(object):
         return None
 
     def menu_check_compatibility(self,widget,data=None):
-        return None
+        if not self.archive or not self.archive.get(0xFFFF):
+            self.error_message("No patch is open; open one with File:Open.")
+            return
+        #other_patches = self.ask_multiple_files("Select one or more patches:")
+        #if not other_patches: return
+        #try:
+        #    patches = [delv.archive.Patch(path) for path in other_patches]
+        other_patch = self.ask_open_path("Select another patch:")
+        if not other_patch: return
+        try:
+            patch = delv.archive.Patch(other_patch)
+        except:
+            self.error_message("Couldn't open that as a Delver Archive.")
+            return
+        if not patch.get(0xFFFF):
+            self.error_message("That archive does not appear to be a patch.")
+            return
+        if patch.compatible(self.archive):
+            self.info_message(
+                "That patch appears to be compatible with the open patch.")
+        else:
+            self.info_message(
+                "Incompatible: applying both patches may result in errors.")
+
+            
     # stub
     def menu_(self, widget, data=None):
         return None
@@ -446,6 +532,13 @@ class ReDelv(object):
             message)
         dialog.run()
         dialog.destroy()
+    def info_message(self, message):
+        dialog = gtk.MessageDialog(self.window, 
+            gtk.DIALOG_MODAL , 
+            gtk.MESSAGE_INFO, gtk.BUTTONS_OK,
+            message)
+        dialog.run()
+        dialog.destroy()
     def ask_dir_path(self,button=gtk.STOCK_SAVE):
         chooser = gtk.FileChooserDialog(
                   title="Select import/export directory...",
@@ -459,12 +552,12 @@ class ReDelv(object):
             rv = None
         chooser.destroy()
         return rv
-    def ask_save_path(self):
+    def ask_save_path(self, cname="Untitled Scenario"):
         chooser = gtk.FileChooserDialog(title="Select destination...",
                   action=gtk.FILE_CHOOSER_ACTION_SAVE,
                   buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,
                            gtk.STOCK_SAVE,gtk.RESPONSE_OK))
-        chooser.set_current_name("Untitled Scenario")
+        chooser.set_current_name(cname)
         response = chooser.run()
         if response == gtk.RESPONSE_OK:
             rv =chooser.get_filename()
