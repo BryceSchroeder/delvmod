@@ -138,7 +138,7 @@ class Resource(object):
     def __init__(self, offset, size, subindex=0, n=0, archive=None):
         self.offset = offset # 0 if never been on disk
         self.data = bytearray(size) # Data in memory
-        
+        self.resid = resid(subindex,n)
 	self.loaded = not offset
         self.dirty = True
         self.encrypted = None if not self.loaded else False
@@ -251,7 +251,6 @@ class Resource(object):
         self.encrypted = False
         self.canon_encryption = self.archive.canon_encryption_of(self.subindex)
     def load(self):
-        
         fpos = self.archive.arcfile.tell()
         self.archive.arcfile.seek(self.offset)
         self.data = bytearray(self.archive.arcfile.read(len(self.data)))
@@ -290,6 +289,7 @@ class Archive(object):
            that file. If src is a string, it will attempt to open it as
            a file read-only."""
         self.gui_treestore=gui_treestore
+        self.player_name = ''
         self.encryption_knowledge = {}
         for si in self.known_encrypted: self.encryption_knowledge[si] = True
         for si in self.known_clear: self.encryption_knowledge[si] = False
@@ -315,6 +315,8 @@ class Archive(object):
         encrypt = metadata['should_encrypt']
         self.create_header()
         self.create_index()
+        self.scenario_title = metadata['scenario_title']
+        self.player_name = metadata['player_name']
         for rid,canon_e in encrypt.items():
             rid = int(rid,16)
             subindex,ri = indices(rid)
@@ -350,7 +352,9 @@ class Archive(object):
         """Dump the contents of the archive, unencrypted, to path."""
         assert os.path.isdir(path)
         metadata = {'source': self.source(), 
-            'creator': 'delv (www.ferazelhosting.net/wiki/delv)'}
+            'creator': 'delv (www.ferazelhosting.net/wiki/delv)',
+            'scenario_title': self.scenario_title,
+            'player_name': self.player_name}
         encrypt = {}
         for resource in self.resources():
             if not resource: continue # don't preserve empties
@@ -516,6 +520,7 @@ class Archive(object):
         self.master_index_length = 8*size
     def load_header(self):
         self.scenario_title = self.arcfile.read_pstring(0)
+        self.player_name = self.arcfile.read_pstring(0x20)
         self.unknown_40 = self.arcfile.read_uint8(0x40)
         self.unknown_42 = self.arcfile.read_uint8(0x42)
         self.unknown_48 = self.arcfile.read_uint8(0x48)
@@ -523,6 +528,7 @@ class Archive(object):
         self.master_index_length = self.arcfile.read_uint32(0x84)
     def save_header(self,dest):
         dest.write_pstring(self.scenario_title, 0)
+        dest.write_pstring(self.player_name, 0x20)
         dest.write_uint8(self.unknown_40, 0x40)
         dest.write_uint8(self.unknown_42, 0x42)
         dest.write_uint8(self.unknown_48, 0x48)
@@ -575,7 +581,7 @@ class Archive(object):
         
 class Player(Archive):
     """Class for manipulating Delver Player Files, i.e. saved games."""
-    pass
+    
 
 class Scenario(Archive):
     """Class for manipulating Delver Scenario files."""

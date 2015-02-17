@@ -45,4 +45,37 @@ class Editor(gtk.Window):
         dialog.destroy()
         return rv
     def editor_setup(self):
-        print "The unimplemented editor is running, which is probably not good..."
+        print "The unimplemented editor is running, which is probably bad..."
+    def ask_open_path(self,msg="Select a file..."):
+        if self.unsaved and self.warn_unsaved_changes(): return
+        chooser = gtk.FileChooserDialog(title=msg,
+                  action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                  buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,
+                           gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+        response = chooser.run()
+        if response == gtk.RESPONSE_OK:
+            rv= chooser.get_filename()
+        else: rv= None
+        chooser.destroy()
+        return rv
+
+    def ask_save_path(self,msg="Select destination...",default="Untitled"):
+        chooser = gtk.FileChooserDialog(title=msg,
+                  action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                  buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,
+                           gtk.STOCK_SAVE,gtk.RESPONSE_OK))
+        chooser.set_current_name(default)
+        response = chooser.run()
+        if response == gtk.RESPONSE_OK:
+            rv =chooser.get_filename()
+        else:
+            rv = None
+        chooser.destroy()
+        return rv 
+    def error_message(self, message):
+        dialog = gtk.MessageDialog(self, 
+            gtk.DIALOG_MODAL , 
+            gtk.MESSAGE_ERROR, gtk.BUTTONS_OK,
+            message)
+        dialog.run()
+        dialog.destroy()

@@ -37,7 +37,7 @@ ABOUT_TEXT = """<span font_family="monospace">
  Based on the <a href="http://www.ferazelhosting.net/wiki/delv">delv</a> Python module. Repository: <a href="https://github.com/BryceSchroeder/delvmod/">GitHub</a>
 """
 
-version = '0.1.10'
+version = '0.1.12'
 
 import delv
 import delv.archive
@@ -464,6 +464,7 @@ class ReDelv(object):
                   action=gtk.FILE_CHOOSER_ACTION_SAVE,
                   buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,
                            gtk.STOCK_SAVE,gtk.RESPONSE_OK))
+        chooser.set_current_name("Untitled Scenario")
         response = chooser.run()
         if response == gtk.RESPONSE_OK:
             rv =chooser.get_filename()

@@ -31,8 +31,9 @@ class GraphicsEditor(editors.Editor):
         self.set_default_size(*self.default_size)
         pbox = gtk.VBox(False,0)
         menu_items = (
-            ("/File/Import", "<control>I", None, 0, None),
-            ("/File/Export", "<control>E", None, 0, None),
+            ("/File/Import", "<control>I", self.file_import, 0, None),
+            ("/File/Export RGB", None, self.file_export, 0, None),
+            ("/File/Export Indexed","<control>E",self.file_indexed,0,None),
             ("/File/Save Resource", "<control>S", self.file_save, 0, None),
             ("/File/Revert", None, self.load_image, 0, None),
             ("/Edit/Cut", "<control>X", self.edit_cut, 0, None),
@@ -64,9 +65,10 @@ class GraphicsEditor(editors.Editor):
 
         self.add(pbox)
     def editor_setup(self):
-        self.image = delv.graphics.DelvImageFactory(self.res)
         self.load_image()
     def load_image(self, *args):
+        self.image = delv.graphics.DelvImageFactory(self.res)
+        self.set_title(self.name + " - %04X"%self.res.resid)
         data = self.image.get_logical_image()
         self.edited = None
         self.pixmap = gtk.gdk.Pixmap(None,
@@ -85,7 +87,7 @@ class GraphicsEditor(editors.Editor):
         # fault of X11
         img = self.pixmap.get_image(0,0,self.image.logical_width,
             self.image.logical_height)
-        # YES, REALLY vvv This is barbaric...
+        # Iterating over pixels! This is barbaric!
         pixels = bytearray()
         for y in xrange(self.image.logical_height):
             for x in xrange(self.image.logical_width):
@@ -95,12 +97,52 @@ class GraphicsEditor(editors.Editor):
         self.unsaved = False
         self.redelv.unsaved = True
         self.load_image()
-    def edit_copy(self, *args):
+    def get_pixbuf_from_pixmap(self):
         pbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, 
             self.image.logical_width,self.image.logical_height)
         pbuf.get_from_drawable(self.pixmap, gtk.gdk.colormap_get_system(),
             0,0,0,0,self.image.logical_width,self.image.logical_height)
-        self.redelv.clipboard.set_image(pbuf)
+        return pbuf
+    def file_import(self,*args):
+        #if self.unsaved and self.warn_unsaved_changes(): return 
+        path = "<undefined>"
+        try:
+            path = self.ask_open_path()
+            if not path: return
+            pixbuf = gtk.gdk.pixbuf_new_from_file(path)
+        except Exception,e:
+            self.error_message("Couldn't open '%s': %s"%(path,
+                repr(e)))
+            return
+        gc = self.pixmap.new_gc()
+        self.pixmap.draw_pixbuf(gc, pixbuf, 0,0,0,0,
+            pixbuf.get_width(), pixbuf.get_height())
+        self.unsaved = True 
+        self.display.set_from_pixmap(self.pixmap,None)
+        self.redelv.unsaved = True
+    def file_export(self,*args):
+        path = self.ask_save_path(default = "RGB%04X.png"%self.res.resid)
+        if not path: return
+        if not path.endswith(".png"): path += ".png"
+        pbuf = self.get_pixbuf_from_pixmap()
+        # The text chunk mechanism could be used to preserve non-visual data...
+        pbuf.save(path, "png", {})
+    def file_indexed(self,*args):
+        path = self.ask_save_path(default = "%04X.png"%self.res.resid)
+        if not path: return
+        try:
+            import Image
+            pil_img = Image.frombuffer("P", 
+                (self.image.logical_width, self.image.logical_height), 
+                self.image.get_logical_image(), "raw",
+                ("P",0,1))
+            pil_img.putpalette(delv.colormap.pil)
+            pil_img.save(path)
+        except ImportError:
+            self.error_message("Couldn't import python imaging library (PIL)")
+
+    def edit_copy(self, *args):
+        self.redelv.clipboard.set_image(self.get_pixbuf_from_pixmap())
     def edit_paste(self, *args):
         self.redelv.clipboard.request_image(self.paste,None)
     def paste(self, clipboard, pixbuf, data):

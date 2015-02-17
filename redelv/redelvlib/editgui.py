@@ -113,7 +113,11 @@ class FileMetadata(Receiver):
         self.scenario_title = gtk.Entry(255)
         trow.pack_start(self.scenario_title, True,True,0)
         pbox.pack_start(trow,False,True,0)
-
+        trow = gtk.HBox(False,0)
+        trow.pack_start(gtk.Label("Player Name:"),False,True,0)
+        self.player_name = gtk.Entry(255)
+        trow.pack_start(self.player_name, True,True,0)
+        pbox.pack_start(trow,False,True,0)
         trow = gtk.HBox(False,0)
         trow.pack_start(gtk.Label("Unknown 0x40:"),False,True,0)
         self.unknown_40 = gtk.Entry(4)
@@ -148,25 +152,31 @@ class FileMetadata(Receiver):
         pbox.pack_start(trow,False,True,0)
  	self.add(pbox)
 
-        self.scenario_title.connect("changed", self.edit_scenario_title)
 
+        self.scenario_title.connect("changed", self.edit_scenario_title)
+        self.player_name.connect("changed", self.edit_player_name)
         self.signal_filechange(None)
     def edit_scenario_title(self,w,data=None):
         newtitle = self.scenario_title.get_text()
         self.redelv.unsaved = newtitle !=  self.redelv.archive.scenario_title
         self.redelv.archive.scenario_title = newtitle
+    def edit_player_name(self, *argv):
+        newname = self.player_name.get_text()
+        self.redelv.unsaved = newname != self.redelv.archive.player_name
+        self.redelv.archive.player_name = newname
 
     def signal_filechange(self, d=None):
         if not self.redelv.archive:
             for box in [self.scenario_title,self.unknown_40,self.unknown_42,
                         self.unknown_48,self.master_index_length, 
-                        self.master_index_offset]: 
+                        self.master_index_offset,self.player_name]: 
                 box.set_text("")
                 box.set_editable(False)
             self.source_string.set_text("[No File Opened]")
         else:
-            for box in [self.scenario_title]:
+            for box in [self.scenario_title,self.player_name]:
                 box.set_editable(True)
+            self.player_name.set_text(self.redelv.archive.player_name)
             self.scenario_title.set_text(self.redelv.archive.scenario_title)
             self.unknown_40.set_text("0x%02X"%self.redelv.archive.unknown_40)
             self.unknown_42.set_text("0x%02X"%self.redelv.archive.unknown_42)
