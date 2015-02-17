@@ -58,6 +58,14 @@ class Editor(gtk.Window):
         else: rv= None
         chooser.destroy()
         return rv
+    def yn_ask(self,prompt="Are you sure?"):
+        dialog = gtk.MessageDialog(self, 
+            gtk.DIALOG_MODAL , 
+            gtk.MESSAGE_QUESTION, gtk.BUTTONS_YES_NO,
+            prompt)
+        rv = gtk.RESPONSE_YES == dialog.run()
+        dialog.destroy()
+        return rv
 
     def ask_save_path(self,msg="Select destination...",default="Untitled"):
         chooser = gtk.FileChooserDialog(title=msg,

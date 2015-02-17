@@ -66,6 +66,7 @@ _SCEN_HINTS = {
     135: "Character Portraits", 137: "Skill Icons", 141: "Tile Graphics",
     142: "General Graphics", 143: "Music", 144: "Sounds", 
     239: "Script Data", 254: "Patch Description",
+    187: "Metadata from delv",
     129: "Explored Area Bitmaps", 223: "Journal Entries"
 }
 
