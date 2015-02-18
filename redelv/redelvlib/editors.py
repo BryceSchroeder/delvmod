@@ -33,7 +33,10 @@ class Editor(gtk.Window):
         self.editor_setup()
     def delete_event(self, w=None, d=None):
         if self.unsaved: return self.ask_unsaved()
+        self.cleanup()
         return False
+    def cleanup(self):
+        pass
     def gui_setup(self):
         self.add(gtk.Label("[Unimplemented]"))
     def ask_unsaved(self):

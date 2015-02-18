@@ -19,7 +19,7 @@
 # Ambrosia Software, Inc. 
 
 import editors
-import gtk
+import gtk,gobject
 import delv
 import delv.graphics
 
@@ -55,6 +55,7 @@ class GraphicsEditor(editors.Editor):
 
         self.toggle_palette = gtk.ToggleButton("Run Palette Animation")
         pbox.pack_start(self.toggle_palette, False,True,0)
+        self.toggle_palette.connect("toggled", self.palette_toggled)
         self.flags = gtk.Entry()
         self.flags.set_editable(False)
         if self.has_flags:
@@ -64,6 +65,35 @@ class GraphicsEditor(editors.Editor):
             pbox.pack_start(hbox,False,True,0)
 
         self.add(pbox)
+        self.animation_sid = None
+    def cleanup(self):
+        if self.animation_sid is not None:
+            gobject.source_remove(self.animation_sid)
+    def palette_toggled(self, *argv):
+        newstate = self.toggle_palette.get_active()
+        print "Palette animation:",newstate
+        if newstate:
+            if self.unsaved:
+                self.error_message("Save your changes, or revert them, first.")
+                self.toggle_palette.set_active(False)
+                return
+            self.pal_n = 0
+            self.animation_sid = gobject.timeout_add(
+                100, self.animation_timer)
+        else:
+            gobject.source_remove(self.animation_sid)
+            self.animation_sid = None
+    def animation_timer(self):
+        gc = self.pixmap.new_gc()
+        self.pixmap.draw_indexed_image(gc, 
+            0, 0, self.image.logical_width,self.image.logical_height,
+            gtk.gdk.RGB_DITHER_NORMAL, 
+            str(self.image.get_logical_image()), 
+            self.image.logical_width, 
+            delv.colormap.animated_rgb24[self.pal_n%8])
+        self.display.set_from_pixmap(self.pixmap,None)
+        self.pal_n += 1
+        return True
     def editor_setup(self):
         self.load_image()
     def load_image(self, *args):

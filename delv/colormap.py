@@ -1,3 +1,36 @@
+#!/usr/bin/env python
+# Copyright 2015 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
+# Wiki: http://www.ferazelhosting.net/wiki/delv
+# 
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
+# Ambrosia Software, Inc. 
+
+def _pclr(pal,n,f):
+    if n < 0xE0: return pal[n]
+    elif n < 0xF0: return pal[(n&0xF8)|((n+f)&7)]
+    elif n < 0xFC: return pal[(n&0xFC)|((n+f)&3)]
+    else: return pal[n]
+
+def panimate(pal):
+    """ Generate a sequence of palette-animated colors from the given
+        256-item sequence (pal) provided."""
+    return [[_pclr(pal,n,f) for n in xrange(256)] for f in xrange(8)]
+
+
+
 # Cythera CLUT in python array format provided by Chris Pickel,
 # sfiera@sfzmail.com
 html = [
@@ -68,7 +101,9 @@ html = [
 ]
 rgb = [[int(c[:2],16), int(c[2:4],16), int(c[4:],16)
     ] for c in html]
+
 rgb24 = [(r<<16)|(g<<8)|b for r,g,b in rgb]
+
 
 idx_rgb24 = {rgb24value: idx for idx,rgb24value in enumerate(rgb24)}
 
@@ -93,4 +128,6 @@ def closest_color(pal, r,g,b,starts=0x10,ends=0xE0):
 
 pil = []
 for c in rgb: pil.extend(c)
-
+animated_rgb24 = panimate(rgb24)
+animated_rgb   = panimate(rgb)
+animated_html  = panimate(html)

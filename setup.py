@@ -22,7 +22,7 @@ from distutils.core import setup
 import setuptools
 
 setup(name='delv',
-      version='0.1.6',
+      version='0.1.7',
       description='Module for making tools interoperable with Delver',
       author='Bryce Schroeder',
       author_email='bryce.schroeder@gmail.com',
