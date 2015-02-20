@@ -24,7 +24,7 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import cStringIO, struct
+import cStringIO as StringIO, struct
 
 # This whole file is intended to be 'private' to delv; it isn't part of the 
 # public API.
@@ -148,10 +148,16 @@ class BinaryHandler(object):
     S_uint16 = struct.Struct('>H')
 
     # Wishing for a more elegant alternative
+    def eof(self):
+        rv = self.file.read(1)
+        self.file.seek(-1, 1)
+        return rv is ''
     def seek(self, *vargs, **kwargs):
         self.file.seek(*vargs, **kwargs)
     def read(self, *vargs, **kwargs):
         return self.file.read(*vargs, **kwargs)
+    def readb(self, *vargs, **kwargs):
+        return bytearray(self.file.read(*vargs, **kwargs))
     def write(self, *vargs, **kwargs):
         self.file.write(*vargs, **kwargs)
     def tell(self, *vargs, **kwargs):
@@ -160,7 +166,10 @@ class BinaryHandler(object):
         return self.file.truncate(*vargs,**kwargs)
 
     def __init__(self, file):
-        self.file = file
+        if hasattr(file, 'read') and hasattr(file, 'write'):
+            self.file = file
+        elif hasattr(file, '__getitem__'):
+            self.file = StringIO.StringIO(file)
     def write_struct(self, s, v, offset=None):
         if offset is not None: self.seek(offset)
         if type(v) is int:
@@ -198,12 +207,21 @@ class BinaryHandler(object):
         assert len(s) < 256
         self.write_uint8(len(s))
         return self.write(s)
-    def write_cstring(self, s, offset=None):
+    def write_str31(self, s, offset=None):
         if offset is not None: self.seek(offset)
+        assert len(s) < 32
+        self.write_uint8(len(s))
+        self.write('\x00'%(31-len(s)))
+    def write_cstring(self, s, offset=None):
         "Write a null-terminated string."
+        if offset is not None: self.seek(offset)
         self.write(s)
         return self.write('\x00')
-
+    def write_fixed16(self, s, offset=None):
+        "Write 8.8 fixed-point number."
+        if offset is not None: self.seek(offset)
+        self.write_uint8(int(s))
+        self.write_uint8(int(round(255*(s-int(s)))))
 
     def read_struct(self, s, offset=None):
         if offset is not None: self.seek(offset)
@@ -234,8 +252,19 @@ class BinaryHandler(object):
         "Read 24-bit signed integer and 8-bit flags. (Flags returned first.)"
         return self.read_uint8(offset), self.read_sint24()
     def read_pstring(self, offset=None):
+        "Read a Pascal String (Length byte followed by that many data bytes)"
         size = self.read_uint8(offset)
         return self.read(size)
+    def read_str31(self, offset=None):
+        "Read a Str31."
+        size = self.read_uint8(offset)
+        return self.read(31)[:size]
+    def read_fixed16(self,offset=None):
+        "Read an 8.8 Fixed number."
+        units = self.read_uint8(offset)
+        fraction = self.read_uint8()
+        return units + fraction/256.0
+        
     def read_cstring(self, offset=None):
         if offset is not None: self.seek(offset)
         buf = []
