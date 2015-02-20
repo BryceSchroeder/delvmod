@@ -31,6 +31,10 @@ pygame.midi.init()
 PORT = 6# pygame.midi.get_default_output_id()
 
 USAGE = '''
+CURRENTLY NOT IMPLEMENTED.
+Music turned out to be much more complicated than expected.
+This will probably not be finished soon.
+
 Usage: ./music.py archive resid 
 Or:    ./music.py file 
 
