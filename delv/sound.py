@@ -46,12 +46,13 @@ class Asnd(Sound):
         if self.src.read(4) != 'asnd': raise SoundError, "Bad magic number"
         self.flags = self.src.read_uint32()
         self.rate = self.src.read_uint16()
+        self.flags2 = self.src.read_uint16()
         # decode pcm
         samp = 0
         while not self.src.eof():
             #samp += self.src.read_sint16()
             #self.samples.append(samp) 
-            self.samples.append(self.src.read_sint16())
+            self.samples.append(self.src.read_sint16()<<8)
     def get_rate(self):
         return self.rate
     def get_samples(self):
