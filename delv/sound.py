@@ -33,4 +33,5 @@ class SoundAsnd(Sound):
 class SoundSND(Sound):
     pass
 class Music(Sound):
-    pasXcDe#
+    SxCD = 1
+    pass
