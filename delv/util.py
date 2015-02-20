@@ -144,8 +144,10 @@ def bits_of(data, size, index):
 class BinaryHandler(object):
     S_offlen = struct.Struct('>LL')
     S_uint32 = struct.Struct('>L')
+    S_sint32 = struct.Struct('>l')
     S_uint8 = struct.Struct('B')
     S_uint16 = struct.Struct('>H')
+    S_sint16 = struct.Struct('>h')
 
     # Wishing for a more elegant alternative
     def eof(self):
@@ -179,7 +181,9 @@ class BinaryHandler(object):
     def write_uint8(self, v, offset=None):
         self.write_struct(self.S_uint8, v, offset)
     def write_uint16(self,v,offset=None):
-        self.write_struct(self.S_uint24, v, offset)
+        self.write_struct(self.S_uint16, v, offset)
+    def write_sint16(self,v,offset=None):
+        self.write_struct(self.S_sint16, v, offset)
     def write_uint32(self,v,offset=None):
         self.write_struct(self.S_uint32, v, offset)
     def write_offlen(self,offs,length,offset=None):
@@ -234,6 +238,9 @@ class BinaryHandler(object):
     def read_uint16(self, offset=None):
         "Read 16-bit big endian unsigned integer."
         return self.read_struct(self.S_uint16, offset)[0]
+    def read_sint16(self, offset=None):
+        "Read 16-bit big endian unsigned integer."
+        return self.read_struct(self.S_sint16, offset)[0]
     def read_sint24(self, offset=None):
         "Return a signed 24-bit integer."
         uvar = (self.read_uint8(offset)<<8) | self.read_uint16()

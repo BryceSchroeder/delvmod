@@ -28,10 +28,35 @@
 import util
 from util import bitstruct_pack, bits_pack,bits_of
 
+class SoundError(Exception): pass
+
 class Sound(object):
     pass
-class SoundAsnd(Sound):
-    pass
+
+class Asnd(Sound):
+    def __init__(self, src=None):
+        self.samples = []
+        self.rate = 22050
+        self.flags =0 
+        if src:
+            self.src = util.BinaryHandler(src)
+            self.load_from_file()
+    def load_from_file(self):
+        self.src.seek(0)
+        if self.src.read(4) != 'asnd': raise SoundError, "Bad magic number"
+        self.flags = self.src.read_uint32()
+        self.rate = self.src.read_uint16()
+        # decode pcm
+        samp = 0
+        while not self.src.eof():
+            #samp += self.src.read_sint16()
+            #self.samples.append(samp) 
+            self.samples.append(self.src.read_sint16())
+    def get_rate(self):
+        return self.rate
+    def get_samples(self):
+        return self.samples
+    
 class SoundSND(Sound):
     pass
 
