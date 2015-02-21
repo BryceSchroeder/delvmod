@@ -30,6 +30,7 @@ class SoundEditor(editors.Editor):
     name = "Sound Editor"
     default_size = 320,128
     s_lsint16 = struct.Struct('<h')
+    s_lsint8 = struct.Struct('b')
     def gui_setup(self):
         self.set_default_size(*self.default_size)
         pbox = gtk.VBox(False,0)
@@ -50,15 +51,16 @@ class SoundEditor(editors.Editor):
         self.sample_rate.set_width_chars(10)
         self.sample_rate.set_editable(False)
         hbox.pack_start(self.sample_rate, True,True,0)
+        hbox.pack_start(gtk.Label("Length:"),False,True,0)
+        self.duration = gtk.Entry()
+        self.duration.set_width_chars(10)
+        self.duration.set_editable(False)
+        hbox.pack_start(self.duration, True,True,0)
         hbox.pack_start(gtk.Label("Flags:"),False,True,0)
         self.flags = gtk.Entry()
-        self.flags.set_width_chars(10)
+        self.flags.set_width_chars(6)
         self.flags.set_editable(False)
         hbox.pack_start(self.flags, True,True,0)
-        self.flags2 = gtk.Entry()
-        self.flags2.set_width_chars(6)
-        self.flags2.set_editable(False)
-        hbox.pack_start(self.flags2, True,True,0)
         pbox.pack_start(hbox,False)
         self.play_button = gtk.Button("Play Sound")
         pbox.pack_start(self.play_button, False, True, 0)
@@ -69,7 +71,35 @@ class SoundEditor(editors.Editor):
         self.add(pbox)
         self.play_button.connect("clicked", self.play_sound)
     def file_import(self,*argv):
-        self.error_message("Not implemented yet")
+        path = self.ask_open_path()
+        if not path: return
+        try:
+            wavin = wave.open(path, 'rb')
+        except Exception, e:
+            self.error_message("Couldn't read '%s': %s"%(path,repr(e)))
+            return
+        if wavin.getnchannels() != 1:
+            self.error_message("Only monaural (1 channel) is supported.")
+            return
+        if wavin.getcomptype() != 'NONE':
+            self.error_message("Sound must be uncompressed. Compression  is %s"%(
+                wavin.getcompname()))
+            return
+        if not wavin.getsampwidth() in [1,2]:
+            self.error_message("Only 8 or 16 bit WAV is supported.")
+            return
+        pstr = self.s_lsint8 if wavin.getsampwidth() ==1 else self.s_lsint16
+        self.sound.set_rate(wavin.getframerate())
+        newsamples = []
+        data = bytearray(wavin.readframes(wavin.getnframes()))
+        i = 0
+        while i < len(data):
+            newsamples.append(pstr.unpack(data[i:i+pstr.size])[0])
+            i += pstr.size
+            
+        self.sound.set_samples(newsamples)
+        self.update()
+        self.redelv.unsaved = True
         self.unsaved = True
     def file_export(self,*argv):
         path = self.ask_save_path(default = "Asnd%04X.wav"%self.res.resid)
@@ -78,7 +108,7 @@ class SoundEditor(editors.Editor):
         try:
             self.wave_out(open(path, 'wb'))
         except Exception, e:
-            self.error_message("Couldn't write %s: %s"%(path,repr(e))
+            self.error_message("Couldn't write '%s': %s"%(path,repr(e)))
     def wave_out(self, fileobj):
         wavout = wave.open(fileobj, 'wb')
         wavout.setnchannels(1)
@@ -90,7 +120,7 @@ class SoundEditor(editors.Editor):
         wavout.writeframes(frames)
         wavout.close()
     def file_save(self,*argv):
-        
+        self.res.set_data(self.sound.get_data())
         self.redelv.unsaved = True
         self.unsaved = False
     def play_sound(self, *argv):
@@ -100,12 +130,13 @@ class SoundEditor(editors.Editor):
         subprocess.Popen(command%self.temp.name, shell=True)
     def editor_setup(self):
         self.load()
-
+    def update(self):
+        self.sample_rate.set_text("%d Hz"%self.sound.get_rate())
+        self.duration.set_text("0x%08X"%self.sound.duration)
+        self.flags.set_text("0x%04X"%self.sound.flags)
     def load(self, *argv):
         self.rfile = self.res.as_file()
         self.set_title("Sound Editor - %04X"%self.res.resid)
         self.sound = delv.sound.Asnd(self.rfile)
-        self.sample_rate.set_text("%d Hz"%self.sound.get_rate())
-        self.flags.set_text("0x%08X"%self.sound.flags)
-        self.flags2.set_text("0x%04X"%self.sound.flags2)
+        self.update()
         self.unsaved = False

@@ -27,6 +27,8 @@
 # Maps and prop lists. Convenience utilities for map visualization.
 import util
 from util import bitstruct_pack, bits_pack,bits_of
+import array
+import cStringIO as StringIO
 
 class SoundError(Exception): pass
 
@@ -34,32 +36,73 @@ class Sound(object):
     pass
 
 class Asnd(Sound):
+    """Class for Delver sound resources. (Might be 'asnd' for "Ambrosia 
+       Sound Tool" but that's speculative.)"""
     def __init__(self, src=None):
-        self.samples = []
+        self.samples = array.array('h')
         self.rate = 22050
-        self.flags =0 
+        self.duration =0 
+        self.data = None
         if src and issubclass(src.__class__, util.BinaryHandler):
             self.src = src
         elif src:
             self.src = util.BinaryHandler(src)
         else: return
-        self.load_from_file()
-    def load_from_file(self):
+        self.load_from_bfile()
+    def get_data(self):
+        if not self.data:
+            buf = StringIO.StringIO()
+            bh = util.BinaryHandler(buf)
+            self.write_to_bfile(bh)
+            # I wonder why StringIO doesn't have a method that does this:
+            self.data = bytearray(buf.getvalue())
+        return self.data
+        
+    def write_to_bfile(self, dest=None):
+        if dest is None: dest = self.src
+        dest.seek(0)
+        dest.write('asnd')
+        dest.write_uint32(self.duration)
+        dest.write_uint16(self.rate)
+        dest.write_uint16(self.flags)
+        for sample in self.samples:
+            # Yes, this seems stupid, but it's the way it is
+            # No idea why 8 bit sound is stored in 16 bit shorts.
+            dest.write_sint16(sample>>8)
+        
+    def load_from_bfile(self):
         self.src.seek(0)
         if self.src.read(4) != 'asnd': raise SoundError, "Bad magic number"
-        self.flags = self.src.read_uint32()
+        self.duration = self.src.read_uint32()
         self.rate = self.src.read_uint16()
-        self.flags2 = self.src.read_uint16()
+        self.flags = self.src.read_uint16()
         # decode pcm
         samp = 0
         while not self.src.eof():
             #samp += self.src.read_sint16()
             #self.samples.append(samp) 
             self.samples.append(self.src.read_sint16()<<8)
+        self.data = None
     def get_rate(self):
         return self.rate
     def get_samples(self):
+        "Get an array of 16-bit signed integers."
         return self.samples
+    def set_samples(self, newsamples):
+        self.samples = array.array('h',newsamples)
+        self.data = None
+        # It's actually size, not duration... anyway, may need to pad.
+        
+        if len(self.samples) < 512:
+            self.samples.extend([0]*(512-len(self.samples)))
+            self.duration = 0
+        else:
+            self.samples.extend([0]*(1024 - len(self.samples)%1024))
+            self.duration = (len(self.samples)-512)/1024
+    def set_rate(self, newrate):
+        self.rate = newrate
+        self.data = None
+        
     
 class SoundSND(Sound):
     pass

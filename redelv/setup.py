@@ -22,7 +22,7 @@ from distutils.core import setup
 import setuptools
 
 setup(name='redelvlib',
-      version='0.1.15',
+      version='0.1.16',
       description='GUI editor using delv',
       author='Bryce Schroeder',
       author_email='bryce.schroeder@gmail.com',

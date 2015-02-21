@@ -39,6 +39,8 @@ class Editor(gtk.Window):
         pass
     def gui_setup(self):
         self.add(gtk.Label("[Unimplemented]"))
+    def warn_unsaved_changes(self):
+        return self.ask_unsaved()
     def ask_unsaved(self):
         dialog = gtk.MessageDialog(self, 
             gtk.DIALOG_MODAL , 
