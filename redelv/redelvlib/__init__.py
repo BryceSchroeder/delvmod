@@ -37,7 +37,7 @@ ABOUT_TEXT = """<span font_family="monospace">
  Based on the <a href="http://www.ferazelhosting.net/wiki/delv">delv</a> Python module. Repository: <a href="https://github.com/BryceSchroeder/delvmod/">GitHub</a>
 """
 
-version = '0.1.16'
+version = '0.1.17'
 PATCHINFO = """Created with redelv %s, based on the delv library."""%version
 
 import delv
@@ -131,17 +131,23 @@ class ReDelv(object):
             ("/Tools/Use Specific Editor/_Hex Editor", 
                  "<control>H",self.menu_hex_editor,0,None),
             ("/Tools/Use Specific Editor/sep01",None,None,0,"<Separator>"),
-            ("/Tools/Use Specific Editor/_Tile Sheet",None,None,0,None),
-            ("/Tools/Use Specific Editor/_Portrait",None,None,0,None),
-            ("/Tools/Use Specific Editor/_Landscape",None,None,0,None),
-            ("/Tools/Use Specific Editor/_Sized Image",None,None,0,None),
-            ("/Tools/Use Specific Editor/_Icon",None,None,0,None),
+            ("/Tools/Use Specific Editor/_Tile Sheet",None,
+                 (lambda *argv: self.specific_ed("TileSheet")),0,None),
+            ("/Tools/Use Specific Editor/_Portrait",None,
+                 (lambda *argv: self.specific_ed("Portrait")),0,None),
+            ("/Tools/Use Specific Editor/_Landscape",None,
+                 (lambda *argv: self.specific_ed("Landscape")),0,None),
+            ("/Tools/Use Specific Editor/_Sized Image",None,
+                 (lambda *argv: self.specific_ed("Sized")),0,None),
+            ("/Tools/Use Specific Editor/_Icon",None,
+                 (lambda *argv: self.specific_ed("Icon")),0,None),
             ("/Tools/Use Specific Editor/sep02",None,None,0,"<Separator>"),
             ("/Tools/Use Specific Editor/_Prop List",None,None,0,None),
             ("/Tools/Use Specific Editor/_Map",None,None,0,None),
             ("/Tools/Use Specific Editor/sep03",None,None,0,"<Separator>"),
             ("/Tools/Use Specific Editor/_Music",None,None,0,None),
-            ("/Tools/Use Specific Editor/_Sound",None,None,0,None),
+            ("/Tools/Use Specific Editor/_Sound",None,
+                 (lambda *argv: self.specific_ed("Sound")),0,None),
             ("/Tools/Use Specific Editor/sep04",None,None,0,"<Separator>"),
             ("/Tools/Use Specific Editor/_Script Data",None,None,0,None),
             ("/Tools/Use Specific Editor/_Script",None,None,0,None),
@@ -150,7 +156,8 @@ class ReDelv(object):
             ("/Tools/Use Specific Editor/_String List",None,None,0,None),
             ("/Tools/Use Specific Editor/_Symbols",None,None,0,None),
             ("/Tools/Use Specific Editor/sep06",None,None,0,"<Separator>"),
-            ("/Tools/Use Specific Editor/_Patch",None,None,0,None),
+            ("/Tools/Use Specific Editor/_Patch",None,
+                 (lambda *argv: self.specific_ed("Patch")),0,None),
             ("/Tools/sep6", None, None, 0, "<Separator>"),
             ("/Tools/_Image _Browser", None, self.menu_image_browser,0,None),
             ("/Tools/High Level Editors/_Monsters",None,None,0,None),
@@ -469,6 +476,12 @@ class ReDelv(object):
         self.refresh_tree()
 
         delv.archive.Patch(patch_path)
+    def specific_ed(self, which="Hex"):
+        if self.current_resource:
+            editgui.editor_for_name(which)(
+                self, self.current_resource).show_all()
+        else:
+            self.error_message("No resource is selected.")
     def menu_resource_editor(self, widget, data=None):
         if self.current_resource:
             editgui.editor_for_subindex(self.current_subindex_id)(
@@ -476,7 +489,7 @@ class ReDelv(object):
         else:
             self.error_message("No resource is selected.")
     def menu_hex_editor(self, widget, data=None):
-        return None
+        self.specific_ed("Hex")
     def menu_image_browser(self, widget, data=None):
         return None
 

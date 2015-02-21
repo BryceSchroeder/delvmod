@@ -26,6 +26,18 @@ import generic_editors
 import patch_editor
 import sound_editors
 
+# hokey
+_EDITORS_BY_NAME = {
+    "Landscale": graphics_editors.LandscapeEditor,
+    "Portrait": graphics_editors.PortraitEditor,
+    "Icon": graphics_editors.IconEditor,
+    "TileSheet": graphics_editors.TileSheetEditor, 
+    "Sized": graphics_editors.SizedEditor,
+    "Sound": sound_editors.SoundEditor,
+    "Patch": patch_editor.PatchEditor,
+    "Hex": generic_editors.HexEditor
+}
+
 _EDITORS_FOR_SUBINDEX = {
     131: graphics_editors.LandscapeEditor,
     135: graphics_editors.PortraitEditor,
@@ -35,6 +47,9 @@ _EDITORS_FOR_SUBINDEX = {
     144: sound_editors.SoundEditor,
     254: patch_editor.PatchEditor,
 }
+
+def editor_for_name(name):
+    return _EDITORS_BY_NAME.get(name, generic_editors.HexEditor)
 
 def editor_for_subindex(subindex):
     return _EDITORS_FOR_SUBINDEX.get(subindex, generic_editors.HexEditor)

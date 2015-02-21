@@ -26,6 +26,7 @@ import delv.graphics
 class GraphicsEditor(editors.Editor):
     name = "Graphics Editor (Unimplemented)"
     has_flags = True
+    force_type = None
     default_size=320,320
     def gui_setup(self):
         self.set_default_size(*self.default_size)
@@ -97,7 +98,10 @@ class GraphicsEditor(editors.Editor):
     def editor_setup(self):
         self.load_image()
     def load_image(self, *args):
-        self.image = delv.graphics.DelvImageFactory(self.res)
+        if self.force_type:
+            self.image = self.force_type(self.res)
+        else:
+            self.image = delv.graphics.DelvImageFactory(self.res)
         self.set_title(self.name + " - %04X"%self.res.resid)
         data = self.image.get_logical_image()
         self.edited = None
@@ -196,20 +200,25 @@ class GraphicsEditor(editors.Editor):
         self.unsaved = True
         self.display.set_from_pixmap(self.pixmap,None)
  
-class TileSheetEditor(GraphicsEditor): 
+class TileSheetEditor(GraphicsEditor):
+    force_type = delv.graphics.TileSheet
     has_flags = False
     default_size=320,600
     name = "Tile Sheet Editor"
 class PortraitEditor(GraphicsEditor):
+    force_type = delv.graphics.Portrait
     has_flags = False
     name = "Portrait Editor"
 class SizedEditor(GraphicsEditor):
+    force_type = delv.graphics.General
     has_flags = True 
     default_size=480,480
     name = "Sized Image Editor"
 class IconEditor(GraphicsEditor):
+    force_type = delv.graphics.SkillIcon
     has_flags = False
     name = "Icon Editor"
 class LandscapeEditor(GraphicsEditor):
+    force_type = delv.graphics.Landscape
     has_flags = False
     name = "Landscape Editor"
