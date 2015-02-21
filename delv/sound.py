@@ -38,9 +38,12 @@ class Asnd(Sound):
         self.samples = []
         self.rate = 22050
         self.flags =0 
-        if src:
+        if src and issubclass(src.__class__, util.BinaryHandler):
+            self.src = src
+        elif src:
             self.src = util.BinaryHandler(src)
-            self.load_from_file()
+        else: return
+        self.load_from_file()
     def load_from_file(self):
         self.src.seek(0)
         if self.src.read(4) != 'asnd': raise SoundError, "Bad magic number"

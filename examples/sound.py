@@ -25,8 +25,6 @@ import sys
 import wave
 import struct
 
-PORT = 6# pygame.midi.get_default_output_id()
-
 USAGE = '''
 Usage: ./sound.py archive resid out.wav 
 Or:    ./sound.py file out.wav

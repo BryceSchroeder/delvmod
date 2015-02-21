@@ -114,6 +114,8 @@ class ResourceFile(util.BinaryHandler):
         if self.position >= len(self.resource.data):
             raise IndexError, "Bad seek to 0x%08X, size 0x%08X"%(
                 offset, len(self.resource.data))
+    def eof(self):
+        return self.position >= len(self.resource.data)
     def truncate(self, size=None):
         if size is None: size = self.position
         self.resource.data = self.resource.data[:size]

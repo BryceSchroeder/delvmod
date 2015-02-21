@@ -50,7 +50,7 @@ import gtk, os, sys, gobject
 import images, editgui
 
 class ReDelv(object):
-
+    preferences = {'play_sound_cmd': 'mplayer %s'}
     def __init__(self):
         self.base_archive=None
         self.patch_base=None

@@ -24,6 +24,7 @@ import images
 import graphics_editors
 import generic_editors
 import patch_editor
+import sound_editors
 
 _EDITORS_FOR_SUBINDEX = {
     131: graphics_editors.LandscapeEditor,
@@ -31,6 +32,7 @@ _EDITORS_FOR_SUBINDEX = {
     137: graphics_editors.IconEditor,
     141: graphics_editors.TileSheetEditor,
     142: graphics_editors.SizedEditor,
+    144: sound_editors.SoundEditor,
     254: patch_editor.PatchEditor,
 }
 
