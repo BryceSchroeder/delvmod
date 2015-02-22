@@ -41,7 +41,7 @@ version = '0.1.17'
 PATCHINFO = """Created with redelv %s, based on the delv library."""%version
 
 import delv
-import delv.archive
+import delv.archive, delv.library
 
 import pygtk
 pygtk.require('2.0')
@@ -54,12 +54,14 @@ class ReDelv(object):
     def __init__(self):
         self.base_archive=None
         self.patch_base=None
+        self.library = None
         self.patch_output_path=None
         # Signals 
         self.filechange = []
         self.subindexchange = []
         self.resourcechange = []
         self.archive = None
+        self.library = None
         #gobject.type_register(editgui.Receiver)
         #gobject.signal_new("filechange", editgui.Receiver, 
         #    gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
@@ -158,6 +160,8 @@ class ReDelv(object):
             ("/Tools/Use Specific Editor/sep06",None,None,0,"<Separator>"),
             ("/Tools/Use Specific Editor/_Patch",None,
                  (lambda *argv: self.specific_ed("Patch")),0,None),
+            ("/Tools/Use Specific Editor/F0 Data Editors/Tile Name List",None,
+                 (lambda *argv: self.specific_ed("TileNameList")),0,None),
             ("/Tools/sep6", None, None, 0, "<Separator>"),
             ("/Tools/_Image _Browser", None, self.menu_image_browser,0,None),
             ("/Tools/High Level Editors/_Monsters",None,None,0,None),
@@ -587,6 +591,7 @@ class ReDelv(object):
         try:
             self.archive = delv.archive.Scenario(path, 
                 gui_treestore=self.tree_data)
+            self.library = None
         except Exception, e:
             self.error_message("'%s' doesn't seem to be a valid archive: %s"%(
                 os.path.basename(path), repr(e)))
@@ -605,4 +610,7 @@ class ReDelv(object):
         for recp in self.resourcechange: recp.signal_resourcechange()
     def send_resourcechange(self):
         for recp in self.resourcechange: recp.signal_resourcechange()
-        
+    def get_library(self):
+        if not self.library:
+            self.library = delv.library.Library(self.archive) 
+        return self.library

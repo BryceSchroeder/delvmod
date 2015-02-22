@@ -23,11 +23,14 @@ import gtk, os, sys
 import images
 import graphics_editors
 import generic_editors
+import level_editors
 import patch_editor
 import sound_editors
 
 # hokey
 _EDITORS_BY_NAME = {
+    "TileNameList": generic_editors.TileNameListEditor,
+    "Map": level_editors.MapEditor,
     "Landscale": graphics_editors.LandscapeEditor,
     "Portrait": graphics_editors.PortraitEditor,
     "Icon": graphics_editors.IconEditor,
@@ -42,6 +45,7 @@ _EDITORS_FOR_RESOURCE = {
     0x8EFF: graphics_editors.SizedEditor,
 }
 _EDITORS_FOR_SUBINDEX = {
+    127: level_editors.MapEditor,
     131: graphics_editors.LandscapeEditor,
     135: graphics_editors.PortraitEditor,
     137: graphics_editors.IconEditor,

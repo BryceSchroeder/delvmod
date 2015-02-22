@@ -25,7 +25,9 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 import graphics, sound, store
-
+GRAPHICS_LANDSCAPE = 131
+GRAPHICS_PORTRAIT = 135
+GRAPHICS_TILESHEET = 141
 _OBJECT_SI_HINTS = {
    131: graphics.Landscape, 
    135: graphics.Portrait,
@@ -36,6 +38,7 @@ _OBJECT_SI_HINTS = {
 }
 _OBJECT_RESID_HINTS = {
   0xF004: store.TileNameList,
+  0xF002: store.TileAttributesList,
   0x8EFF: graphics.General,
 }
 def class_by_resid(resid):

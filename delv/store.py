@@ -29,6 +29,7 @@
 import util, archive
 import cStringIO as StringIO
 import array, bisect
+
 class Store(object):
     def __init__(self, src):
         self.data = None
@@ -51,9 +52,31 @@ class Store(object):
             self.write_to_bfile(bh)
             # I wonder why StringIO doesn't have a method that does this:
             self.data = bytearray(buf.getvalue())
-        return self.data
+        return self.data 
+
 class SymbolList(Store):
     pass
+
+class TileAttributesList(Store):
+    def __init__(self, src):
+        Store.__init__(self, src)
+        self.empty()
+        if self.src: self.load_from_bfile()
+    def empty(self):
+        self.contents = array.array("L")
+    def load_from_bfile(self):
+        while not self.src.eof():
+            self.contents.append(self.src.read_uint32())
+    def __iter__(self): return self.contents.__iter__()
+    def write_to_bfile(self, dest=None):
+        if dest is None: dest = self.src
+        dest.seek(0)
+        for attr in self.contents: dest.write_uint32(attr)
+    def __getitem__(self, n):
+        return self.contents[n]
+    def __setitem__(self, n, value):
+        self.contents[n] = value
+   
 
 class TileNameList(Store):
     def __init__(self, src):

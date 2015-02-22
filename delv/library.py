@@ -24,7 +24,8 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import archive
+import archive,hints,tile
+import array
 class Library(object):
     """This class is a wrapper around one or more Delver archives, and 
        facilitates retrieving various kinds of objects by their resource
@@ -48,6 +49,39 @@ class Library(object):
            archives B and C both contain a resource 0xFFFF, and you ask for
            0xFFFF, you will get the one from archive C."""
         self.archives = archives[::-1]
+        self.load_tiles()
+
+    def load_tiles(self):
+        tilenames = self.get_object(0xF004)
+        tileattrs = self.get_object(0xF002)
+        tilesheets = self.objects(hints.GRAPHICS_TILESHEET, True)
+        self.tiles = []
+        tile_Nothing = tile.Tile(0,tilenames[0], tileattrs[0],
+            tilesheets[0].get_tile(0))
+        for n,attr in enumerate(tileattrs):
+            tileres_n = (n >> 4)&0xFF
+            if not (tileattrs[n] and tilesheets[tileres_n]): 
+                self.tiles.append(tile_Nothing)
+                continue
+            self.tiles.append(tile.Tile(n,tilenames[n], tileattrs[n],
+                tilesheets[tileres_n].get_tile(n&0x00F)))
+                
+    def get_tile(self, tid):
+        """Returns the specified Tile, or "Nothing" if there is none such."""
+        return self.tiles[tid]
+
+    def objects(self,si=None,dense=False):
+        if dense:
+            return [self.get_object((si,n)) for n in xrange(256)]
+        else:
+            return [self.get_object(resid) for resid in self.resource_ids(si)]
+    def resources(self,si=None):
+        return [self.get_resource(resid) for resid in self.resource_ids(si)]
+    def resource_ids(self, si=None):
+        ids = set()
+        for archive in self.archives:
+            ids.update(archive.resource_ids(si))
+        return list(ids)
     def get_resource(self, resid):
         """Get a resource by its resource ID or subindex,n pair."""
         for archive in self.archives:
@@ -61,3 +95,4 @@ class Library(object):
         C = hints.class_by_resid(r.resid)
         if not C: return None
         return C(r)
+    

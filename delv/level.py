@@ -25,10 +25,51 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 # Maps and prop lists. Convenience utilities for map visualization.
+import store
 
-class Map(object):
-    pass
-class PropList(object):
+class Map(store.Store):
+    def __init__(self, src):
+        Store.__init__(self, src)
+        self.empty()
+        if self.src: self.load_from_bfile()
+    def empty(self):
+        self.rows = []
+    def load_form_bfile(self):
+        self.width = self.src.read_uint16()
+        self.height = self.src.read_uint16()
+        self.unknown = self.src.read_uint16()
+        assert not self.unknown
+
+        self.roof_layer_size = self.src.read_uint16()
+        self.roof_underlayer_size = self.src.read_uint16()
+        assert self.roof_layer_size == self.roof_underlayer_size
+        
+        # if 0, show blackness instead
+        self.horizontal_edge_propagation = self.src.read_uint8()
+        self.vertical_edge_propagation = self.src.read_uint8()
+
+        # which zoneport you end up at when you walk off of the map in
+        # the four cardinal directions. Usually the same, but can be 
+        # different - see 0x8026 for how the Cademia bridge is implemented
+        self.exit_zoneport_north = self.src.read_uint16()
+        self.exit_zoneport_east = self.src.read_uint16()
+        self.exit_zoneport_south = self.src.read_uint16()
+        self.exit_zoneport_west = self.src.read_uitn16()
+
+        # These seem to be zero. But if not, let's draw attention to it
+        self.padding = self.src.read(24)
+        for b in self.padding: assert not b
+
+
+        roof_length = 0x40*self.roof_layer_size+0x40*self.roof_underlayer_size
+        self.roof_data = array.array('H')
+        for _ in xrange(roof_length/2): 
+            self.roof_data.append(self.src.read_uint16())
+        self.map_data = array.array('H')
+        for _ in xrange(self.width*self.height):
+            self.map_data.append(self.src.read_uint16())
+
+class PropList(store.Store):
     pass
 
 class Level(object):
