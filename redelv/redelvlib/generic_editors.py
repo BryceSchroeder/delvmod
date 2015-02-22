@@ -41,8 +41,9 @@ class TileNameListEditor(editors.Editor):
             #("/Edit/Cut", "<control>X", self.edit_cut, 0, None),
             #("/Edit/Copy", "<control>C", self.edit_copy, 0, None),
             #("/Edit/Paste","<control>V", self.edit_paste, 0, None),
-            ("/Edit/Delete Entry", None, self.edit_clear, 0, None),
-            ("/Edit/Insert New Entry", None, self.edit_clear, 0, None),)
+            ("/Edit/Delete Entry", None, self.edit_delete, 0, None),
+            ("/Edit/Insert New Entry", None, self.edit_insert, 0, None),
+            ("/Edit/Clear", None, self.edit_clear, 0, None),)
         accel = gtk.AccelGroup()
         ifc = gtk.ItemFactory(gtk.MenuBar, "<main>", accel)
         self.add_accel_group(accel)
@@ -174,6 +175,19 @@ class TileNameListEditor(editors.Editor):
     def edit_paste(self, *argv):
         pass
     def edit_clear(self, *argv):
-        pass
+        self.tree_data = gtk.ListStore(str,str,str,str,int)
+        self.data_view.set_model(self.tree_data)  
+        self.unsaved = True
+    def edit_delete(self, *argv):
+        tm,row = self.data_view.get_selection().get_selected_rows()
+        row = row[-1] if row else '0'
+        tm.remove(tm.get_iter(row))
+        self.unsaved = True
     def edit_insert(self, *argv):
-        pass
+        tm,row = self.data_view.get_selection().get_selected_rows()
+        row = row[-1] if row else '0'
+        
+        itr = tm.get_iter(row)
+        nidx = tm.get_value(itr,4)+1
+        tm.insert_after(itr, ["0x%04X"%nidx, "Nothing", "Nothing","",nidx])
+        self.unsaved = True
