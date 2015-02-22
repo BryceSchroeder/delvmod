@@ -274,11 +274,11 @@ class BinaryHandler(object):
         
     def read_cstring(self, offset=None):
         if offset is not None: self.seek(offset)
-        buf = []
+        buf = bytearray()
         while True:
             b = self.read(1)
             if b == '\0' or not b: break
-            buf.append(b)
-        return ''.join(buf)
+            buf += b
+        return str(buf)
 
 class UnimplementedFeature (Exception): pass

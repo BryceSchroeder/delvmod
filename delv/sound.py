@@ -25,14 +25,14 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 # Maps and prop lists. Convenience utilities for map visualization.
-import util
+import util, archive, store
 from util import bitstruct_pack, bits_pack,bits_of
 import array
 import cStringIO as StringIO
 
 class SoundError(Exception): pass
 
-class Sound(object):
+class Sound(store.Store):
     pass
 
 class Asnd(Sound):
@@ -43,20 +43,8 @@ class Asnd(Sound):
         self.rate = 22050
         self.duration =0 
         self.data = None
-        if src and issubclass(src.__class__, util.BinaryHandler):
-            self.src = src
-        elif src:
-            self.src = util.BinaryHandler(src)
-        else: return
-        self.load_from_bfile()
-    def get_data(self):
-        if not self.data:
-            buf = StringIO.StringIO()
-            bh = util.BinaryHandler(buf)
-            self.write_to_bfile(bh)
-            # I wonder why StringIO doesn't have a method that does this:
-            self.data = bytearray(buf.getvalue())
-        return self.data
+        self.set_source(src)
+        if self.src: self.load_from_bfile()
         
     def write_to_bfile(self, dest=None):
         if dest is None: dest = self.src

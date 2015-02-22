@@ -37,7 +37,10 @@ _EDITORS_BY_NAME = {
     "Patch": patch_editor.PatchEditor,
     "Hex": generic_editors.HexEditor
 }
-
+_EDITORS_FOR_RESOURCE = {
+    0xF004: generic_editors.TileNameListEditor,
+    0x8EFF: graphics_editors.SizedEditor,
+}
 _EDITORS_FOR_SUBINDEX = {
     131: graphics_editors.LandscapeEditor,
     135: graphics_editors.PortraitEditor,
@@ -53,6 +56,9 @@ def editor_for_name(name):
 
 def editor_for_subindex(subindex):
     return _EDITORS_FOR_SUBINDEX.get(subindex, generic_editors.HexEditor)
+def editor_for_resource(resid):
+    return _EDITORS_FOR_RESOURCE.get(resid, 
+           _EDITORS_FOR_SUBINDEX.get((resid>>8)-1, generic_editors.HexEditor))
 
 class Receiver(gtk.Window):
     pass

@@ -484,8 +484,10 @@ class ReDelv(object):
             self.error_message("No resource is selected.")
     def menu_resource_editor(self, widget, data=None):
         if self.current_resource:
-            editgui.editor_for_subindex(self.current_subindex_id)(
-                self, self.current_resource).show_all()
+            #editgui.editor_for_subindex(self.current_subindex_id)(
+            #    self, self.current_resource).show_all()
+            editgui.editor_for_resource(self.current_resource.resid)(
+                self,self.current_resource).show_all()
         else:
             self.error_message("No resource is selected.")
     def menu_hex_editor(self, widget, data=None):

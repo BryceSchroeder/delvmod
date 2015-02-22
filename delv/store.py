@@ -26,9 +26,92 @@
 # Ambrosia Software, Inc. 
 # This file addresses sundry storage types used within Delver Archives,
 # and as such is mostly a helper for other parts of delv. 
-
+import util, archive
+import cStringIO as StringIO
+import array, bisect
 class Store(object):
+    def __init__(self, src):
+        self.data = None
+        self.set_source(src)
+    def set_source(self, src):
+        self.src = None
+        if src and issubclass(src.__class__, util.BinaryHandler):
+            self.src = src
+            self.res = None
+        elif src and issubclass(src.__class__, archive.Resource):
+            self.src = src.as_file()
+            self.res = src
+        elif src:
+            self.src = util.BinaryHandler(src)
+            self.res = None
+    def get_data(self):
+        if not self.data:
+            buf = StringIO.StringIO()
+            bh = util.BinaryHandler(buf)
+            self.write_to_bfile(bh)
+            # I wonder why StringIO doesn't have a method that does this:
+            self.data = bytearray(buf.getvalue())
+        return self.data
+class SymbolList(Store):
     pass
 
-class SymbolList(object):
-    pass
+class TileNameList(Store):
+    def __init__(self, src):
+        Store.__init__(self, src)
+       
+        self.empty()
+        if self.src: self.load_from_bfile()
+    def items(self):
+        """Return a list of cutoff,name pairs."""
+        return zip(self.cutoffs,self.names)
+    def __iter__(self): return self.cutoffs.__iter__()
+    def empty(self):
+        """Purge the contents of the TileNameList."""
+        self.names = []
+        self.cutoffs = array.array('H')
+    def write_to_bfile(self, dest):
+        if dest is None: dest = self.src
+        dest.seek(0)
+        for cutoff, name in zip(self.cutoffs,self.names):
+            dest.write_uint16(cutoff)
+            dest.write_cstring(name)
+    def load_from_bfile(self):
+        while not self.src.eof():
+            value = self.src.read_uint16()
+            name = self.src.read_cstring()
+            if not name and not value: break
+            self.cutoffs.append(value)
+            self.names.append(name)
+    def namecode(self, name, plural):
+        if '\\' in name:
+            stem = name[:name.find('\\')]
+            ending = name[name.find('\\')+1:]
+            if '/' in ending:
+                return stem+ending.split('/')[1 if plural else 0]
+            else:
+                return stem+ending if plural else stem
+        else:
+            return name
+    def get_name(self, idx, plural=False):
+        return self.namecode(self[idx], plural)
+    def __getitem__(self, idx):
+        return self.names[bisect.bisect_left(self.cutoffs,idx)]
+    def __setitem__(self, idx, val):
+        "Note that setitem will not create new pairs, it just sets names."
+        self.names[bisect.bisect_left(self.cutoffs,idx)] = val
+    def __delitem__(self, cutoff):
+        rmidx = bisect.bisect_left(self.cutoffs,cutoff)
+        del self.cutoffs[rmidx]
+        del self.names[rmidx]
+    def append(self, cutoff, name):
+        "Insert the name and cutoff into this object."
+        insertidx = bisect.bisect_left(self.cutoffs,cutoff)
+        self.cutoffs.insert(insertidx, cutoff)
+        self.names.insert(insertidx, name)
+    def extend(self, data):
+        "Data - a list of (cutoff,name) pairs, or a dict of {cutoff:name}."
+        if isinstance(data,dict):
+             data = data.items()
+        for pair in data: self.append(*pair)
+    def __len__(self):
+        return len(self.names)

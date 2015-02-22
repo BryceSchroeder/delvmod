@@ -24,6 +24,27 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
+import graphics, sound, store
+
+_OBJECT_SI_HINTS = {
+   131: graphics.Landscape, 
+   135: graphics.Portrait,
+   137: graphics.SkillIcon,
+   141: graphics.TileSheet,
+   142: graphics.General,
+   144: sound.Asnd,
+}
+_OBJECT_RESID_HINTS = {
+  0xF004: store.TileNameList,
+  0x8EFF: graphics.General,
+}
+def class_by_resid(resid):
+    """Try to get a class that can handle the resource provided,
+       otherwise return None"""
+    return _OBJECT_RESID_HINTS.get(resid,
+           _OBJECT_SI_HINTS.get((resid >> 8) - 1, None))
+    
+
 
 _RES_HINTS = {
  0x0101: "Global Symbol List",
@@ -44,11 +65,11 @@ _RES_HINTS = {
  0x0242: "Defeat Text",
  0x0243: "Victory Text",
 
-# 0x0410: "Attack Nearest",
-# 0x0411: "Attack Weakest",
-# 0x0413: "Defend",
-# 0x0414: "Berserk",
-# 0x0415: "Missile Script"
+ 0x0410: "Attack Nearest",
+ 0x0411: "Attack Weakest",
+ 0x0413: "Defend",
+ 0x0414: "Berserk",
+ 0x0415: "Missile Script",
  0xF008: "Monster Statistics",
  0xF004: "Tile Names",
  0xF002: "Tile Attributes",
