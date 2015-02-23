@@ -46,7 +46,7 @@ class MapEditor(editors.Editor):
         menu_items = (
             ("/File/Save Resource", "<control>S", None, 0, None),
             ("/File/Revert",        None,    self.load, 0, None),
-            ("/File/Export Image",  None,    None, 0, None),
+            ("/File/Export Image",  None,    self.export_img, 0, None),
             ("/Edit/Cut",           "<control>X", None, 0, None),
             ("/Edit/Copy",          "<control>C", None, 0, None),
             ("/Edit/Paste",         "<control>V", None, 0, None),
@@ -170,3 +170,15 @@ class MapEditor(editors.Editor):
             self.mouse_position = newp
             self.update_cursor_info()
         
+    def export_img(self, *argv):
+        path = self.ask_save_path(default = "Map%04X.png"%self.res.resid)
+        if not path: return
+        if not path.endswith(".png"): path += ".png"
+        pbuf = self.get_pixbuf_from_pixmap()
+        pbuf.save(path, "png", {})
+    def get_pixbuf_from_pixmap(self):
+        pbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, 
+            self.lmap.width*32,self.lmap.height*32)
+        pbuf.get_from_drawable(self.pixmap, gtk.gdk.colormap_get_system(),
+            0,0,0,0,self.lmap.width*32,self.lmap.height*32)
+        return pbuf
