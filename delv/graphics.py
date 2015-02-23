@@ -279,13 +279,19 @@ class DelvImage(object):
         if not self.image: 
              self.image = bytearray(self.logical_width*self.logical_height)
         for yr in xrange(y,y+h): 
-             self.image[yr*self.logical_width+x:yr*self.logical_width+x+w] = src[(yr-y)*w:(yr-y)*w + w]
+             self.image[yr*self.logical_width+x:yr*self.logical_width+x+w] = (
+                 src[(yr-y)*w:(yr-y)*w + w])
     def draw_into_tile(self,src,n):
         """Conveninence method to draw to a particular tile. n has the
            same semantics as for get_tile below, including for situations
            in which non-canonical tileset shapes are addressed."""
         self.draw_into(*(src,)+self.tile_rect(n))
-
+    def get_subtile(self,n,m):
+        """Get the mth subtile of the nth tile of this image. (See .get_tile
+           for definition of nth tile). The mth subtile is the 8x8 chunk of
+           the tile, numbered starting from the top-left, but going 
+           top-to-bottom THEN left-to-right."""
+        return self.get_from(*self.subtile_rect(n,m))
     def get_tile(self,n):
         """Get the nth 32x32 tile of this image. Clasically meaningful only
            for tile sheets, where it returns the nth from the top (counting
@@ -299,6 +305,11 @@ class DelvImage(object):
         y = (n*32)%512
         x = (n//16)*32
         return (x,y,32,32)
+
+    def subtile_rect(self,n,m):
+        return ((n//16)*32 + (m//4)*8,
+                (n*32)%512 + (m%4)*8,
+                8,8)
   
     def get_size(self):
         """Return (width,height)."""

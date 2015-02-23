@@ -26,6 +26,7 @@
 # Ambrosia Software, Inc. 
 import store
 
+
 class Tile(object):
     def __init__(self, index, namecode, attributes, image):
         self.index=index
@@ -35,3 +36,6 @@ class Tile(object):
     def get_name(self,plural=False):
         return store.namecode(self.namecode, plural)
     def get_image(self): return self.image
+
+class CompoundTile(Tile):
+    pass

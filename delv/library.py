@@ -54,6 +54,8 @@ class Library(object):
     def load_tiles(self):
         tilenames = self.get_object(0xF004)
         tileattrs = self.get_object(0xF002)
+        tilecompositions = self.get_object(0xF013)
+        #tilefauxprops = self.objects( ... )
         tilesheets = self.objects(hints.GRAPHICS_TILESHEET, True)
         self.tiles = []
         tile_Nothing = tile.Tile(0,tilenames[0], tileattrs[0],

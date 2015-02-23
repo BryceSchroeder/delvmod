@@ -29,6 +29,7 @@
 import util, archive
 import cStringIO as StringIO
 import array, bisect
+import tile
 
 class Store(object):
     def __init__(self, src):
@@ -76,6 +77,32 @@ class TileAttributesList(Store):
         return self.contents[n]
     def __setitem__(self, n, value):
         self.contents[n] = value
+
+class TileCompositionList(Store):
+    def __init__(self, src):
+        Store.__init__(self, src)
+        self.empty()
+        if self.src: self.load_from_bfile()
+    def empty(self):
+        self.contents = []
+    def load_from_bfile(self):
+        while not self.src.eof():
+            self.contents.append(self.parse([
+                self.src.read_uint16() for _ in xrange(0x10)]))
+    def parse(self, tw):
+        return ((0x8E00|((t>>4)&0x00FF),t&0x000F,(t&0xF000)>>12) for t in tw)
+
+    def __iter__(self): return self.contents.__iter__()
+    def write_to_bfile(self, dest=None):
+        if dest is None: dest = self.src
+        dest.seek(0)
+        for attr in self.contents: dest.write_uint32(attr)
+    def __getitem__(self, n):
+        return self.contents[n]
+    def __setitem__(self, n, value):
+        self.contents[n] = value
+
+
 def namecode(name, plural):
     if '\\' in name:
         stem = name[:name.find('\\')]

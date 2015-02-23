@@ -38,7 +38,8 @@ _OBJECT_SI_HINTS = {
 }
 _OBJECT_RESID_HINTS = {
   0xF004: store.TileNameList,
-  0xF002: store.TileAttributesList,
+  0xF002: store.TileAttributesList, 
+  0xF013: store.TileCompositionList,
   0x8EFF: graphics.General,
 }
 def class_by_resid(resid):
@@ -76,6 +77,7 @@ _RES_HINTS = {
  0xF008: "Monster Statistics",
  0xF004: "Tile Names",
  0xF002: "Tile Attributes",
+ 0xF013: "Composed Tiles",
  0xF015: "Peristence Store Symbols"
 }
 _SCEN_HINTS = {
