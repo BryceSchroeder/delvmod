@@ -77,7 +77,9 @@ class TileAttributesList(Store):
         return self.contents[n]
     def __setitem__(self, n, value):
         self.contents[n] = value
+    def __len__(self): return len(self.contents)
 
+# maybe store should subclass list?
 class TileCompositionList(Store):
     def __init__(self, src):
         Store.__init__(self, src)
@@ -101,6 +103,7 @@ class TileCompositionList(Store):
         return self.contents[n]
     def __setitem__(self, n, value):
         self.contents[n] = value
+    def __len__(self): return len(self.contents)
 
 
 def namecode(name, plural):

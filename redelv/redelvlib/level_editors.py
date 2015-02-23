@@ -133,11 +133,11 @@ class MapEditor(editors.Editor):
         self.draw_map()     
 
     def draw_tile(self, x, y, tid, pal=delv.colormap.rgb24):
-        if tid > 0x1000:
-            self.pixmap.draw_indexed_image(self.gc, x*32, y*32, 32, 32,
-                gtk.gdk.RGB_DITHER_NORMAL, self.library.get_tile(0x0000).image,
-                32, pal)
-            return
+        #if tid > 0x1000:
+        #    self.pixmap.draw_indexed_image(self.gc, x*32, y*32, 32, 32,
+        #        gtk.gdk.RGB_DITHER_NORMAL, self.library.get_tile(0x0000).image,
+        #        32, pal)
+        #    return
         self.pixmap.draw_indexed_image(self.gc, x*32, y*32, 32, 32,
             gtk.gdk.RGB_DITHER_NORMAL, self.library.get_tile(tid).image,
             32, pal)

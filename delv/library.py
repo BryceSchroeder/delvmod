@@ -48,6 +48,7 @@ class Library(object):
            will be from last to first, i.e. if you say Library(A, B, C) and 
            archives B and C both contain a resource 0xFFFF, and you ask for
            0xFFFF, you will get the one from archive C."""
+        self.cache = {}
         self.archives = archives[::-1]
         self.load_tiles()
 
@@ -60,13 +61,21 @@ class Library(object):
         self.tiles = []
         tile_Nothing = tile.Tile(0,tilenames[0], tileattrs[0],
             tilesheets[0].get_tile(0))
+
+        
         for n,attr in enumerate(tileattrs):
             tileres_n = (n >> 4)&0xFF
             if not (tileattrs[n] or tilesheets[tileres_n]): 
                 self.tiles.append(tile_Nothing)
                 continue
-            self.tiles.append(tile.Tile(n,tilenames[n], tileattrs[n],
-                tilesheets[tileres_n].get_tile(n&0x00F)))
+            if n < 0x1000:
+                self.tiles.append(tile.Tile(n,tilenames[n], tileattrs[n],
+                    tilesheets[tileres_n].get_tile(n&0x00F)))
+            elif n < 0x2000:
+                self.tiles.append(tile.CompoundTile(n,tilenames[n],
+                    tileattrs[n],self,tilecompositions[n-0x1000]))
+            else: 
+                assert 0, "Turns out there are more tiles than I thought."
                 
     def get_tile(self, tid):
         """Returns the specified Tile, or "Nothing" if there is none such."""
@@ -94,7 +103,10 @@ class Library(object):
         """Get the appropriate kind of object for a specified resource."""
         r = self.get_resource(resid)
         if not r: return None
+        if r in self.cache: return self.cache[r]
         C = hints.class_by_resid(r.resid)
         if not C: return None
-        return C(r)
+        ob = C(r)
+        self.cache[r] = ob
+        return ob
     

@@ -38,4 +38,14 @@ class Tile(object):
     def get_image(self): return self.image
 
 class CompoundTile(Tile):
-    pass
+    def __init__(self, index, namecode, attributes, library, composition):
+        self.index=index
+        self.namecode = namecode
+        self.attributes = attributes
+        self.image = bytearray(32*32)
+        for n,(resid, tile, segment) in enumerate(composition):
+            chunk = library.get_object(resid).get_subtile(tile,segment)
+            i = (n%4)*8 + (n//4)*8*32
+            for r in xrange(8):
+                 self.image[i+32*r:i+32*r+8] = chunk[8*r:8*r+8]
+        self.image = str(self.image)
