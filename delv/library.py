@@ -60,7 +60,7 @@ class Library(object):
             tilesheets[0].get_tile(0))
         for n,attr in enumerate(tileattrs):
             tileres_n = (n >> 4)&0xFF
-            if not (tileattrs[n] and tilesheets[tileres_n]): 
+            if not (tileattrs[n] or tilesheets[tileres_n]): 
                 self.tiles.append(tile_Nothing)
                 continue
             self.tiles.append(tile.Tile(n,tilenames[n], tileattrs[n],

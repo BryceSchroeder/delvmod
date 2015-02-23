@@ -76,7 +76,17 @@ class TileAttributesList(Store):
         return self.contents[n]
     def __setitem__(self, n, value):
         self.contents[n] = value
-   
+def namecode(name, plural):
+    if '\\' in name:
+        stem = name[:name.find('\\')]
+        ending = name[name.find('\\')+1:]
+        if '/' in ending:
+            return stem+ending.split('/')[1 if plural else 0]
+        else:
+            return stem+ending if plural else stem
+    else:
+        return name
+
 
 class TileNameList(Store):
     def __init__(self, src):
@@ -106,15 +116,7 @@ class TileNameList(Store):
             self.cutoffs.append(value)
             self.names.append(name)
     def namecode(self, name, plural):
-        if '\\' in name:
-            stem = name[:name.find('\\')]
-            ending = name[name.find('\\')+1:]
-            if '/' in ending:
-                return stem+ending.split('/')[1 if plural else 0]
-            else:
-                return stem+ending if plural else stem
-        else:
-            return name
+        return namecode(name,plural)
     def get_name(self, idx, plural=False):
         return self.namecode(self[idx], plural)
     def __getitem__(self, idx):

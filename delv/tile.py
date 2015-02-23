@@ -31,7 +31,7 @@ class Tile(object):
         self.index=index
         self.namecode = namecode
         self.attributes = attributes
-        self.image = image
+        self.image = str(image)
     def get_name(self,plural=False):
-        return store.TileNameList.namecode(None, self.namecode, plural)
+        return store.namecode(self.namecode, plural)
     def get_image(self): return self.image

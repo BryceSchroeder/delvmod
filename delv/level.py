@@ -25,16 +25,21 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 # Maps and prop lists. Convenience utilities for map visualization.
+import delv.util
 import store
+import array
 
 class Map(store.Store):
     def __init__(self, src):
-        Store.__init__(self, src)
+        store.Store.__init__(self, src)
         self.empty()
         if self.src: self.load_from_bfile()
     def empty(self):
         self.rows = []
-    def load_form_bfile(self):
+    def get_tile(self, x, y):
+        """Return base tile at this location."""
+        return self.map_data[x+y*self.width]
+    def load_from_bfile(self):
         self.width = self.src.read_uint16()
         self.height = self.src.read_uint16()
         self.unknown = self.src.read_uint16()
@@ -54,10 +59,10 @@ class Map(store.Store):
         self.exit_zoneport_north = self.src.read_uint16()
         self.exit_zoneport_east = self.src.read_uint16()
         self.exit_zoneport_south = self.src.read_uint16()
-        self.exit_zoneport_west = self.src.read_uitn16()
+        self.exit_zoneport_west = self.src.read_uint16()
 
         # These seem to be zero. But if not, let's draw attention to it
-        self.padding = self.src.read(24)
+        self.padding = self.src.read(12)
         for b in self.padding: assert not b
 
 
@@ -68,6 +73,7 @@ class Map(store.Store):
         self.map_data = array.array('H')
         for _ in xrange(self.width*self.height):
             self.map_data.append(self.src.read_uint16())
+    
 
 class PropList(store.Store):
     pass

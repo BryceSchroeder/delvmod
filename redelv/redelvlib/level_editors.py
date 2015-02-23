@@ -27,6 +27,7 @@
 # This file addresses sundry storage types used within Delver Archives,
 # and as such is mostly a helper for other parts of delv. 
 import delv.util, delv.archive, delv.store, delv.library
+import delv.colormap, delv.level
 import editors
 import cStringIO as StringIO
 import gtk
@@ -38,11 +39,14 @@ class MapEditor(editors.Editor):
     name = "Map Editor [nothing opened]"
     default_size = 800,600
     def gui_setup(self): 
+        self.mouse_position = 0,0
+
         pbox = gtk.VBox(False,0)
         self.set_default_size(*self.default_size)
         menu_items = (
             ("/File/Save Resource", "<control>S", None, 0, None),
             ("/File/Revert",        None,    self.load, 0, None),
+            ("/File/Export Image",  None,    None, 0, None),
             ("/Edit/Cut",           "<control>X", None, 0, None),
             ("/Edit/Copy",          "<control>C", None, 0, None),
             ("/Edit/Paste",         "<control>V", None, 0, None),
@@ -72,13 +76,92 @@ class MapEditor(editors.Editor):
 
         sw = gtk.ScrolledWindow()
         sw.set_policy(gtk.POLICY_AUTOMATIC,gtk.POLICY_AUTOMATIC)
+        self.display = gtk.Image()
+        self.eventbox = gtk.EventBox()
+        self.eventbox.add_events(gtk.gdk.POINTER_MOTION_MASK)
+        self.eventbox.connect("motion-notify-event", self.mouse_movement)
+        self.eventbox.add(self.display)
+        sw.add_with_viewport(self.eventbox)
+        pbox.pack_start(sw, True, True, 0)
+        self.sw = sw
+ 
+        hbox = gtk.HBox(False,0)
 
-        pbox.pack_start(sw, True, True, 5)
+        hbox.pack_start(gtk.Label("Cursor:"),False,True,0)
+        self.w_xpos = gtk.Entry()
+        self.w_xpos.set_editable(False)
+        hbox.pack_start(self.w_xpos,False,True,0)
+        self.w_ypos = gtk.Entry()
+        self.w_ypos.set_editable(False)
+        hbox.pack_start(self.w_ypos,False,True,0)
+
+        hbox.pack_start(gtk.Label("Map Data:"),False,True,0)
+        self.w_mapdata = gtk.Entry()
+        self.w_mapdata.set_editable(False)
+        hbox.pack_start(self.w_mapdata,False,True,0)
+
+        hbox.pack_start(gtk.Label("Name:"),False,True,0)
+        self.w_name = gtk.Entry()
+        self.w_name.set_editable(False)
+        hbox.pack_start(self.w_name,False,True,0)
+
+        hbox.pack_start(gtk.Label("Attributes:"),False,True,0)
+        self.w_attr = gtk.Entry()
+        self.w_attr.set_editable(False)
+        hbox.pack_start(self.w_attr,True, True, 0)
+
+        pbox.pack_start(hbox, False, True, 0)
+
         self.add(pbox)
+    #def set_view(self,x=None,y=None):
+    #    if x is not None: self.view_x = x
+    #    if y is not None: self.view_y = y
+    #def get_view_rect(self):
+    #    return (self.view_x,self.view_y,
+    #        self.sw.allocation.width,self.sw.allocation.height)
+
     def editor_setup(self):
         self.set_title("Map Editor [%04X]"%self.res.resid)
         self.library = self.redelv.get_library()
-        
         self.load()
+        self.pixmap = gtk.gdk.Pixmap(None, 
+            self.lmap.width*32, self.lmap.height*32,
+                gtk.gdk.visual_get_system().depth)
+        self.pixmap.transparent_color = 0x00FFFFFF
+        self.gc = self.pixmap.new_gc()
+        #self.view_rect=0,0,self.sw.allocation.width,self.sw.allocation.height
+        self.draw_map()     
+
+    def draw_tile(self, x, y, tid, pal=delv.colormap.rgb24):
+        self.pixmap.draw_indexed_image(self.gc, x*32, y*32, 32, 32,
+            gtk.gdk.RGB_DITHER_NORMAL, self.library.get_tile(tid).image,
+            32, pal)
+
+    def draw_map(self):
+        for y in xrange(self.lmap.height):
+            for x in xrange(self.lmap.width):
+                self.draw_tile(x,y,self.lmap.map_data[x+y*self.lmap.width])
+
+        self.display.set_from_pixmap(self.pixmap,None)
+
     def load(self):
-        pass
+        self.lmap = delv.level.Map(self.res)
+
+    def update_cursor_info(self):
+        x,y = self.mouse_position
+        self.w_xpos.set_text(str(x))
+        self.w_ypos.set_text(str(y))
+        self.w_mapdata.set_text("0x%04X"%(
+            self.lmap.map_data[x+y*self.lmap.width]))
+        self.w_name.set_text(
+            self.library.get_tile(self.lmap.get_tile(x,y)).get_name())
+        self.w_attr.set_text(
+            "%08X"%self.library.get_tile(self.lmap.get_tile(x,y)).attributes)
+
+    def mouse_movement(self, widget, event):
+        if event.x is None or event.y is None: return
+        newp = int(event.x)//32,int(event.y)//32
+        if newp != self.mouse_position:
+            self.mouse_position = newp
+            self.update_cursor_info()
+        
