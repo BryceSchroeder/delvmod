@@ -24,7 +24,7 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import archive,hints,tile
+import archive,hints,tile,prop
 import array
 class Library(object):
     """This class is a wrapper around one or more Delver archives, and 
@@ -51,15 +51,23 @@ class Library(object):
         self.cache = {}
         self.archives = archives[::-1]
         self.load_tiles()
+        self.load_props()
+
+    def load_props(self):
+        self.props = []
+        proptiles = self.get_object(0xF000)
+        for tile in proptiles:
+            self.props.append(prop.Prop(tile, scripts=None))
 
     def load_tiles(self):
         tilenames = self.get_object(0xF004)
         tileattrs = self.get_object(0xF002)
         tilecompositions = self.get_object(0xF013)
-        #tilefauxprops = self.objects( ... )
+        tilefauxprops = self.get_object(0xF010)
         tilesheets = self.objects(hints.GRAPHICS_TILESHEET, True)
         self.tiles = []
         tile_Nothing = tile.Tile(0,tilenames[0], tileattrs[0],
+            tilefauxprops[0],
             tilesheets[0].get_tile(0))
 
         
@@ -70,16 +78,20 @@ class Library(object):
                 continue
             if n < 0x1000:
                 self.tiles.append(tile.Tile(n,tilenames[n], tileattrs[n],
+                    tilefauxprops[n],
                     tilesheets[tileres_n].get_tile(n&0x00F)))
             elif n < 0x2000:
                 self.tiles.append(tile.CompoundTile(n,tilenames[n],
-                    tileattrs[n],self,tilecompositions[n-0x1000]))
+                    tileattrs[n],tilefauxprops[n],
+                    self,tilecompositions[n-0x1000]))
             else: 
                 assert 0, "Turns out there are more tiles than I thought."
                 
     def get_tile(self, tid):
         """Returns the specified Tile, or "Nothing" if there is none such."""
         return self.tiles[tid]
+    def get_prop(self, ptype):
+        return self.props[ptype]
 
     def objects(self,si=None,dense=False):
         if dense:

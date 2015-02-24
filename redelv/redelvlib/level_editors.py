@@ -127,25 +127,44 @@ class MapEditor(editors.Editor):
         self.pixmap = gtk.gdk.Pixmap(None, 
             self.lmap.width*32, self.lmap.height*32,
                 gtk.gdk.visual_get_system().depth)
-        self.pixmap.transparent_color = 0x00FFFFFF
-        self.gc = self.pixmap.new_gc()
+        print 0,0,self.lmap.width*32, self.lmap.height*32
+        self.gc = self.pixmap.new_gc(function=gtk.gdk.COPY)
+        self.gc.set_foreground(gtk.gdk.Color(pixel=0x00000000))
+        #self.gc.set_background(gtk.gdk.Color(255,0,0))
+        self.pixmap.draw_rectangle(self.gc, True, 
+            0,0,self.lmap.width*32,self.lmap.height*32)
         #self.view_rect=0,0,self.sw.allocation.width,self.sw.allocation.height
         self.draw_map()     
 
-    def draw_tile(self, x, y, tid, pal=delv.colormap.rgb24):
-        #if tid > 0x1000:
-        #    self.pixmap.draw_indexed_image(self.gc, x*32, y*32, 32, 32,
-        #        gtk.gdk.RGB_DITHER_NORMAL, self.library.get_tile(0x0000).image,
-        #        32, pal)
-        #    return
+    def draw_tile(self, x, y, tid, pal=delv.colormap.rgb24, as_prop=False):
+        if not tid: return
+        tile =  self.library.get_tile(tid)
+        if tile.requires_mask or as_prop:
+            self.gc.set_clip_origin(x*32, y*32)
+            self.gc.set_clip_mask(tile.get_pixmap_mask(gtk))
+        else: 
+            self.gc.set_clip_mask(None)
         self.pixmap.draw_indexed_image(self.gc, x*32, y*32, 32, 32,
-            gtk.gdk.RGB_DITHER_NORMAL, self.library.get_tile(tid).image,
+            gtk.gdk.RGB_DITHER_NORMAL, tile.image,
             32, pal)
+        if tile.fauxprop:
+            fauxprop = self.library.get_prop(tile.fauxprop)
+            fptile = fauxprop.get_tile(tile.fauxprop_aspect)
+            self.draw_tile(x, y, fptile, pal=pal,as_prop=True)
+        if as_prop and tile.attributes & 0x00000C0 ==   0x40:
+            self.draw_tile(x,y-1, tile.index-1, pal=pal,as_prop=True)
+        elif as_prop and tile.attributes & 0x00000C0 == 0x80:
+            self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True)
+        elif as_prop and tile.attributes & 0x00000C0 == 0xC0:
+            self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True)
+            self.draw_tile(x,y-1, tile.index-2, pal=pal,as_prop=True)
+            self.draw_tile(x-1,y-1, tile.index-3, pal=pal,as_prop=True)
 
     def draw_map(self):
         for y in xrange(self.lmap.height):
             for x in xrange(self.lmap.width):
                 self.draw_tile(x,y,self.lmap.map_data[x+y*self.lmap.width])
+                
 
         self.display.set_from_pixmap(self.pixmap,None)
 

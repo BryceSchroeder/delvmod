@@ -38,6 +38,8 @@ _OBJECT_SI_HINTS = {
 }
 _OBJECT_RESID_HINTS = {
   0xF004: store.TileNameList,
+  0xF000: store.PropTileList,
+  0xF010: store.TileFauxPropsList,
   0xF002: store.TileAttributesList, 
   0xF013: store.TileCompositionList,
   0x8EFF: graphics.General,
@@ -75,9 +77,11 @@ _RES_HINTS = {
  0x0414: "Berserk",
  0x0415: "Missile Script",
  0xF008: "Monster Statistics",
+ 0xF000: "Prop-Tile Associations",
  0xF004: "Tile Names",
  0xF002: "Tile Attributes",
  0xF013: "Composed Tiles",
+ 0xF010: "Faux Prop Information",
  0xF015: "Peristence Store Symbols"
 }
 _SCEN_HINTS = {
