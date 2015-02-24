@@ -110,7 +110,7 @@ class TileFauxPropsList(Store):
     def load_from_bfile(self):
         while not self.src.eof():
             word = self.src.read_uint16()
-            self.contents.append((word&0x3FF, word>>10))
+            self.contents.append((word&0x3FF, (word>>10)))
     def __iter__(self): return self.contents.__iter__()
     def write_to_bfile(self, dest=None):
         if dest is None: dest = self.src

@@ -80,8 +80,11 @@ class MapEditor(editors.Editor):
         self.eventbox = gtk.EventBox()
         self.eventbox.add_events(gtk.gdk.POINTER_MOTION_MASK)
         self.eventbox.connect("motion-notify-event", self.mouse_movement)
+
         self.eventbox.add(self.display)
-        sw.add_with_viewport(self.eventbox)
+        self.sbox = gtk.Fixed()
+        self.sbox.put(self.eventbox, 0,0)
+        sw.add_with_viewport(self.sbox)
         pbox.pack_start(sw, True, True, 0)
         self.sw = sw
  
@@ -156,9 +159,9 @@ class MapEditor(editors.Editor):
         elif as_prop and tile.attributes & 0x00000C0 == 0x80:
             self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True)
         elif as_prop and tile.attributes & 0x00000C0 == 0xC0:
-            self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True)
-            self.draw_tile(x,y-1, tile.index-2, pal=pal,as_prop=True)
             self.draw_tile(x-1,y-1, tile.index-3, pal=pal,as_prop=True)
+            self.draw_tile(x,y-1, tile.index-2, pal=pal,as_prop=True)
+            self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True)
 
     def draw_map(self):
         for y in xrange(self.lmap.height):
@@ -184,7 +187,9 @@ class MapEditor(editors.Editor):
 
     def mouse_movement(self, widget, event):
         if event.x is None or event.y is None: return
-        newp = int(event.x)//32,int(event.y)//32
+        x,y= widget.translate_coordinates(self.display, 
+             int(event.x),int(event.y))
+        newp = x//32,y//32
         if newp != self.mouse_position:
             self.mouse_position = newp
             self.update_cursor_info()
