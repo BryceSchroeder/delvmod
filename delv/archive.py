@@ -120,7 +120,7 @@ class ResourceFile(util.BinaryHandler):
         if size is None: size = self.position
         self.resource.data = self.resource.data[:size]
         self.resource.dirty = True
-    def read(self, length=None):
+    def readb(self, length=None):
         if length is None:
             rv = self.resource.data[self.position:]
             self.position = len(self.resource.data)
@@ -128,6 +128,8 @@ class ResourceFile(util.BinaryHandler):
             rv = self.resource.data[self.position:self.position+length]
             self.position += length
         return rv
+    def read(self, length=None):
+        return str(self.readb(length))
     def write(self, string):
         self.resource.data[self.position:self.position+len(string)] = string
         self.resource.dirty = True

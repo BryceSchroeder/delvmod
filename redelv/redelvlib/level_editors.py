@@ -221,12 +221,34 @@ class MapEditor(editors.Editor):
         for y in xrange(self.lmap.height):
             for x in xrange(self.lmap.width):
                 self.draw_tile(x,y,self.lmap.map_data[x+y*self.lmap.width])
+                prpat = self.props.props_at((x,y))
+                visible = filter(lambda r:r.show_in_map(), prpat)
+                #visible.sort(key=lambda p: self.library.get_tile(
+                #    self.library.get_prop(p.proptype).get_tile(
+                #        p.aspect)).attributes&0xFF000000)
+                for p in visible:
+                    x,y = p.get_loc()
+                    proptype = self.library.get_prop(p.proptype)
+                    proptile = proptype.get_tile(p.aspect)
+                    self.draw_tile(x,y,proptile, 
+                        offset=proptype.get_offset(p.aspect), as_prop=True,
+                        rotated=p.rotated)
+
+        #for p in filter(lambda r: r.show_in_map(), self.props.draw_order()):
+        #     x,y = p.get_loc()
+        #     proptype = self.library.get_prop(p.proptype)
+        #     proptile = proptype.get_tile(p.aspect)
+        #     self.draw_tile(x,y,proptile, 
+        #         offset=proptype.get_offset(p.aspect), as_prop=True,
+        #         rotated=p.rotated)
                 
 
         self.display.set_from_pixmap(self.pixmap,None)
 
     def load(self):
         self.lmap = delv.level.Map(self.res)
+        self.props = self.library.get_object(self.res.resid + 0x0100)
+        print self.props, self.res.resid + 0x0100
 
     def update_cursor_info(self):
         x,y = self.mouse_position

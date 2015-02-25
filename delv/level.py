@@ -29,6 +29,72 @@ import delv.util
 import store
 import array
 
+class PropListEntry(object):
+    def __init__(self, flags, loc, aspect, proptype, d3, propref, storeref, u):
+        self.flags = flags;self.loc=loc;self.aspect=aspect&0x1F
+        self.rotated = aspect&0xE0
+        self.proptype=proptype;self.d3=d3;self.propref=propref
+        self.storeref=storeref;self.u=u
+    def show_in_map(self):
+        # This is probably wrong - many details yet to be determined. FIXME
+        return not (self.flags & 0x4C)
+    def get_loc(self): # FIXME
+        return self.loc[0],self.loc[1]
+    # Persistence data fields
+    def get_d1(self):
+        return self.d3>>8
+    def set_d1(self,v):
+        if v > 255: raise ValueError, "d1 is an 8-bit quantity"
+        self.d3 = (self.d3&0x00FF)|(v<<8)
+    def get_d2(self):
+        return self.d3&0xFF
+    def set_d2(self,v):
+        if v > 255: raise ValueError, "d2 is an 8-bit quantity"
+        self.d3 = (self.d3&0xFF00)|v
+    def set_d3(self,v):
+        self.d3 = v
+    def get_d3(self):
+        return self.d3
+
+class PropList(store.Store):
+    def __init__(self, src):
+        store.Store.__init__(self, src)
+        self.empty()
+        if self.src: self.load_from_bfile()
+    def empty(self):
+        self.props = []
+        self.propsat = {}
+    def load_from_bfile(self):
+        while not self.src.eof():
+            flags=self.src.read_uint8()
+            loc= self.src.read_xy24()
+            aspect,proptype = self.src.read_uint6_uint10()
+            d3 = self.src.read_uint16()
+            propref = self.src.read_uint32()
+            storeref = self.src.read_uint16()
+            u= self.src.read_uint16()
+            nprop = PropListEntry(flags, loc,
+                aspect, proptype,d3, propref, storeref,u)
+            self.props.append(nprop)
+            if not self.propsat.has_key(loc): self.propsat[loc] = []
+            self.propsat[loc].append(nprop)
+        #for prlist in self.propsat.values(): 
+        #    prlist.sort(key=lambda p:p.draw_order())
+    def props_at(self,loc):
+        return self.propsat.get(loc,[])
+    def draw_order(self):
+        # NOTE should check to make sure this is always true... otherwise
+        # this function needs to sort them as well.
+        return self.props.__iter__()
+    def __iter__(self):
+        return self.props.__iter__()
+    def __getitem__(self, n):
+        return self.props[n]
+    def __setitem__(self, k, v):
+        self.props[k] = v
+    def __len__(self):
+        return len(self.props)
+
 class Map(store.Store):
     def __init__(self, src):
         store.Store.__init__(self, src)
@@ -62,7 +128,7 @@ class Map(store.Store):
         self.exit_zoneport_west = self.src.read_uint16()
 
         # These seem to be zero. But if not, let's draw attention to it
-        self.padding = self.src.read(12)
+        self.padding = self.src.readb(12)
         for b in self.padding: assert not b
 
 
@@ -74,9 +140,6 @@ class Map(store.Store):
         for _ in xrange(self.width*self.height):
             self.map_data.append(self.src.read_uint16())
     
-
-class PropList(store.Store):
-    pass
 
 class Level(object):
     pass

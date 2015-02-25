@@ -93,7 +93,7 @@ class ByteList(Store):
     def empty(self):
         self.contents = bytearray()
     def load_from_bfile(self):
-        self.contents = self.src.read()
+        self.contents = self.src.readb()
     def __iter__(self): return self.contents.__iter__()
     def write_to_bfile(self, dest=None):
         if dest is None: dest = self.src

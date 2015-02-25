@@ -24,6 +24,7 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
+import store
 
 class Prop(object):
     def __init__(self, pid, tile, offset_by_aspect, scripts):
@@ -35,3 +36,5 @@ class Prop(object):
         return self.tile + (aspect)
     def get_offset(self, aspect, rotated=False):
         return self.offset_by_aspect[aspect]
+
+

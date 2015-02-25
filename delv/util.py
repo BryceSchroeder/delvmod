@@ -182,6 +182,8 @@ class BinaryHandler(object):
         self.write_struct(self.S_uint8, v, offset)
     def write_uint16(self,v,offset=None):
         self.write_struct(self.S_uint16, v, offset)
+    def write_uint6_uint10(self,v,offset=None):
+        self.write_uint16((v[0]<<10)|v[1],offset)
     def write_sint16(self,v,offset=None):
         self.write_struct(self.S_sint16, v, offset)
     def write_uint32(self,v,offset=None):
@@ -238,8 +240,11 @@ class BinaryHandler(object):
     def read_uint16(self, offset=None):
         "Read 16-bit big endian unsigned integer."
         return self.read_struct(self.S_uint16, offset)[0]
+    def read_uint6_uint10(self,offset=None):
+        v = self.read_uint16(offset)
+        return v>>10, v&0x3FF
     def read_sint16(self, offset=None):
-        "Read 16-bit big endian unsigned integer."
+        "Read 16-bit big endian signed integer."
         return self.read_struct(self.S_sint16, offset)[0]
     def read_sint24(self, offset=None):
         "Return a signed 24-bit integer."
@@ -250,8 +255,8 @@ class BinaryHandler(object):
     def read_xy24(self, offset=None):
         "Read packed 12-bit xy coordinates, as used in prop lists."
         if offset is not None: self.seek(offset)
-        d = [ord(c) for c in self.read(3)]
-        return (d[0]<<8)|(d[1]>>4), ((d[1]&0x0F)<<4)|d[2]
+        d = self.readb(3)
+        return (d[0]<<4)|(d[1]>>4), ((d[1]&0x0F)<<4)|d[2]
     def read_uint32(self, offset=None):
         "Read 32-bit unsigned integer."
         return self.read_struct(self.S_uint32, offset)[0]

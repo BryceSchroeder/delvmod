@@ -24,11 +24,13 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import graphics, sound, store
+import graphics, sound, store, level
 GRAPHICS_LANDSCAPE = 131
 GRAPHICS_PORTRAIT = 135
 GRAPHICS_TILESHEET = 141
 _OBJECT_SI_HINTS = {
+   127: level.Map,
+   128: level.PropList,
    131: graphics.Landscape, 
    135: graphics.Portrait,
    137: graphics.SkillIcon,
