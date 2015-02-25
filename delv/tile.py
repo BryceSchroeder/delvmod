@@ -38,6 +38,9 @@ class Tile(object):
         self.image = str(image)
         self.rotated_cache = None
         self.requires_mask =(attributes & 0xFF000000) and '\x00' in self.image
+    def draw_priority(self):
+        if not self.attributes: return 0xFFFFFFFF
+        return (self.attributes&0xBFCDFD1C)
     def get_name(self,plural=False):
         return store.namecode(self.namecode, plural)
     def get_image(self, rotated=False): 

@@ -143,6 +143,11 @@ class MapEditor(editors.Editor):
         hbox.pack_start(self.w_fauxoffs,True, True, 0)
         pbox.pack_start(hbox, False, True, 0)
 
+        self.w_props = gtk.Entry()
+        self.w_props.set_width_chars(80)
+        self.w_props.set_editable(False)
+        pbox.pack_start(self.w_props, False, True, 0)
+
 
         self.add(pbox)
     #def set_view(self,x=None,y=None):
@@ -173,20 +178,6 @@ class MapEditor(editors.Editor):
         if not tid: return
         tile =  self.library.get_tile(tid)
         xo,yo = offset[::-1] if rotated else offset
-        if tile.requires_mask or as_prop:
-            self.gc.set_clip_origin(x*32-xo, y*32-yo)
-            self.gc.set_clip_mask(tile.get_pixmap_mask(gtk,rotated))
-        else: 
-            self.gc.set_clip_mask(None)
-        self.pixmap.draw_indexed_image(self.gc, x*32-xo, y*32-yo, 32, 32,
-            gtk.gdk.RGB_DITHER_NORMAL, tile.get_image(rotated),
-            32, pal)
-        if tile.fauxprop:
-            fauxprop = self.library.get_prop(tile.fauxprop)
-            fptile = fauxprop.get_tile(tile.fauxprop_aspect)
-            self.draw_tile(x, y, fptile, pal=pal,as_prop=True,
-                           offset=fauxprop.get_offset(tile.fauxprop_aspect),
-                           rotated=tile.fauxprop_rotate)
         attr = tile.attributes
         if rotated: # refactor this now that we understand how it works FIXME
             if as_prop and attr & 0x00000C0 ==   0x40:
@@ -217,16 +208,34 @@ class MapEditor(editors.Editor):
                 self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True,
                                offset=offset,rotated=rotated)
 
+
+        if tile.requires_mask or as_prop:
+            self.gc.set_clip_origin(x*32-xo, y*32-yo)
+            self.gc.set_clip_mask(tile.get_pixmap_mask(gtk,rotated))
+        else: 
+            self.gc.set_clip_mask(None)
+        self.pixmap.draw_indexed_image(self.gc, x*32-xo, y*32-yo, 32, 32,
+            gtk.gdk.RGB_DITHER_NORMAL, tile.get_image(rotated),
+            32, pal)
+        if tile.fauxprop:
+            fauxprop = self.library.get_prop(tile.fauxprop)
+            fptile = fauxprop.get_tile(tile.fauxprop_aspect)
+            self.draw_tile(x, y, fptile, pal=pal,as_prop=True,
+                           offset=fauxprop.get_offset(tile.fauxprop_aspect),
+                           rotated=tile.fauxprop_rotate)
+        
+    # FIXME needs to incorporate faux props into the prop list and draw
+    # them under the same priority system as listed props
     def draw_map(self):
         for y in xrange(self.lmap.height):
             for x in xrange(self.lmap.width):
                 self.draw_tile(x,y,self.lmap.map_data[x+y*self.lmap.width])
                 if not self.props: continue
                 prpat = self.props.props_at((x,y))
-                visible = filter(lambda r:r.show_in_map(), prpat)
-                #visible.sort(key=lambda p: self.library.get_tile(
-                #    self.library.get_prop(p.proptype).get_tile(
-                #        p.aspect)).attributes&0xFF000000)
+                visible = filter(lambda r:r.show_in_map(), prpat)[::-1]
+                visible.sort(key=(lambda p: self.library.get_tile(
+                    self.library.get_prop(p.proptype).get_tile(
+                        p.aspect)).draw_priority()))
                 for p in visible:
                     x,y = p.get_loc()
                     proptype = self.library.get_prop(p.proptype)
@@ -234,7 +243,15 @@ class MapEditor(editors.Editor):
                     self.draw_tile(x,y,proptile, 
                         offset=proptype.get_offset(p.aspect), as_prop=True,
                         rotated=p.rotated)
-
+                # draw invisible props
+                invisible = filter(lambda r: not r.show_in_map(), prpat)
+                for p in invisible: 
+                    x,y = p.get_loc()
+                    proptype = self.library.get_prop(p.proptype)
+                    proptile = proptype.get_debug_tile(p.aspect)
+                    self.draw_tile(x,y,proptile, 
+                        offset=proptype.get_offset(p.aspect), as_prop=True,
+                        rotated=p.rotated)
         #for p in filter(lambda r: r.show_in_map(), self.props.draw_order()):
         #     x,y = p.get_loc()
         #     proptype = self.library.get_prop(p.proptype)
@@ -278,6 +295,12 @@ class MapEditor(editors.Editor):
              self.w_fauxtile.set_text("(NA)")
              self.w_fauxattr.set_text("(NA)")
              self.w_fauxoffs.set_text("(NA)")
+        if self.props: p = self.props.props_at((x,y))
+        if not p:
+             self.w_props.set_text("(No props)")
+        else:
+             self.w_props.set_text(', '.join(map(
+                 lambda p:p.debug(self.library),p)))
     def mouse_movement(self, widget, event):
         if event.x is None or event.y is None: return
         x,y= widget.translate_coordinates(self.display, 

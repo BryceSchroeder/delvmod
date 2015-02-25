@@ -34,7 +34,8 @@ class Prop(object):
         self.offset_by_aspect = offset_by_aspect
     def get_tile(self, aspect, rotated=False):
         return self.tile + (aspect)
+    def get_debug_tile(self, aspect):
+        return 0x017F
     def get_offset(self, aspect, rotated=False):
         return self.offset_by_aspect[aspect]
-
 

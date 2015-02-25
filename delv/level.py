@@ -55,6 +55,19 @@ class PropListEntry(object):
         self.d3 = v
     def get_d3(self):
         return self.d3
+    def debug(self, library): 
+        # Man I need to refactor, look at that nomenclature
+        if self.show_in_map():
+            t = library.get_tile(library.get_prop(
+                self.proptype).get_tile(self.aspect))
+            return "%03X:%X:%X-%08X[%08X]-%s(%04X)"%(
+                self.proptype, self.aspect, 
+                self.rotated, t.attributes, t.draw_priority(),
+                t.get_name(), self.get_d3())
+        else:
+            return "{%04X:%02X(%04X)}"%(
+                self.proptype | (self.aspect<<10) | (self.rotated<<5), 
+                self.flags, self.get_d3())
 
 class PropList(store.Store):
     def __init__(self, src):
