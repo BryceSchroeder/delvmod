@@ -26,6 +26,11 @@
 # Ambrosia Software, Inc. 
 # This file addresses sundry storage types used within Delver Archives,
 # and as such is mostly a helper for other parts of delv. 
+
+# FIXME this file has gotten seriously out of hand with copy-pasted junk;
+# it needs a more object-oriented refactoring
+
+
 import util, archive
 import cStringIO as StringIO
 import array, bisect
