@@ -221,6 +221,7 @@ class MapEditor(editors.Editor):
         for y in xrange(self.lmap.height):
             for x in xrange(self.lmap.width):
                 self.draw_tile(x,y,self.lmap.map_data[x+y*self.lmap.width])
+                if not self.props: continue
                 prpat = self.props.props_at((x,y))
                 visible = filter(lambda r:r.show_in_map(), prpat)
                 #visible.sort(key=lambda p: self.library.get_tile(
