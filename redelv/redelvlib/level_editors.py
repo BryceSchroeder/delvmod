@@ -92,14 +92,17 @@ class MapEditor(editors.Editor):
 
         hbox.pack_start(gtk.Label("Cursor:"),False,True,0)
         self.w_xpos = gtk.Entry()
+        self.w_xpos.set_width_chars(4)
         self.w_xpos.set_editable(False)
         hbox.pack_start(self.w_xpos,False,True,0)
         self.w_ypos = gtk.Entry()
+        self.w_ypos.set_width_chars(4)
         self.w_ypos.set_editable(False)
         hbox.pack_start(self.w_ypos,False,True,0)
 
         hbox.pack_start(gtk.Label("Map Data:"),False,True,0)
         self.w_mapdata = gtk.Entry()
+        self.w_mapdata.set_width_chars(6)
         self.w_mapdata.set_editable(False)
         hbox.pack_start(self.w_mapdata,False,True,0)
 
@@ -108,12 +111,38 @@ class MapEditor(editors.Editor):
         self.w_name.set_editable(False)
         hbox.pack_start(self.w_name,False,True,0)
 
-        hbox.pack_start(gtk.Label("Attributes:"),False,True,0)
+        hbox.pack_start(gtk.Label("Attr:"),False,True,0)
         self.w_attr = gtk.Entry()
+        self.w_attr.set_width_chars(10)
         self.w_attr.set_editable(False)
         hbox.pack_start(self.w_attr,True, True, 0)
 
+        hbox.pack_start(gtk.Label("Faux Prop:"),False,True,0)
+        self.w_faux = gtk.Entry()
+        self.w_faux.set_width_chars(7)
+        self.w_faux.set_editable(False)
+        hbox.pack_start(self.w_faux,True, True, 0)
+
+        hbox.pack_start(gtk.Label("FP Tile:"),False,True,0)
+        self.w_fauxtile = gtk.Entry()
+        self.w_fauxtile.set_width_chars(6)
+
+        self.w_fauxtile.set_editable(False)
+        hbox.pack_start(self.w_fauxtile,True, True, 0)
+
+        hbox.pack_start(gtk.Label("FP Attr:"),False,True,0)
+        self.w_fauxattr = gtk.Entry()
+        self.w_fauxattr.set_width_chars(10)
+        self.w_fauxattr.set_editable(False)
+        hbox.pack_start(self.w_fauxattr,True, True, 0)
+
+        hbox.pack_start(gtk.Label("FP Offs:"),False,True,0)
+        self.w_fauxoffs = gtk.Entry()
+        self.w_fauxoffs.set_width_chars(5)
+        self.w_fauxoffs.set_editable(False)
+        hbox.pack_start(self.w_fauxoffs,True, True, 0)
         pbox.pack_start(hbox, False, True, 0)
+
 
         self.add(pbox)
     #def set_view(self,x=None,y=None):
@@ -139,29 +168,37 @@ class MapEditor(editors.Editor):
         #self.view_rect=0,0,self.sw.allocation.width,self.sw.allocation.height
         self.draw_map()     
 
-    def draw_tile(self, x, y, tid, pal=delv.colormap.rgb24, as_prop=False):
+    def draw_tile(self, x, y, tid, pal=delv.colormap.rgb24, as_prop=False,
+                  offset=(0,0)):
         if not tid: return
         tile =  self.library.get_tile(tid)
+        xo,yo = offset
         if tile.requires_mask or as_prop:
-            self.gc.set_clip_origin(x*32, y*32)
+            self.gc.set_clip_origin(x*32-xo, y*32-yo)
             self.gc.set_clip_mask(tile.get_pixmap_mask(gtk))
         else: 
             self.gc.set_clip_mask(None)
-        self.pixmap.draw_indexed_image(self.gc, x*32, y*32, 32, 32,
+        self.pixmap.draw_indexed_image(self.gc, x*32-xo, y*32-yo, 32, 32,
             gtk.gdk.RGB_DITHER_NORMAL, tile.image,
             32, pal)
         if tile.fauxprop:
             fauxprop = self.library.get_prop(tile.fauxprop)
             fptile = fauxprop.get_tile(tile.fauxprop_aspect)
-            self.draw_tile(x, y, fptile, pal=pal,as_prop=True)
+            self.draw_tile(x, y, fptile, pal=pal,as_prop=True,
+                           offset=fauxprop.get_offset(tile.fauxprop_aspect))
         if as_prop and tile.attributes & 0x00000C0 ==   0x40:
-            self.draw_tile(x,y-1, tile.index-1, pal=pal,as_prop=True)
+            self.draw_tile(x,y-1, tile.index-1, pal=pal,as_prop=True,
+                           offset=offset)
         elif as_prop and tile.attributes & 0x00000C0 == 0x80:
-            self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True)
+            self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True,
+                           offset=offset)
         elif as_prop and tile.attributes & 0x00000C0 == 0xC0:
-            self.draw_tile(x-1,y-1, tile.index-3, pal=pal,as_prop=True)
-            self.draw_tile(x,y-1, tile.index-2, pal=pal,as_prop=True)
-            self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True)
+            self.draw_tile(x-1,y-1, tile.index-3, pal=pal,as_prop=True,
+                           offset=offset)
+            self.draw_tile(x,y-1, tile.index-2, pal=pal,as_prop=True,
+                           offset=offset)
+            self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True,
+                           offset=offset)
 
     def draw_map(self):
         for y in xrange(self.lmap.height):
@@ -180,11 +217,26 @@ class MapEditor(editors.Editor):
         self.w_ypos.set_text(str(y))
         self.w_mapdata.set_text("0x%04X"%(
             self.lmap.map_data[x+y*self.lmap.width]))
+        tile = self.library.get_tile(self.lmap.get_tile(x,y))
         self.w_name.set_text(
-            self.library.get_tile(self.lmap.get_tile(x,y)).get_name())
+            tile.get_name())
         self.w_attr.set_text(
-            "%08X"%self.library.get_tile(self.lmap.get_tile(x,y)).attributes)
-
+            "0x%08X"%tile.attributes)
+        self.w_faux.set_text(
+            "0x%03X:%d"%(tile.fauxprop,tile.fauxprop_aspect))
+        if tile.fauxprop:
+             fp = self.library.get_prop(tile.fauxprop)
+             self.w_fauxtile.set_text(
+                "0x%04X"%(fp.tile))
+             self.w_fauxattr.set_text(
+                "0x%08X"%self.library.get_tile(fp.get_tile(
+                     tile.fauxprop_aspect)).attributes)
+             self.w_fauxoffs.set_text(
+                "%d,%d"%fp.get_offset(tile.fauxprop_aspect))
+        else:
+             self.w_fauxtile.set_text("(NA)")
+             self.w_fauxattr.set_text("(NA)")
+             self.w_fauxoffs.set_text("(NA)")
     def mouse_movement(self, widget, event):
         if event.x is None or event.y is None: return
         x,y= widget.translate_coordinates(self.display, 

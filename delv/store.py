@@ -79,6 +79,27 @@ class TileAttributesList(Store):
         self.contents[n] = value
     def __len__(self): return len(self.contents)
 
+
+class ByteList(Store):
+    def __init__(self, src):
+        Store.__init__(self, src)
+        self.empty()
+        if self.src: self.load_from_bfile()
+    def empty(self):
+        self.contents = bytearray()
+    def load_from_bfile(self):
+        self.contents = self.src.read()
+    def __iter__(self): return self.contents.__iter__()
+    def write_to_bfile(self, dest=None):
+        if dest is None: dest = self.src
+        dest.seek(0)
+        dest.write(self.contents)
+    def __getitem__(self, n):
+        return self.contents[n]
+    def __setitem__(self, n, value):
+        self.contents[n] = value
+    def __len__(self): return len(self.contents)
+
 class PropTileList(Store):
     def __init__(self, src):
         Store.__init__(self, src)

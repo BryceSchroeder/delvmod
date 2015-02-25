@@ -40,6 +40,8 @@ _OBJECT_RESID_HINTS = {
   0xF004: store.TileNameList,
   0xF000: store.PropTileList,
   0xF010: store.TileFauxPropsList,
+  0xF011: store.ByteList,
+  0xF012: store.ByteList,
   0xF002: store.TileAttributesList, 
   0xF013: store.TileCompositionList,
   0x8EFF: graphics.General,
@@ -82,6 +84,8 @@ _RES_HINTS = {
  0xF002: "Tile Attributes",
  0xF013: "Composed Tiles",
  0xF010: "Faux Prop Information",
+ 0xF011: "Prop-aspect X offsets",
+ 0xF012: "Prop-aspect Y offsets",
  0xF015: "Peristence Store Symbols"
 }
 _SCEN_HINTS = {

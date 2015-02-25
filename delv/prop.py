@@ -26,8 +26,12 @@
 # Ambrosia Software, Inc. 
 
 class Prop(object):
-    def __init__(self, tile, scripts):
+    def __init__(self, pid, tile, offset_by_aspect, scripts):
         self.scripts=scripts
         self.tile = tile
+        self.prop_type = pid
+        self.offset_by_aspect = offset_by_aspect
     def get_tile(self, aspect):
         return self.tile + aspect
+    def get_offset(self, aspect):
+        return self.offset_by_aspect[aspect]
