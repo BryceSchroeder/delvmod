@@ -136,12 +136,13 @@ class TileFauxPropsList(Store):
     def load_from_bfile(self):
         while not self.src.eof():
             word = self.src.read_uint16()
-            self.contents.append((word&0x3FF, (word>>10)))
+            self.contents.append((word&0x3FF, (word>>10)&0x1F, word>>15))
     def __iter__(self): return self.contents.__iter__()
     def write_to_bfile(self, dest=None):
         if dest is None: dest = self.src
         dest.seek(0)
-        for ptype,aspect in self.contents: dest.write_uint16(ptype|(aspect<<10))
+        for ptype,aspect,rotate in self.contents: dest.write_uint16(
+            ptype|(aspect<<10)|(rotate<<15))
     def __getitem__(self, n):
         return self.contents[n]
     def __setitem__(self, n, value):

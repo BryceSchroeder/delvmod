@@ -32,43 +32,56 @@ class Tile(object):
         self.index=index
         self.namecode = namecode
         self.attributes = attributes
-        self.fauxprop,self.fauxprop_aspect = fauxprop
+        self.fauxprop,self.fauxprop_aspect,self.fauxprop_rotate = fauxprop
         self.mask = None
+        self.rotated_mask = None
         self.image = str(image)
+        self.rotated_cache = None
         self.requires_mask =(attributes & 0xFF000000) and '\x00' in self.image
     def get_name(self,plural=False):
         return store.namecode(self.namecode, plural)
-    def get_image(self): return self.image
-    def get_pixmap_mask(self,gtk):
+    def get_image(self, rotated=False): 
+        if rotated:
+            if not self.rotated_cache: 
+                self.rotated_cache = self.rotate()
+            return self.rotated_cache
+        else:
+            return self.image
+    def rotate(self):
+        rotated = bytearray(32*32)
+        for y in xrange(32):
+            rotated[y*32:y*32+32] = self.image[y::32]
+        return str(rotated)
+    def get_pixmap_mask(self,gtk,rotated=False):
         """This is really just to save redelv the bother of having 
            a separate cache of tile masks..."""
-        if self.mask: return self.mask
-        self.mask = gtk.gdk.Pixmap(None, 32, 32, 1)
-        on = self.mask.new_gc(foreground=gtk.gdk.Color(pixel=1),
+        if self.mask and not rotated: return self.mask
+        if self.rotated_mask and rotated: return self.rotated_mask
+        image = self.get_image(rotated)
+        mask = gtk.gdk.Pixmap(None, 32, 32, 1)
+        on = mask.new_gc(foreground=gtk.gdk.Color(pixel=1),
              function=gtk.gdk.COPY)
-        off = self.mask.new_gc(foreground=gtk.gdk.Color(pixel=0),
+        off = mask.new_gc(foreground=gtk.gdk.Color(pixel=0),
              function=gtk.gdk.COPY) 
-        self.mask.draw_rectangle(off, True, 0,0,32,32)
-        for n,pixel in enumerate(self.image):
+        mask.draw_rectangle(off, True, 0,0,32,32)
+        for n,pixel in enumerate(image):
             if pixel != '\x00': 
-                self.mask.draw_point(on, n%32, n//32)
+                mask.draw_point(on, n%32, n//32)
         #    else:
         #        self.mask.draw_point(off, n%32, n//32)
-        return self.mask
+        if rotated:
+            self.rotated_mask = mask
+        else:
+            self.mask = mask
+        return self.rotated_mask if rotated else self.mask
 
 class CompoundTile(Tile):
     def __init__(self, index, namecode, attributes, fauxprop, library, 
         composition):
-        self.index=index
-        self.namecode = namecode
-        self.mask = None
-        self.fauxprop,self.fauxprop_aspect = fauxprop
-        self.attributes = attributes
-        self.image = bytearray(32*32)
+        image = bytearray(32*32)
         for n,(resid, tile, segment) in enumerate(composition):
             chunk = library.get_object(resid).get_subtile(tile,segment)
             i = (n%4)*8 + (n//4)*8*32
             for r in xrange(8):
-                 self.image[i+32*r:i+32*r+8] = chunk[8*r:8*r+8]
-        self.image = str(self.image)
-        self.requires_mask =(attributes & 0xFF000000) and '\x00' in self.image
+                 image[i+32*r:i+32*r+8] = chunk[8*r:8*r+8]
+        Tile.__init__(self, index, namecode, attributes, fauxprop, image)

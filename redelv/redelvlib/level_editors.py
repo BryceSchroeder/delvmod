@@ -119,7 +119,7 @@ class MapEditor(editors.Editor):
 
         hbox.pack_start(gtk.Label("Faux Prop:"),False,True,0)
         self.w_faux = gtk.Entry()
-        self.w_faux.set_width_chars(7)
+        self.w_faux.set_width_chars(9)
         self.w_faux.set_editable(False)
         hbox.pack_start(self.w_faux,True, True, 0)
 
@@ -169,36 +169,53 @@ class MapEditor(editors.Editor):
         self.draw_map()     
 
     def draw_tile(self, x, y, tid, pal=delv.colormap.rgb24, as_prop=False,
-                  offset=(0,0)):
+                  offset=(0,0),rotated=False):
         if not tid: return
         tile =  self.library.get_tile(tid)
-        xo,yo = offset
+        xo,yo = offset[::-1] if rotated else offset
         if tile.requires_mask or as_prop:
             self.gc.set_clip_origin(x*32-xo, y*32-yo)
-            self.gc.set_clip_mask(tile.get_pixmap_mask(gtk))
+            self.gc.set_clip_mask(tile.get_pixmap_mask(gtk,rotated))
         else: 
             self.gc.set_clip_mask(None)
         self.pixmap.draw_indexed_image(self.gc, x*32-xo, y*32-yo, 32, 32,
-            gtk.gdk.RGB_DITHER_NORMAL, tile.image,
+            gtk.gdk.RGB_DITHER_NORMAL, tile.get_image(rotated),
             32, pal)
         if tile.fauxprop:
             fauxprop = self.library.get_prop(tile.fauxprop)
             fptile = fauxprop.get_tile(tile.fauxprop_aspect)
             self.draw_tile(x, y, fptile, pal=pal,as_prop=True,
-                           offset=fauxprop.get_offset(tile.fauxprop_aspect))
-        if as_prop and tile.attributes & 0x00000C0 ==   0x40:
-            self.draw_tile(x,y-1, tile.index-1, pal=pal,as_prop=True,
-                           offset=offset)
-        elif as_prop and tile.attributes & 0x00000C0 == 0x80:
-            self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True,
-                           offset=offset)
-        elif as_prop and tile.attributes & 0x00000C0 == 0xC0:
-            self.draw_tile(x-1,y-1, tile.index-3, pal=pal,as_prop=True,
-                           offset=offset)
-            self.draw_tile(x,y-1, tile.index-2, pal=pal,as_prop=True,
-                           offset=offset)
-            self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True,
-                           offset=offset)
+                           offset=fauxprop.get_offset(tile.fauxprop_aspect),
+                           rotated=tile.fauxprop_rotate)
+        attr = tile.attributes
+        if rotated: # refactor this now that we understand how it works FIXME
+            if as_prop and attr & 0x00000C0 ==   0x40:
+                self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True,
+                               offset=offset,rotated=rotated)
+            elif as_prop and attr & 0x00000C0 == 0x80:
+                self.draw_tile(x,y-1, tile.index-1, pal=pal,as_prop=True,
+                               offset=offset,rotated=rotated)
+            elif as_prop and attr & 0x00000C0 == 0xC0:
+                self.draw_tile(x-1,y-1, tile.index-3, pal=pal,as_prop=True,
+                               offset=offset,rotated=rotated)
+                self.draw_tile(x-1,y, tile.index-2, pal=pal,as_prop=True,
+                               offset=offset,rotated=rotated)
+                self.draw_tile(x,y-1, tile.index-1, pal=pal,as_prop=True,
+                               offset=offset,rotated=rotated)
+        else: 
+            if as_prop and attr & 0x00000C0 ==   0x40:
+                self.draw_tile(x,y-1, tile.index-1, pal=pal,as_prop=True,
+                               offset=offset,rotated=rotated)
+            elif as_prop and attr & 0x00000C0 == 0x80:
+                self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True,
+                               offset=offset,rotated=rotated)
+            elif as_prop and attr & 0x00000C0 == 0xC0:
+                self.draw_tile(x-1,y-1, tile.index-3, pal=pal,as_prop=True,
+                               offset=offset,rotated=rotated)
+                self.draw_tile(x,y-1, tile.index-2, pal=pal,as_prop=True,
+                               offset=offset,rotated=rotated)
+                self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True,
+                               offset=offset,rotated=rotated)
 
     def draw_map(self):
         for y in xrange(self.lmap.height):
@@ -223,7 +240,8 @@ class MapEditor(editors.Editor):
         self.w_attr.set_text(
             "0x%08X"%tile.attributes)
         self.w_faux.set_text(
-            "0x%03X:%d"%(tile.fauxprop,tile.fauxprop_aspect))
+            "0x%03X:%X:%d"%(tile.fauxprop,tile.fauxprop_aspect,
+                 tile.fauxprop_rotate))
         if tile.fauxprop:
              fp = self.library.get_prop(tile.fauxprop)
              self.w_fauxtile.set_text(
