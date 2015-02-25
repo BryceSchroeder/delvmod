@@ -296,6 +296,7 @@ class MapEditor(editors.Editor):
              self.w_fauxattr.set_text("(NA)")
              self.w_fauxoffs.set_text("(NA)")
         if self.props: p = self.props.props_at((x,y))
+        else: return
         if not p:
              self.w_props.set_text("(No props)")
         else:
