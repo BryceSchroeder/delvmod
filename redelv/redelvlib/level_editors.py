@@ -174,39 +174,40 @@ class MapEditor(editors.Editor):
         self.draw_map()     
 
     def draw_tile(self, x, y, tid, pal=delv.colormap.rgb24, as_prop=False,
-                  offset=(0,0),rotated=False):
+                  offset=(0,0),rotated=False,inhibit=False):
         if not tid: return
         tile =  self.library.get_tile(tid)
         xo,yo = offset[::-1] if rotated else offset
         attr = tile.attributes
-        if rotated: # refactor this now that we understand how it works FIXME
-            if as_prop and attr & 0x00000C0 ==   0x40:
-                self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True,
-                               offset=offset,rotated=rotated)
-            elif as_prop and attr & 0x00000C0 == 0x80:
-                self.draw_tile(x,y-1, tile.index-1, pal=pal,as_prop=True,
-                               offset=offset,rotated=rotated)
-            elif as_prop and attr & 0x00000C0 == 0xC0:
-                self.draw_tile(x-1,y-1, tile.index-3, pal=pal,as_prop=True,
-                               offset=offset,rotated=rotated)
-                self.draw_tile(x-1,y, tile.index-2, pal=pal,as_prop=True,
-                               offset=offset,rotated=rotated)
-                self.draw_tile(x,y-1, tile.index-1, pal=pal,as_prop=True,
-                               offset=offset,rotated=rotated)
-        else: 
-            if as_prop and attr & 0x00000C0 ==   0x40:
-                self.draw_tile(x,y-1, tile.index-1, pal=pal,as_prop=True,
-                               offset=offset,rotated=rotated)
-            elif as_prop and attr & 0x00000C0 == 0x80:
-                self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True,
-                               offset=offset,rotated=rotated)
-            elif as_prop and attr & 0x00000C0 == 0xC0:
-                self.draw_tile(x-1,y-1, tile.index-3, pal=pal,as_prop=True,
-                               offset=offset,rotated=rotated)
-                self.draw_tile(x,y-1, tile.index-2, pal=pal,as_prop=True,
-                               offset=offset,rotated=rotated)
-                self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True,
-                               offset=offset,rotated=rotated)
+        if not inhibit:
+            if rotated: #refactor this now that we understand howit works FIXME
+                if as_prop and attr & 0x00000C0 ==   0x40:
+                    self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True,
+                                   offset=offset,rotated=rotated,inhibit=True)
+                elif as_prop and attr & 0x00000C0 == 0x80:
+                    self.draw_tile(x,y-1, tile.index-1, pal=pal,as_prop=True,
+                                   offset=offset,rotated=rotated,inhibit=True)
+                elif as_prop and attr & 0x00000C0 == 0xC0:
+                    self.draw_tile(x-1,y-1, tile.index-3, pal=pal,as_prop=True,
+                                   offset=offset,rotated=rotated,inhibit=True)
+                    self.draw_tile(x-1,y, tile.index-2, pal=pal,as_prop=True,
+                                   offset=offset,rotated=rotated,inhibit=True)
+                    self.draw_tile(x,y-1, tile.index-1, pal=pal,as_prop=True,
+                                   offset=offset,rotated=rotated,inhibit=True)
+            else: 
+                if as_prop and attr & 0x00000C0 ==   0x40:
+                    self.draw_tile(x,y-1, tile.index-1, pal=pal,as_prop=True,
+                                   offset=offset,rotated=rotated,inhibit=True)
+                elif as_prop and attr & 0x00000C0 == 0x80:
+                    self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True,
+                                   offset=offset,rotated=rotated,inhibit=True)
+                elif as_prop and attr & 0x00000C0 == 0xC0:
+                    self.draw_tile(x-1,y-1, tile.index-3, pal=pal,as_prop=True,
+                                   offset=offset,rotated=rotated,inhibit=True)
+                    self.draw_tile(x,y-1, tile.index-2, pal=pal,as_prop=True,
+                                   offset=offset,rotated=rotated,inhibit=True)
+                    self.draw_tile(x-1,y, tile.index-1, pal=pal,as_prop=True,
+                                   offset=offset,rotated=rotated,inhibit=True)
 
 
         if tile.requires_mask or as_prop:
