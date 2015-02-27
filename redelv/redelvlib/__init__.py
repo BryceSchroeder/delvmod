@@ -57,6 +57,7 @@ class ReDelv(object):
         self.library = None
         self.patch_output_path=None
         # Signals 
+        self.open_editors = {}
         self.filechange = []
         self.subindexchange = []
         self.resourcechange = []
@@ -486,6 +487,11 @@ class ReDelv(object):
                 self, self.current_resource).show_all()
         else:
             self.error_message("No resource is selected.")
+    def open_editor(self, resid):
+        ed = editgui.editor_for_resource(resid)(
+                self,self.archive.get(resid))
+        ed.show_all()
+        return ed
     def menu_resource_editor(self, widget, data=None):
         if self.current_resource:
             #editgui.editor_for_subindex(self.current_subindex_id)(
@@ -614,3 +620,11 @@ class ReDelv(object):
         if not self.library:
             self.library = delv.library.Library(self.archive) 
         return self.library
+    def register_editor(self, editor):
+        if not self.open_editors.has_key(editor.res.resid):
+            self.open_editors[editor.res.resid] = []
+        self.open_editors[editor.res.resid].append(editor)
+    def unregister_editor(self, editor):
+        self.open_editors[editor.res.resid].remove(editor)
+    def get_registered_editors(self, resid):
+        return self.open_editors.get(resid, [])

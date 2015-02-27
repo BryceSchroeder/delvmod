@@ -31,6 +31,7 @@ import sound_editors
 _EDITORS_BY_NAME = {
     "TileNameList": generic_editors.TileNameListEditor,
     "Map": level_editors.MapEditor,
+    "PropList": level_editors.PropListEditor,
     "Landscale": graphics_editors.LandscapeEditor,
     "Portrait": graphics_editors.PortraitEditor,
     "Icon": graphics_editors.IconEditor,
@@ -46,6 +47,7 @@ _EDITORS_FOR_RESOURCE = {
 }
 _EDITORS_FOR_SUBINDEX = {
     127: level_editors.MapEditor,
+    128: level_editors.PropListEditor,
     131: graphics_editors.LandscapeEditor,
     135: graphics_editors.PortraitEditor,
     137: graphics_editors.IconEditor,

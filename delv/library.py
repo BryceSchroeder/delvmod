@@ -61,7 +61,8 @@ class Library(object):
         for pid,tile in enumerate(proptiles):
             self.props.append(prop.Prop(pid, tile, zip(
                        xoffsets[pid<<5:(pid<<5)+32],
-                       yoffsets[pid<<5:(pid<<5)+32]), scripts=None))
+                       yoffsets[pid<<5:(pid<<5)+32]), scripts=None,
+                       library=self))
 
     def load_tiles(self):
         tilenames = self.get_object(0xF004)

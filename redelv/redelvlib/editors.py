@@ -20,10 +20,13 @@
 import gtk, images
 class Editor(gtk.Window):
     name = "Unspecified Editor"
+    def __del__(self):
+        self.redelv.unregister_editor(self)
     def __init__(self, redelv, resource, *argv, **argk):
         gtk.Window.__init__(self,gtk.WINDOW_TOPLEVEL, *argv,**argk)
         self.redelv = redelv
         self.res = resource
+        self.mated_editors = []
         self.set_title(self.name)
         self.gui_setup()
         self.unsaved = False
@@ -31,6 +34,7 @@ class Editor(gtk.Window):
         self.set_icon(
                 gtk.gdk.pixbuf_new_from_file(images.icon_path))
         self.editor_setup()
+        self.redelv.register_editor(self)
     def delete_event(self, w=None, d=None):
         if self.unsaved: return self.ask_unsaved()
         self.cleanup()
@@ -92,3 +96,7 @@ class Editor(gtk.Window):
             message)
         dialog.run()
         dialog.destroy()
+    def marry(self, editor):
+        self.mated_editors.append(editor)
+    def divorce(self, editor):
+        self.mated_editors.remove(editor)

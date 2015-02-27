@@ -27,15 +27,18 @@
 import store
 
 class Prop(object):
-    def __init__(self, pid, tile, offset_by_aspect, scripts):
+    def __init__(self, pid, tile, offset_by_aspect, scripts, library):
         self.scripts=scripts
         self.tile = tile
         self.prop_type = pid
         self.offset_by_aspect = offset_by_aspect
+        self.library = library
     def get_tile(self, aspect, rotated=False):
         return self.tile + (aspect)
     def get_debug_tile(self, aspect):
         return 0x017F
     def get_offset(self, aspect, rotated=False):
         return self.offset_by_aspect[aspect]
+    def get_name(self, aspect=0):
+        return self.library.get_tile(self.get_tile(aspect)).get_name()
 

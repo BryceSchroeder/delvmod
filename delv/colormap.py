@@ -131,3 +131,5 @@ for c in rgb: pil.extend(c)
 animated_rgb24 = panimate(rgb24)
 animated_rgb   = panimate(rgb)
 animated_html  = panimate(html)
+
+selected_rgb24 = [c|0x00808080 for c in rgb24]

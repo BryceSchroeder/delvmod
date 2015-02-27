@@ -31,6 +31,174 @@ import delv.colormap, delv.level
 import editors
 import cStringIO as StringIO
 import gtk
+
+class PropListEditor(editors.Editor):
+    name = "Prop List Editor [nothing opened]"
+    default_size = 800,600
+    def gui_setup(self):
+        pbox = gtk.VBox(False,0)
+        self.set_default_size(*self.default_size)
+
+        menu_items = (
+            ("/File/Save Resource", "<control>S", None, 0, None),
+            ("/File/Revert",        None,    self.load, 0, None),
+            ("/File/Export CSV",  None,    None, 0, None),
+            ("/File/Import CSV",  None,    None, 0, None),
+            ("/Edit/Cut",           "<control>X", None, 0, None),
+            ("/Edit/Copy",          "<control>C", None, 0, None),
+            ("/Edit/Paste",         "<control>V", None, 0, None),
+            ("/Edit/Delete",          None,        None, 0, None),
+            ("/Map/Open Map",        "<control>M",    self.open_map, 0, None),
+            ("/Map/Select on Map",        "S",          None, 0, None),
+            )
+
+        accel = gtk.AccelGroup()
+        ifc = gtk.ItemFactory(gtk.MenuBar, "<main>", accel)
+        self.add_accel_group(accel)
+        ifc.create_items(menu_items)
+        self.menu_bar = ifc.get_widget("<main>")
+        pbox.pack_start(self.menu_bar, False, True, 0)
+
+        sw = gtk.ScrolledWindow()
+        sw.set_policy(gtk.POLICY_AUTOMATIC,gtk.POLICY_AUTOMATIC)
+
+        self.data_view = gtk.TreeView()
+
+        dc = gtk.TreeViewColumn()
+        dc.set_title("Index")
+        c = gtk.CellRendererText()
+        c.set_property('editable',False)
+        dc.pack_start(c,True)
+        dc.add_attribute(c,"text",0)
+        self.data_view.append_column(dc)
+        
+        dc = gtk.TreeViewColumn()
+        dc.set_title("Flags")
+        c = gtk.CellRendererText() 
+        c.set_property('editable',True)
+        #c.connect('edited', self.editor_callback_namecode)
+        dc.pack_start(c,True)
+        dc.add_attribute(c,"text",1)
+        self.data_view.append_column(dc)
+
+        dc = gtk.TreeViewColumn()
+        dc.set_title("Prop Type")
+        c = gtk.CellRendererText() 
+        c.set_property('editable',True)
+        #c.connect('edited', self.editor_callback_namecode)
+        dc.pack_start(c,True)
+        dc.add_attribute(c,"text",2)
+        self.data_view.append_column(dc)
+
+        dc = gtk.TreeViewColumn()
+        dc.set_title("Location")
+        c = gtk.CellRendererText() 
+        c.set_property('editable',True)
+        #c.connect('edited', self.editor_callback_namecode)
+        dc.pack_start(c,True)
+        dc.add_attribute(c,"text",3)
+        self.data_view.append_column(dc)
+
+        dc = gtk.TreeViewColumn()
+        dc.set_title("Rotate?")
+        c = gtk.CellRendererToggle() 
+        #c.connect('toggled', self.editor_callback_namecode)
+        dc.pack_start(c,True)
+        dc.add_attribute(c,"active",4)
+        self.data_view.append_column(dc)
+
+        dc = gtk.TreeViewColumn()
+        dc.set_title("Aspect")
+        c = gtk.CellRendererText() 
+        c.set_property('editable',True)
+        #c.connect('edited', self.editor_callback_namecode)
+        dc.pack_start(c,True)
+        dc.add_attribute(c,"text",5)
+        self.data_view.append_column(dc)
+
+        dc = gtk.TreeViewColumn()
+        dc.set_title("D1")
+        c = gtk.CellRendererText() 
+        c.set_property('editable',True)
+        #c.connect('edited', self.editor_callback_namecode)
+        dc.pack_start(c,True)
+        dc.add_attribute(c,"text",6)
+        self.data_view.append_column(dc)
+
+        dc = gtk.TreeViewColumn()
+        dc.set_title("D2")
+        c = gtk.CellRendererText() 
+        c.set_property('editable',True)
+        #c.connect('edited', self.editor_callback_namecode)
+        dc.pack_start(c,True)
+        dc.add_attribute(c,"text",7)
+        self.data_view.append_column(dc)
+
+        dc = gtk.TreeViewColumn()
+        dc.set_title("D3")
+        c = gtk.CellRendererText() 
+        c.set_property('editable',True)
+        #c.connect('edited', self.editor_callback_namecode)
+        dc.pack_start(c,True)
+        dc.add_attribute(c,"text",8)
+        self.data_view.append_column(dc)
+
+        dc = gtk.TreeViewColumn()
+        dc.set_title("Prop Reference")
+        c = gtk.CellRendererText() 
+        c.set_property('editable',True)
+        #c.connect('edited', self.editor_callback_namecode)
+        dc.pack_start(c,True)
+        dc.add_attribute(c,"text",9)
+        self.data_view.append_column(dc)
+
+        dc = gtk.TreeViewColumn()
+        dc.set_title("Storage")
+        c = gtk.CellRendererText() 
+        c.set_property('editable',True)
+        #c.connect('edited', self.editor_callback_namecode)
+        dc.pack_start(c,True)
+        dc.add_attribute(c,"text",10)
+        self.data_view.append_column(dc)
+
+
+        sw.add(self.data_view)
+        pbox.pack_start(sw, True, True, 5)
+        self.add(pbox)
+    def load(self):
+        self.lmap = self.library.get_object(self.res.resid - 0x0100)
+        self.props = delv.level.PropList(self.res)
+        self.tree_data = gtk.ListStore(str,str,str,str,bool,str,
+            str,str,str,str,str,int)
+        self.data_view.set_model(self.tree_data)
+        for idx,prop in enumerate(self.props):
+            self.tree_data.append(["%d"%idx, "0x%02X"%prop.flags,
+                "0x%03X (%s)"%(prop.proptype,prop.get_name(self.library)),
+                prop.textual_location(),
+                prop.rotated, "%d"%prop.aspect, "%d"%prop.get_d1(),
+                "%d"%prop.get_d2(), "0x%04X"%prop.get_d3(),
+                "0x%08X"%prop.propref, "0x%04X"%prop.storeref, idx
+                ])
+
+    def editor_setup(self):
+        self.set_title("Prop List Editor [%04X]"%self.res.resid)
+        self.map_editor = None
+        self.library = self.redelv.get_library()
+        self.load()
+    def cleanup(self):
+        if self.map_editor: self.map_editor.prop_editor = None
+
+    def open_map(self, *argv):
+        if self.map_editor:
+            self.map_editor.show_all()
+            self.map_editor.present()
+        else:
+            self.map_editor = self.redelv.open_editor(self.res.resid-0x0100)
+            self.map_editor.marry(self)
+            self.map_editor.prop_editor = self
+
+     
+
 # Note to self, make this support general tile layers
 # Also, abstract the tile drawing so the code can be reused in something
 # other than pygtk
@@ -55,14 +223,16 @@ class MapEditor(editors.Editor):
             ("/Tool/Pencil",        "N",          None, 0, None),
             ("/Tool/Brush",         "B",          None, 0, None),
             ("/Tool/Rectangle Select", "R",       None, 0, None),
+            ("/Tool/Tile Select", "T",       self.tile_select, 0, None),
             ("/Tool/Stamp",         "M",          None, 0, None),
             ("/Tool/Eyedropper",   "E",           None, 0, None),
-            ("/Tool/Prop Select",  "P",           None, 0, None),
+            ("/Tool/Prop Select",  "P",           self.prop_select, 0, None),
+            ("/Tool/Select None",  "X",           self.select_none, 0, None),
             ("/View/Preview Palette Animation",None,None, 0, None),
             ("/View/Display Roof Layer",None,     None, 0, None),
             ("/View/Display Props",  None,        None, 0, None),
             ("/Windows/Tile Selector", "<control>T", None, 0, None),
-            ("/Windows/Props List", "<control>P", None, 0, None),
+            ("/Windows/Props List", "<control>P", self.open_props, 0, None),
             ("/Windows/Brushes",    "<control>B", None, 0, None),
             ("/Windows/Stamps",     "<control>M", None, 0, None),
             ("/Windows/Map Boundaries", None,     None, 0, None),
@@ -78,9 +248,10 @@ class MapEditor(editors.Editor):
         sw.set_policy(gtk.POLICY_AUTOMATIC,gtk.POLICY_AUTOMATIC)
         self.display = gtk.Image()
         self.eventbox = gtk.EventBox()
-        self.eventbox.add_events(gtk.gdk.POINTER_MOTION_MASK)
+        self.eventbox.add_events(
+            gtk.gdk.POINTER_MOTION_MASK|gtk.gdk.BUTTON_PRESS)
         self.eventbox.connect("motion-notify-event", self.mouse_movement)
-
+        self.eventbox.connect("button-press-event", self.mouse_click)
         self.eventbox.add(self.display)
         self.sbox = gtk.Fixed()
         self.sbox.put(self.eventbox, 0,0)
@@ -159,6 +330,9 @@ class MapEditor(editors.Editor):
 
     def editor_setup(self):
         self.set_title("Map Editor [%04X]"%self.res.resid)
+        self.prop_editor = None
+        self.click_tool = None
+        self.selection = None
         self.library = self.redelv.get_library()
         self.load()
         self.pixmap = gtk.gdk.Pixmap(None, 
@@ -227,10 +401,12 @@ class MapEditor(editors.Editor):
         
     # FIXME needs to incorporate faux props into the prop list and draw
     # them under the same priority system as listed props
-    def draw_map(self):
+    def draw_map(self,stop=None):
+        for y in xrange(stop[1] if stop else self.lmap.height):
+            for x in xrange(stop[0] if stop else self.lmap.width):
+                self.draw_tile(x,y,self.lmap.map_data[x+y*self.lmap.width])
         for y in xrange(self.lmap.height):
             for x in xrange(self.lmap.width):
-                self.draw_tile(x,y,self.lmap.map_data[x+y*self.lmap.width])
                 if not self.props: continue
                 prpat = self.props.props_at((x,y))
                 visible = filter(lambda r:r.show_in_map(), prpat)[::-1]
@@ -253,22 +429,44 @@ class MapEditor(editors.Editor):
                     self.draw_tile(x,y,proptile, 
                         offset=proptype.get_offset(p.aspect), as_prop=True,
                         rotated=p.rotated)
-        #for p in filter(lambda r: r.show_in_map(), self.props.draw_order()):
-        #     x,y = p.get_loc()
-        #     proptype = self.library.get_prop(p.proptype)
-        #     proptile = proptype.get_tile(p.aspect)
-        #     self.draw_tile(x,y,proptile, 
-        #         offset=proptype.get_offset(p.aspect), as_prop=True,
-        #         rotated=p.rotated)
-                
+        if isinstance(self.selection, tuple):
+            x,y = self.selection
+            self.draw_tile(x,y,
+                self.lmap.map_data[x+y*self.lmap.width],
+                pal=delv.colormap.selected_rgb24)
+        elif self.selection is None:
+            pass
+        elif self.props:
+            for pidx in self.selection:
+                p = self.props[pidx]
+                print "sprop",pidx,p
+                proptype = self.library.get_prop(p.proptype)
+                proptile = proptype.get_tile(p.aspect)
+                x,y = p.loc
+                self.draw_tile(x,y,proptile, 
+                    offset=proptype.get_offset(p.aspect), as_prop=True,
+                    rotated=p.rotated, pal=delv.colormap.selected_rgb24)
+
 
         self.display.set_from_pixmap(self.pixmap,None)
 
     def load(self):
         self.lmap = delv.level.Map(self.res)
         self.props = self.library.get_object(self.res.resid + 0x0100)
-        print self.props, self.res.resid + 0x0100
-
+    def change_selection(self, ns):
+        if self.selection == ns: return 
+        self.selection = ns
+        self.draw_map()
+    def select_none(self, *argv):
+        self.change_selection(None)
+    def tile_select(self, *argv):
+        self.click_tool = self.tile_select_tool
+    def tile_select_tool(self, x, y):
+        self.change_selection((x,y))
+    def prop_select(self, *argv):
+        self.click_tool = self.prop_select_tool
+    def prop_select_tool(self, x, y):
+        self.change_selection([p.index for p in self.props.props_at((x,y))])
     def update_cursor_info(self):
         x,y = self.mouse_position
         self.w_xpos.set_text(str(x))
@@ -311,7 +509,12 @@ class MapEditor(editors.Editor):
         if newp != self.mouse_position:
             self.mouse_position = newp
             self.update_cursor_info()
-        
+    def mouse_click(self, widget, event):
+        if event.x is None or event.y is None: return
+        x,y= widget.translate_coordinates(self.display, 
+             int(event.x),int(event.y))
+        newp = x//32,y//32
+        if self.click_tool: self.click_tool(*newp)
     def export_img(self, *argv):
         path = self.ask_save_path(default = "Map%04X.png"%self.res.resid)
         if not path: return
@@ -324,3 +527,13 @@ class MapEditor(editors.Editor):
         pbuf.get_from_drawable(self.pixmap, gtk.gdk.colormap_get_system(),
             0,0,0,0,self.lmap.width*32,self.lmap.height*32)
         return pbuf
+    def open_props(self, *argv):
+        if self.prop_editor:
+            self.prop_editor.show_all()
+            self.prop_editor.present()
+        else:
+            self.prop_editor = self.redelv.open_editor(self.res.resid+0x0100)
+            self.prop_editor.marry(self)
+            self.prop_editor.map_editor = self
+    def cleanup(self):
+        if self.prop_editor: self.prop_editor.map_editor = None
