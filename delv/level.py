@@ -45,6 +45,8 @@ class PropListEntry(object):
         return not (self.flags & 0x4C)
     def get_loc(self): # FIXME
         return self.loc[0],self.loc[1]
+    def okay_to_take(self):
+        return self.flags & 0x01
     # Persistence data fields
     def get_d1(self):
         return self.d3>>8

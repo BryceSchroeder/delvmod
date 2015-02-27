@@ -63,6 +63,7 @@ class PropListEditor(editors.Editor):
         sw.set_policy(gtk.POLICY_AUTOMATIC,gtk.POLICY_AUTOMATIC)
 
         self.data_view = gtk.TreeView()
+        self.data_view.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
 
         dc = gtk.TreeViewColumn()
         dc.set_title("Index")
@@ -79,6 +80,14 @@ class PropListEditor(editors.Editor):
         #c.connect('edited', self.editor_callback_namecode)
         dc.pack_start(c,True)
         dc.add_attribute(c,"text",1)
+        self.data_view.append_column(dc)
+        
+        dc = gtk.TreeViewColumn()
+        dc.set_title("Free")
+        c = gtk.CellRendererToggle() 
+        #c.connect('edited', self.editor_callback_namecode)
+        dc.pack_start(c,True)
+        dc.add_attribute(c,"active",12)
         self.data_view.append_column(dc)
 
         dc = gtk.TreeViewColumn()
@@ -169,7 +178,7 @@ class PropListEditor(editors.Editor):
         self.lmap = self.library.get_object(self.res.resid - 0x0100)
         self.props = delv.level.PropList(self.res)
         self.tree_data = gtk.ListStore(str,str,str,str,bool,str,
-            str,str,str,str,str,int)
+            str,str,str,str,str,int,bool)
         self.data_view.set_model(self.tree_data)
         for idx,prop in enumerate(self.props):
             self.tree_data.append(["%d"%idx, "0x%02X"%prop.flags,
@@ -177,7 +186,8 @@ class PropListEditor(editors.Editor):
                 prop.textual_location(),
                 prop.rotated, "%d"%prop.aspect, "%d"%prop.get_d1(),
                 "%d"%prop.get_d2(), "0x%04X"%prop.get_d3(),
-                "0x%08X"%prop.propref, "0x%04X"%prop.storeref, idx
+                "0x%08X"%prop.propref, "0x%04X"%prop.storeref, idx,
+                prop.okay_to_take()
                 ])
 
     def editor_setup(self):
@@ -202,6 +212,12 @@ class PropListEditor(editors.Editor):
         selected = [
             tm.get_value(tm.get_iter(path),11) for path in paths]
         self.map_editor.change_selection(selected)
+    def select_props_by_index(self, selection):
+        tsel = self.data_view.get_selection()
+        tsel.unselect_all()
+        if not selection: return
+        for prop in selection:
+            tsel.select_path(prop)
 
      
 
@@ -237,7 +253,8 @@ class MapEditor(editors.Editor):
             ("/View/Preview Palette Animation",None,None, 0, None),
             ("/View/Display Roof Layer",None,     None, 0, None),
             ("/View/Display Props",  None,        None, 0, None),
-            ("/View/Send Selection to Prop List",None,None,0,None),
+            ("/View/Send Selection to Prop List","S",self.send_selection,
+                    0,None),
             ("/Windows/Tile Selector", "<control>T", None, 0, None),
             ("/Windows/Props List", "<control>P", self.open_props, 0, None),
             ("/Windows/Brushes",    "<control>B", None, 0, None),
@@ -446,9 +463,11 @@ class MapEditor(editors.Editor):
         elif self.props:
             for pidx in self.selection:
                 p = self.props[pidx]
-                print "sprop",pidx,p
                 proptype = self.library.get_prop(p.proptype)
-                proptile = proptype.get_tile(p.aspect)
+                if p.show_in_map():
+                    proptile = proptype.get_tile(p.aspect)
+                else:
+                    proptile = proptype.get_debug_tile(p.aspect)
                 x,y = p.loc
                 self.draw_tile(x,y,proptile, 
                     offset=proptype.get_offset(p.aspect), as_prop=True,
@@ -544,3 +563,7 @@ class MapEditor(editors.Editor):
             self.prop_editor.map_editor = self
     def cleanup(self):
         if self.prop_editor: self.prop_editor.map_editor = None
+    def send_selection(self, *argv):
+        if not isinstance(self.selection, list): pass
+        if not self.prop_editor: self.open_props()
+        self.prop_editor.select_props_by_index(self.selection)
