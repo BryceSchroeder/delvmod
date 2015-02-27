@@ -49,7 +49,7 @@ class PropListEditor(editors.Editor):
             ("/Edit/Paste",         "<control>V", None, 0, None),
             ("/Edit/Delete",          None,        None, 0, None),
             ("/Map/Open Map",        "<control>M",    self.open_map, 0, None),
-            ("/Map/Select on Map",        "S",          None, 0, None),
+            ("/Map/Send Selection to Map",  "S", self.send_selection, 0, None),
             )
 
         accel = gtk.AccelGroup()
@@ -196,6 +196,12 @@ class PropListEditor(editors.Editor):
             self.map_editor = self.redelv.open_editor(self.res.resid-0x0100)
             self.map_editor.marry(self)
             self.map_editor.prop_editor = self
+    def send_selection(self, *argv):
+        if not self.map_editor: self.open_map()
+        tm,paths = self.data_view.get_selection().get_selected_rows()
+        selected = [
+            tm.get_value(tm.get_iter(path),11) for path in paths]
+        self.map_editor.change_selection(selected)
 
      
 
@@ -231,6 +237,7 @@ class MapEditor(editors.Editor):
             ("/View/Preview Palette Animation",None,None, 0, None),
             ("/View/Display Roof Layer",None,     None, 0, None),
             ("/View/Display Props",  None,        None, 0, None),
+            ("/View/Send Selection to Prop List",None,None,0,None),
             ("/Windows/Tile Selector", "<control>T", None, 0, None),
             ("/Windows/Props List", "<control>P", self.open_props, 0, None),
             ("/Windows/Brushes",    "<control>B", None, 0, None),
