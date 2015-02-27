@@ -50,6 +50,10 @@ class PropListEditor(editors.Editor):
             ("/Edit/Delete",          None,        None, 0, None),
             ("/Map/Open Map",        "<control>M",    self.open_map, 0, None),
             ("/Map/Send Selection to Map",  "S", self.send_selection, 0, None),
+            ("/Select/Container Contents", "<control>N",None,0,None),
+            ("/Select/Others in Cell","<control>T",None,0,None),
+            ("/Select/Parent","<control>P",None,0,None),
+            ("/Select/Scroll to Selected","<control>F",None,0,None),
             )
 
         accel = gtk.AccelGroup()
@@ -181,7 +185,7 @@ class PropListEditor(editors.Editor):
             str,str,str,str,str,int,bool)
         self.data_view.set_model(self.tree_data)
         for idx,prop in enumerate(self.props):
-            self.tree_data.append(["0x%X"%idx, "0x%02X"%prop.flags,
+            self.tree_data.append(["%d"%idx, "0x%02X"%prop.flags,
                 "0x%03X (%s)"%(prop.proptype,prop.get_name(self.library)),
                 prop.textual_location(),
                 prop.rotated, "%d"%prop.aspect, "%d"%prop.get_d1(),

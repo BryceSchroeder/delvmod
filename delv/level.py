@@ -33,18 +33,17 @@ class PropListEntry(object):
     def __init__(self, flags, loc, aspect, proptype, d3, propref, storeref, u,
                  index=None):
         self.index=index
-        self.container = ((loc[0])<<12) | loc[1]
-        print "%X | %x = %x"%(loc[0],loc[1],self.container)
+        self.raw_location = ((loc[0])<<12) | loc[1]
+        self.container = (self.raw_location&0x00FFFF) - 0x100
         self.flags = flags;self.loc=loc;self.aspect=aspect&0x1F
         self.rotated = aspect&0xE0
         self.proptype=proptype;self.d3=d3;self.propref=propref
         self.storeref=storeref;self.u=u
     def textual_location(self):
         if self.flags & 0x08:
-            return "0x%06X"%self.container
+            return "0x%06X (@%d)"%(self.raw_location,self.container)
         else:
-            return ("%d,%d"%self.loc if isinstance(self.loc,tuple) 
-                else "0x%06X"%self.loc)
+            return "0x%06X (%d,%d)"%((self.raw_location,)+self.loc)
     def inside_something(self):
         return self.flags & 0x08
     def show_in_map(self):
