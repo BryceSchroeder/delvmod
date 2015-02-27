@@ -33,16 +33,23 @@ class PropListEntry(object):
     def __init__(self, flags, loc, aspect, proptype, d3, propref, storeref, u,
                  index=None):
         self.index=index
+        self.container = ((loc[0])<<12) | loc[1]
+        print "%X | %x = %x"%(loc[0],loc[1],self.container)
         self.flags = flags;self.loc=loc;self.aspect=aspect&0x1F
         self.rotated = aspect&0xE0
         self.proptype=proptype;self.d3=d3;self.propref=propref
         self.storeref=storeref;self.u=u
     def textual_location(self):
-        return ("%d,%d"%self.loc if isinstance(self.loc,tuple) 
-            else "0x%06X"%self.loc)
+        if self.flags & 0x08:
+            return "0x%06X"%self.container
+        else:
+            return ("%d,%d"%self.loc if isinstance(self.loc,tuple) 
+                else "0x%06X"%self.loc)
+    def inside_something(self):
+        return self.flags & 0x08
     def show_in_map(self):
         # This is probably wrong - many details yet to be determined. FIXME
-        return not (self.flags & 0x4C)
+        return not (self.flags & 0x48)
     def get_loc(self): # FIXME
         return self.loc[0],self.loc[1]
     def okay_to_take(self):
@@ -67,17 +74,21 @@ class PropListEntry(object):
         if self.show_in_map():
             tid = library.get_prop(self.proptype).get_tile(self.aspect)
             t = library.get_tile(tid)
-            return "%03X:%X:%X-%03X:%08X[%08X]-%s-%s(%04X)"%(
-                self.proptype, self.aspect, self.rotated,
-                tid, t.attributes, t.draw_priority(),
+            return "%02X:%03X:%X:%X-%03X:%08X-%s-%s(%04X)"%(
+                self.flags,self.proptype, self.aspect, self.rotated,
+                tid, t.attributes,
                 library.get_prop(self.proptype).get_offset(self.aspect),
-                t.get_name(), self.get_d3())
+                self.get_name(library), self.get_d3())
         else:
-            return "{%04X:%02X(%04X)}"%(
+            return "{%04X:%02X(%04X) %s}"%(
                 self.proptype | (self.aspect<<10) | (self.rotated<<5), 
-                self.flags, self.get_d3())
+                self.flags, self.get_d3(), self.get_name(library))
     def get_name(self, library):
-        if self.flags:
+        if self.flags == 0x42:
+            return "EGG"
+        elif self.flags == 0x44:
+            return "ROOF"
+        elif self.flags&0xF0:
             return "(%s?)"%library.get_prop(
                 self.proptype).get_name(self.aspect)
         else:

@@ -181,7 +181,7 @@ class PropListEditor(editors.Editor):
             str,str,str,str,str,int,bool)
         self.data_view.set_model(self.tree_data)
         for idx,prop in enumerate(self.props):
-            self.tree_data.append(["%d"%idx, "0x%02X"%prop.flags,
+            self.tree_data.append(["0x%X"%idx, "0x%02X"%prop.flags,
                 "0x%03X (%s)"%(prop.proptype,prop.get_name(self.library)),
                 prop.textual_location(),
                 prop.rotated, "%d"%prop.aspect, "%d"%prop.get_d1(),

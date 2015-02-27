@@ -199,7 +199,7 @@ class BinaryHandler(object):
     def write_xy24(self,x,y,offset=None):
         if offset is not None: self.seek(offset)
         self.write_uint8((x&0xFF0)>>4)
-        self.write_uint8(((x&0x00F)<<4)&((y&0xF00)>>8))
+        self.write_uint8(((x&0x00F)<<4)|((y&0xF00)>>8))
         return self.write_uint8(y&0x0FF)
 
     def write_vm32(self, flags, v, offset=None):
@@ -256,7 +256,7 @@ class BinaryHandler(object):
         "Read packed 12-bit xy coordinates, as used in prop lists."
         if offset is not None: self.seek(offset)
         d = self.readb(3)
-        return (d[0]<<4)|(d[1]>>4), ((d[1]&0x0F)<<4)|d[2]
+        return (d[0]<<4)|(d[1]>>4), ((d[1]&0x0F)<<8)|d[2]
     def read_uint32(self, offset=None):
         "Read 32-bit unsigned integer."
         return self.read_struct(self.S_uint32, offset)[0]
