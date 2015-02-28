@@ -207,8 +207,8 @@ class PropListEditor(editors.Editor):
             ))
             itr = self.tree_data.iter_next(itr)
         self.res.set_data(self.props.get_data())
-        self.unsaved = False
-        self.redelv.unsaved = True
+        self.set_saved()
+        self.redelv.set_unsaved()
     def load(self,*argv):
         self.lmap = self.library.get_object(self.res.resid - 0x0100)
         self.props = self.canonical_object
@@ -245,7 +245,7 @@ class PropListEditor(editors.Editor):
         flags = int(self.tree_data.get_value(itr,1)[2:],16)
         self.tree_data.set_value(itr, 3, 
             delv.level.textual_location(flags, rloc))
-        self.unsaved = True
+        self.set_unsaved()
     def editor_callback_flags(self, renderer, path, new_text):
         try:
             ival = int(new_text.replace('0x','').replace('$',''), 16)
@@ -266,7 +266,7 @@ class PropListEditor(editors.Editor):
             "0x%03X (%s)"%(proptype, delv.level.proptypename_with_flags(
                  ival, proptype, aspect, self.redelv.get_library())))
 
-        self.unsaved = True
+        self.set_unsaved()
     #def editor_callback_free(self, renderer, path, new_text):
     #    itr = self.tree_data.get_iter(path)flags = 
     def editor_callback_aspect(self, renderer, path, new_text):
@@ -282,7 +282,7 @@ class PropListEditor(editors.Editor):
                  flags, proptype, aspect, self.redelv.get_library())))
         self.tree_data.set_value(itr, 5,
                  "%d"%aspect)
-        self.unsaved = True
+        self.set_unsaved()
     def editor_callback_d1(self ,  renderer, path, new_text):
         try:
             if '0x' in new_text or '$' in new_text:
@@ -345,7 +345,7 @@ class PropListEditor(editors.Editor):
         self.tree_data.set_value(itr, 2,
             "0x%03X (%s)"%(proptype, delv.level.proptypename_with_flags(
                  flags, proptype, aspect, self.redelv.get_library())))
-        self.unsaved = True
+        self.set_unsaved()
     def editor_callback_storage(self,  renderer, path, new_text):
         try:
             storeref = int(new_text.strip().split()[0].replace(
@@ -355,7 +355,7 @@ class PropListEditor(editors.Editor):
 
         itr = self.tree_data.get_iter(path)
         self.tree_data.set_value(itr, 10,"0x%04X"%storeref)
-        self.unsaved = True
+        self.set_unsaved()
     def editor_callback_propref(self,  renderer, path, new_text):
         try:
             propref = int(new_text.strip().split()[0].replace(
@@ -365,7 +365,7 @@ class PropListEditor(editors.Editor):
 
         itr = self.tree_data.get_iter(path)
         self.tree_data.set_value(itr, 9,"0x%08X"%propref)
-        self.unsaved = True
+        self.set_unsaved()
 
     def editor_setup(self):
         self.set_title("Prop List Editor [%04X]"%self.res.resid)

@@ -26,7 +26,7 @@
 # Ambrosia Software, Inc. 
 import colormap
 import archive
-import util
+import util, store
 
 # import the four horsemen of the bitpocalypse:
 from util import bits_pack, ncbits_pack, ncbits_of, bits_of, bitstruct_pack
@@ -43,7 +43,7 @@ def DelvImageFactoryMode(src, mode, *args, **kwargs):
 
 class UnknownOpcode(Exception): pass
 
-class DelvImage(object):
+class DelvImage(store.Store):
     """This is the base class for all forms of Delver Compressed (sprite)
        graphics, images in the proprietary format used by the Delver Engine.
        You should probably not instantiate this class directly, but instead
@@ -65,13 +65,13 @@ class DelvImage(object):
            for this type, or an random-access indexable item such as a list,
            string or array, which will be assumed to be compressed data, 
            or a delv Resource object (also assumed to be compressed data.)"""
-        if isinstance(src, archive.Resource):
-            self.src = bytearray(src.get_data())
-        elif hasattr(src, "__getitem__"):
-            self.src = bytearray(src)
-        else:
-            self.src = None
-        
+        #if isinstance(src, archive.Resource):
+        #    self.src = bytearray(src.get_data())
+        #elif hasattr(src, "__getitem__"):
+        #    self.src = bytearray(src)
+        #else:
+        #    self.src = None
+        store.Store.__init__(self,src)
         
         if self.has_header and self.src:
             header = self.src[0:4]
@@ -115,7 +115,7 @@ class DelvImage(object):
             self.logical_height = self.height
         self.cursor = 0
         self.image = bytearray(self.logical_width * self.logical_height)
-        if src: self.decompress(self.src, data_cursor)
+        if src: self.decompress(self.src.readb(), data_cursor)
         self.cached_visual = None
     def decompress(self, data, cursor):
         """Decompress the indexable-item data provided into this image.
@@ -128,7 +128,7 @@ class DelvImage(object):
                 index =-(ncbits_of(operation, (3,8),  (7,1)) + 1)
                 length =   bits_of(operation,  3, 13) + 3
                 literals = bits_of(operation,  2, 11)
-                self.data(data[cursor:cursor+literals]); cursor += literals
+                self.cdata(data[cursor:cursor+literals]); cursor += literals
                 self.copy(length,index)
             elif opcode < 0xC0:
                 # long copy operation 0x80-0xBF
@@ -136,13 +136,13 @@ class DelvImage(object):
                 index =-(ncbits_of(operation, (6,16), (3,8), (6,2)) + 1)
                 length =   bits_of(operation,  5,11) + 3
                 literals = bits_of(operation,  2,22)
-                self.data(data[cursor:cursor+literals]); cursor += literals
+                self.cdata(data[cursor:cursor+literals]); cursor += literals
                 self.copy(length,index)
             elif opcode < 0xD0:
                 # pixel data 0xC0-0xCF
                 operation = data[cursor:cursor+1]; cursor += 1
                 size =    (bits_of(operation,  4,4) + 1) * 4
-                self.data(data[cursor:cursor+size]); cursor += size
+                self.cdata(data[cursor:cursor+size]); cursor += size
             elif opcode < 0xE0:
                 # Short data
                 # They do not seem to have any visual effect.
@@ -152,7 +152,7 @@ class DelvImage(object):
                 # literals, but only D2 is seen.
                 operation = data[cursor:cursor+1]; cursor += 1
                 literals =  bits_of(operation,  4,4)
-                self.data(data[cursor:cursor+literals]); cursor += literals
+                self.cdata(data[cursor:cursor+literals]); cursor += literals
                 #print "Unknwn opcode %02X lit=%d c=%X"%(operation[0],literals,
                 #    cursor)
             elif opcode < 0xF0:
@@ -328,7 +328,7 @@ class DelvImage(object):
         for n in xrange(length):
             self.image[self.cursor] = self.image[abs_origin + n%copy_width]
             self.cursor += 1
-    def data(self, pixels):
+    def cdata(self, pixels):
         self.image[self.cursor:self.cursor+len(pixels)] = pixels
         self.cursor += len(pixels)
     def put_pixel(self, color):
@@ -481,7 +481,7 @@ class SkillIcon(DelvImage):
     #    self.data = data
     #    if not self.image: self.image = bytearray(32*16)
     def decompress(self, src, *argv):
-        self.image = src
+        self.image = src.readb()
         self.data = None
     def compress(self, *argv):
         self.data = self.image

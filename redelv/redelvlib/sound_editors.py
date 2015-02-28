@@ -99,8 +99,7 @@ class SoundEditor(editors.Editor):
             
         self.sound.set_samples(newsamples)
         self.update()
-        self.redelv.unsaved = True
-        self.unsaved = True
+        self.set_unsaved()
     def file_export(self,*argv):
         path = self.ask_save_path(default = "Asnd%04X.wav"%self.res.resid)
         if not path: return
@@ -121,8 +120,7 @@ class SoundEditor(editors.Editor):
         wavout.close()
     def file_save(self,*argv):
         self.res.set_data(self.sound.get_data())
-        self.redelv.unsaved = True
-        self.unsaved = False
+        self.set_saved()
     def play_sound(self, *argv):
         self.temp = tempfile.NamedTemporaryFile('wb')
         self.wave_out(self.temp)
@@ -139,4 +137,4 @@ class SoundEditor(editors.Editor):
         self.set_title("Sound Editor - %04X"%self.res.resid)
         self.sound = delv.sound.Asnd(self.rfile)
         self.update()
-        self.unsaved = False
+        self.set_saved()

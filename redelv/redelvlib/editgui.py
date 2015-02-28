@@ -208,11 +208,12 @@ class FileMetadata(Receiver):
         self.signal_filechange(None)
     def edit_scenario_title(self,w,data=None):
         newtitle = self.scenario_title.get_text()
-        self.redelv.unsaved = newtitle !=  self.redelv.archive.scenario_title
+        self.redelv.set_savedstate(
+             newtitle !=  self.redelv.archive.scenario_title)
         self.redelv.archive.scenario_title = newtitle
     def edit_player_name(self, *argv):
         newname = self.player_name.get_text()
-        self.redelv.unsaved = newname != self.redelv.archive.player_name
+        self.redelv.set_savedstate(newname != self.redelv.archive.player_name)
         self.redelv.archive.player_name = newname
 
     def signal_filechange(self, d=None):

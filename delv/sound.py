@@ -43,6 +43,7 @@ class Asnd(Sound):
         self.rate = 22050
         self.duration =0 
         self.data = None
+        store.Store.__init__(self, src)
         self.set_source(src)
         if self.src: self.load_from_bfile()
         

@@ -74,7 +74,7 @@ class GraphicsEditor(editors.Editor):
         newstate = self.toggle_palette.get_active()
         print "Palette animation:",newstate
         if newstate:
-            if self.unsaved:
+            if self.is_unsaved():
                 self.error_message("Save your changes, or revert them, first.")
                 self.toggle_palette.set_active(False)
                 return
@@ -128,8 +128,7 @@ class GraphicsEditor(editors.Editor):
                 pixels+=chr(delv.colormap.colormatch_rgb24(img.get_pixel(x,y)))
         self.image.set_image(pixels)
         self.res.set_data(self.image.get_data())
-        self.unsaved = False
-        self.redelv.unsaved = True
+        self.set_saved()
         self.load_image()
     def get_pixbuf_from_pixmap(self):
         pbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, 
@@ -151,9 +150,9 @@ class GraphicsEditor(editors.Editor):
         gc = self.pixmap.new_gc()
         self.pixmap.draw_pixbuf(gc, pixbuf, 0,0,0,0,
             pixbuf.get_width(), pixbuf.get_height())
-        self.unsaved = True 
+        self.set_unsaved()
         self.display.set_from_pixmap(self.pixmap,None)
-        self.redelv.unsaved = True
+        self.redelv.set_unsaved()
     def file_export(self,*args):
         path = self.ask_save_path(default = "RGB%04X.png"%self.res.resid)
         if not path: return
@@ -185,9 +184,8 @@ class GraphicsEditor(editors.Editor):
         gc = self.pixmap.new_gc()
         self.pixmap.draw_pixbuf(gc, pixbuf, 0,0,0,0,
             pixbuf.get_width(), pixbuf.get_height())
-        self.unsaved = True 
+        self.set_unsaved()
         self.display.set_from_pixmap(self.pixmap,None)
-        self.redelv.unsaved = True
         
     def edit_cut(self, *args):
         self.edit_copy()
@@ -197,7 +195,7 @@ class GraphicsEditor(editors.Editor):
         gc.set_foreground(gtk.gdk.Color(pixel=0x00))
         self.pixmap.draw_rectangle(gc, True,0,0,
             self.image.height,self.image.width)
-        self.unsaved = True
+        self.set_unsaved()
         self.display.set_from_pixmap(self.pixmap,None)
  
 class TileSheetEditor(GraphicsEditor):

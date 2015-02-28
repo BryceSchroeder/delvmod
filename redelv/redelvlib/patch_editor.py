@@ -55,7 +55,7 @@ class PatchEditor(editors.Editor):
         pbox.pack_start(sw, True,True,5)
         self.add(pbox)
     def file_import(self,*argv):
-        if self.unsaved and self.warn_unsaved_changes(): return
+        if self.is_unsaved() and self.warn_unsaved_changes(): return
         path = self.ask_open_path()
         if not path: return
         try:
@@ -66,9 +66,9 @@ class PatchEditor(editors.Editor):
             self.error_message("Couldn't read from '%s': %s"%(path,repr(e)))
         self.patch_info = patch_info
         self.textbox.get_buffer().set_text(patch_info)
-        self.unsaved = True
+        self.set_unsaved()
     def changed(self,*argv):
-        self.unsaved = True
+        self.set_unsaved()
         # serious lack of convenience methods here:
         self.patch_info = self.textbox.get_buffer().get_text(
             *self.textbox.get_buffer().get_bounds())
@@ -88,8 +88,7 @@ class PatchEditor(editors.Editor):
         self.rfile.write("MAGPY")
         self.rfile.write(self.patch_info)
         self.rfile.truncate()
-        self.redelv.unsaved = True
-        self.unsaved = False
+        self.set_saved()
             
     def editor_setup(self):
         self.load()
@@ -103,4 +102,4 @@ class PatchEditor(editors.Editor):
             self.patch_format = "Magpie [DelvEd]"
         self.textbox.get_buffer().set_text(self.patch_info)
         self.patch_format_box.set_text(self.patch_format)
-        self.redelv.unsaved = False
+        self.set_saved()

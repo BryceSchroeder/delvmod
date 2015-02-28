@@ -104,7 +104,7 @@ class TileNameListEditor(editors.Editor):
         self.tree_data.set_value(itr, 4, ival)
 
         self.tree_data.set_sort_column_id(4, gtk.SORT_ASCENDING)
-        self.unsaved = True
+        self.set_unsaved()
     def editor_callback_namecode(self, renderer, path, new_text):
         itr = self.tree_data.get_iter(path)
         self.tree_data.set_value(itr, 1, new_text)
@@ -115,7 +115,7 @@ class TileNameListEditor(editors.Editor):
         else:
             self.tree_data.set_value(itr, 3, '')
         
-        self.unsaved = True
+        self.set_unsaved()
     def load(self, *argv):
         self.tilenames = delv.store.TileNameList(self.res)
         for cutoff, name in self.tilenames.items():
@@ -141,7 +141,7 @@ class TileNameListEditor(editors.Editor):
                 "0x%04X"%cutoff, name, self.tilenames.namecode(name,False),
                 self.tilenames.namecode(name,True) if '\\' in name else '', 
                 cutoff])
-        self.unsaved = True
+        self.set_unsaved()
 
     def file_export(self, *argv):
         path = self.ask_save_path(default = "Data%04X.csv"%self.res.resid) 
@@ -166,8 +166,8 @@ class TileNameListEditor(editors.Editor):
                                   self.tree_data.get_value(itr, 1))
             itr = self.tree_data.iter_next(itr)
         self.res.set_data(self.tilenames.get_data())
-        self.unsaved = False
-        self.redelv.unsaved = True
+        self.set_saved()
+        self.redelv.set_unsaved()
     def edit_cut(self, *argv):
         pass
     def edit_copy(self, *argv):
@@ -177,12 +177,12 @@ class TileNameListEditor(editors.Editor):
     def edit_clear(self, *argv):
         self.tree_data = gtk.ListStore(str,str,str,str,int)
         self.data_view.set_model(self.tree_data)  
-        self.unsaved = True
+        self.set_unsaved()
     def edit_delete(self, *argv):
         tm,row = self.data_view.get_selection().get_selected_rows()
         row = row[-1] if row else '0'
         tm.remove(tm.get_iter(row))
-        self.unsaved = True
+        self.set_unsaved()
     def edit_insert(self, *argv):
         tm,row = self.data_view.get_selection().get_selected_rows()
         row = row[-1] if row else '0'
@@ -190,4 +190,4 @@ class TileNameListEditor(editors.Editor):
         itr = tm.get_iter(row)
         nidx = tm.get_value(itr,4)+1
         tm.insert_after(itr, ["0x%04X"%nidx, "Nothing", "Nothing","",nidx])
-        self.unsaved = True
+        self.set_unsaved()

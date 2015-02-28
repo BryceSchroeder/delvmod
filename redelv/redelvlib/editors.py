@@ -24,6 +24,18 @@ you need to underlay a scenario before opening resources that use library
 facilities (e.g. refer to props or tiles.) Exception was: %s"""
 class Editor(gtk.Window):
     name = "Unspecified Editor"
+    def set_saved(self):
+        if self._unsaved: self.set_title(self.get_title()[10:])
+        self._unsaved = False
+    def set_savedstate(self,v):
+        if v: self.set_saved()
+        else: self.set_unsaved()
+    def set_unsaved(self):
+        if not self._unsaved: self.set_title('[unsaved] '+self.get_title())
+        self._unsaved = True
+        self.redelv.set_unsaved()
+    def is_unsaved(self):
+        return self._unsaved
     def __del__(self):
         self.redelv.unregister_editor(self)
     def __init__(self, redelv, resource, *argv, **argk):
@@ -36,7 +48,7 @@ class Editor(gtk.Window):
             self.mated_editors = []
             self.set_title(self.name)
             self.gui_setup()
-            self.unsaved = False
+            self._unsaved = False
             self.connect("delete_event", self.delete_event)
             self.set_icon(
                     gtk.gdk.pixbuf_new_from_file(images.icon_path))
@@ -46,7 +58,7 @@ class Editor(gtk.Window):
             sys.exit(-1)
         self.redelv.register_editor(self)
     def delete_event(self, w=None, d=None):
-        if self.unsaved: return self.ask_unsaved()
+        if self.is_unsaved(): return self.ask_unsaved()
         self.cleanup()
         return False
     def cleanup(self):
@@ -66,7 +78,7 @@ class Editor(gtk.Window):
     def editor_setup(self):
         print "The unimplemented editor is running, which is probably bad..."
     def ask_open_path(self,msg="Select a file..."):
-        if self.unsaved and self.warn_unsaved_changes(): return
+        if self.is_unsaved() and self.warn_unsaved_changes(): return
         chooser = gtk.FileChooserDialog(title=msg,
                   action=gtk.FILE_CHOOSER_ACTION_OPEN,
                   buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,

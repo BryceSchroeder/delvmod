@@ -69,7 +69,7 @@ class ReDelv(object):
         #gobject.signal_new("filechange", editgui.Receiver, 
         #    gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
         # Windows and globals
-        self.unsaved = False
+        self._unsaved = False
         self.opened_file = None
         self.exported_directory = None
         self.current_resource = None
@@ -267,12 +267,24 @@ class ReDelv(object):
         #for recp in self.subindexchange: recp.signal_subindexchange()
         #for recp in self.resourcechange: recp.signal_resourcechange()
         return None
+    def is_unsaved(self):
+        return self._unsaved
+    def set_savedstate(self, v):
+        if v: self.set_saved()
+        else: self.set_unsaved()
+    def set_saved(self):
+        if self._unsaved: self.window.set_title(self.window.get_title()[10:])
+        self._unsaved = False
+    def set_unsaved(self):
+        if not self._unsaved: 
+            self.window.set_title('[unsaved] '+self.window.get_title())
+        self._unsaved = True
     def menu_underlay(self, *argv):
         path = self.ask_open_path("Select a scenario to underlay...")
         if not path: return
         self.underlay_archive(delv.archive.Scenario(path))
     def ask_open_path(self,msg="Select a file..."):
-        if self.unsaved and self.warn_unsaved_changes(): return
+        if self.is_unsaved() and self.warn_unsaved_changes(): return
         chooser = gtk.FileChooserDialog(title=msg,
                   action=gtk.FILE_CHOOSER_ACTION_OPEN,
                   buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,
@@ -284,7 +296,7 @@ class ReDelv(object):
         chooser.destroy()
         return rv
     def menu_open(self, widget, data=None):
-        if self.unsaved and self.warn_unsaved_changes(): return
+        if self.is_unsaved() and self.warn_unsaved_changes(): return
         chooser = gtk.FileChooserDialog(title="Select a Delver Archive...",
                   action=gtk.FILE_CHOOSER_ACTION_OPEN,
                   buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,
@@ -326,7 +338,7 @@ class ReDelv(object):
             of = open(self.opened_file, 'wb')
             of.write(buf)
             of.close()
-            self.unsaved=False
+            self.set_saved()
         except Exception,e:
             self.error_message("Unable to write '%s': %s"%(
                 os.path.basename(self.opened_file), repr(e)))
@@ -344,7 +356,7 @@ class ReDelv(object):
             of = open(self.opened_file, 'wb')
             of.write(buf)
             of.close()
-            self.unsaved = False
+            self.set_saved()
             print "Saved."
         except Exception,e:
             self.error_message("Unable to write '%s': %s"%(
@@ -360,7 +372,7 @@ class ReDelv(object):
         try:
             # The string is a buffer so we can overwrite in place.
             self.archive.to_path(self.exported_directory)
-            self.unsaved = False
+            self.set_saved()
         except Exception,e:
             self.error_message("Unable to export to '%s': %s"%(
                 self.exported_directory, repr(e)))
@@ -371,19 +383,19 @@ class ReDelv(object):
         try:
             # The string is a buffer so we can overwrite in place.
             self.archive.to_path(self.exported_directory)
-            self.unsaved = False
+            self.set_saved()
         except Exception,e:
             self.error_message("Unable to export to '%s': %s"%(
                 self.exported_directory, repr(e)))
             return
     def menu_import(self, widget, data=None):
-        if self.unsaved and self.warn_unsaved_changes(): return
+        if self.is_unsaved() and self.warn_unsaved_changes(): return
         self.exported_directory = self.ask_dir_path(gtk.STOCK_OPEN)
         if not self.exported_directory: return
         try:
             # The string is a buffer so we can overwrite in place.
             self.open_file(self.exported_directory)
-            self.unsaved = False
+            self.set_saved()
         except Exception,e:
             self.error_message("Unable to export to '%s': %s"%(
                 self.exported_directory, repr(e)))
@@ -491,7 +503,7 @@ class ReDelv(object):
             self.error_message("That archive contains no patch resource.")
             return
         patch.patch(self.archive)
-        self.unsaved = True
+        self.set_unsaved()
         self.refresh_tree()
 
         delv.archive.Patch(patch_path)
@@ -552,7 +564,7 @@ class ReDelv(object):
     def destroy(self, widget, data=None):
         gtk.main_quit()
     def delete_event(self, widget, event, data=None):
-        if not self.unsaved: return False
+        if not self.is_unsaved(): return False
         return self.warn_unsaved_changes()
 
      # helpers
