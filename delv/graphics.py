@@ -74,8 +74,8 @@ class DelvImage(store.Store):
         store.Store.__init__(self,src)
         
         if self.has_header and self.src:
-            header = self.src[0:4]
-            self.src = self.src[4:]
+            header = self.src.readb(4)
+            #self.src = self.src[4:]
             data_cursor = 0
             self.width = self.logical_width = bits_of(header, 8+6, 0) << 2
             self.flags = bits_of(header, 2,  14)
@@ -481,7 +481,7 @@ class SkillIcon(DelvImage):
     #    self.data = data
     #    if not self.image: self.image = bytearray(32*16)
     def decompress(self, src, *argv):
-        self.image = src.readb()
+        self.image = src
         self.data = None
     def compress(self, *argv):
         self.data = self.image
