@@ -345,6 +345,7 @@ class ReDelv(object):
             of.write(buf)
             of.close()
             self.unsaved = False
+            print "Saved."
         except Exception,e:
             self.error_message("Unable to write '%s': %s"%(
                 os.path.basename(self.opened_file), repr(e)))
@@ -632,7 +633,7 @@ class ReDelv(object):
     def get_library(self):
         try:
             if not self.library:
-                self.library=delv.library.Library(self.archive,self.underlay) 
+                self.library=delv.library.Library(self.underlay,self.archive) 
         except Exception,e:
             self.error_message(MSG_NO_UNDERLAY%repr(e))
         return self.library

@@ -374,6 +374,7 @@ class Archive(object):
     def to_file(self, dest):
         """Write a Delver archive to the destination file-like
            object (must be open for writing, obviously)"""
+        print "Writing out to", repr(dest)
         dest = util.BinaryHandler(dest)
         self.save_header(dest)
         # Skip to just past the spot where we'll put the master index later

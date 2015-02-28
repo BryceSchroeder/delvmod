@@ -29,23 +29,49 @@ import delv.util
 import store
 import array
 
+def textual_location(flags, raw_location):
+    loc = raw_location>>12,raw_location&0x000FFF
+    container = (raw_location&0x00FFFF) - 0x100
+    if flags == 0xFF:
+        return "0x%06X Deleted"%(raw_location)
+    if flags & 0x08:
+        return "0x%06X (@%d)"%(raw_location,container)
+    else:
+        return "0x%06X (%d,%d)"%((raw_location,)+loc)
+
+def proptypename_with_flags(flags, proptype, aspect, library):
+    if flags == 0x42:
+        return "EGG"
+    elif flags == 0x44:
+        return "ROOF"
+    elif flags&0xF0:
+        return "%s?"%library.get_prop(proptype).get_name(aspect)
+    else:
+        return library.get_prop(proptype).get_name(aspect)
+
+
 class PropListEntry(object):
     def __init__(self, flags, loc, aspect, proptype, d3, propref, storeref, u,
                  index=None):
         self.index=index
-        self.raw_location = ((loc[0])<<12) | loc[1]
-        self.container = (self.raw_location&0x00FFFF) - 0x100
-        self.flags = flags;self.loc=loc;self.aspect=aspect&0x1F
+        self.set_location(loc)        
+        self.flags = flags;self.aspect=aspect&0x1F
         self.rotated = aspect&0xE0
         self.proptype=proptype;self.d3=d3;self.propref=propref
         self.storeref=storeref;self.u=u
-    def textual_location(self):
-        if self.flags == 0xFF:
-            return "0x%06X Deleted"%(self.raw_location)
-        if self.flags & 0x08:
-            return "0x%06X (@%d)"%(self.raw_location,self.container)
+    def set_location(self, loc):
+        if isinstance(loc, tuple):
+            self.loc = loc
+            self.raw_location = ((loc[0])<<12) | loc[1]
+            self.container = (self.raw_location&0x00FFFF) - 0x100
         else:
-            return "0x%06X (%d,%d)"%((self.raw_location,)+self.loc)
+            self.raw_location = loc
+            self.container = (self.raw_location&0x00FFFF) - 0x100
+            self.loc = self.raw_location>>12,self.raw_location&0x000FFF
+    def set_flags(self, flags):
+        self.flags = flags
+    def textual_location(self):
+        return textual_location(self.flags,self.raw_location)
     def inside_something(self):
         return self.flags & 0x08
     def show_in_map(self):
@@ -104,7 +130,26 @@ class PropList(store.Store):
     def empty(self):
         self.props = []
         self.propsat = {}
+    def append(self, prop):
+        self.props.append(prop)
+        prop.index = len(self.props)-1
+        if not self.propsat.has_key(prop.loc): 
+            self.propsat[prop.loc] = []
+        self.propsat[prop.loc].append(prop)
+    def write_to_bfile(self, dest=None):
+        if dest is None: dest = self.src
+        dest.seek(0)
+        for prop in self.props:
+            dest.write_uint8(prop.flags)
+            dest.write_uint24(prop.raw_location)
+            dest.write_uint6_uint10(prop.rotated|prop.aspect,prop.proptype)
+            dest.write_uint16(prop.get_d3())
+            dest.write_uint32(prop.propref)
+            dest.write_uint16(prop.storeref)
+            dest.write_uint16(prop.u)
+        dest.truncate()
     def load_from_bfile(self):
+        self.empty()
         index = 0
         while not self.src.eof():
             flags=self.src.read_uint8()

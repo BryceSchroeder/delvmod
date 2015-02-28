@@ -40,17 +40,19 @@ class PropListEditor(editors.Editor):
         self.set_default_size(*self.default_size)
 
         menu_items = (
-            ("/File/Save Resource", "<control>S", None, 0, None),
+            ("/File/Save Resource", "<control>S", self.file_save, 0, None),
             ("/File/Revert",        None,    self.load, 0, None),
-            ("/File/Export CSV",  None,    None, 0, None),
-            ("/File/Import CSV",  None,    None, 0, None),
+            #("/File/Export CSV",  None,    self.export_csv, 0, None),
+            #("/File/Import CSV",  None,    self.import_csv, 0, None),
             ("/Edit/Cut",           "<control>X", None, 0, None),
             ("/Edit/Copy",          "<control>C", None, 0, None),
             ("/Edit/Paste",         "<control>V", None, 0, None),
             ("/Edit/Delete",          None,        None, 0, None),
+            ("/Edit/Insert Entry",  "<control>N", self.edit_insert,0,None),
             ("/Map/Open Map",        "<control>M",    self.open_map, 0, None),
             ("/Map/Send Selection to Map",  "S", self.send_selection, 0, None),
-            ("/Select/Container Contents", "<control>N",None,0,None),
+            ("/Map/Reload Map",  "R", self.reload_map, 0, None),
+            ("/Select/Container Contents", "<control>O",None,0,None),
             ("/Select/Others in Cell","<control>T",None,0,None),
             ("/Select/Parent","<control>P",None,0,None),
             ("/Select/Scroll to Selected","<control>F",None,0,None),
@@ -81,7 +83,7 @@ class PropListEditor(editors.Editor):
         dc.set_title("Flags")
         c = gtk.CellRendererText() 
         c.set_property('editable',True)
-        #c.connect('edited', self.editor_callback_namecode)
+        c.connect('edited', self.editor_callback_flags)
         dc.pack_start(c,True)
         dc.add_attribute(c,"text",1)
         self.data_view.append_column(dc)
@@ -89,7 +91,7 @@ class PropListEditor(editors.Editor):
         dc = gtk.TreeViewColumn()
         dc.set_title("Free")
         c = gtk.CellRendererToggle() 
-        #c.connect('edited', self.editor_callback_namecode)
+        #c.connect('toggled', self.editor_callback_free)
         dc.pack_start(c,True)
         dc.add_attribute(c,"active",12)
         self.data_view.append_column(dc)
@@ -98,7 +100,7 @@ class PropListEditor(editors.Editor):
         dc.set_title("Prop Type")
         c = gtk.CellRendererText() 
         c.set_property('editable',True)
-        #c.connect('edited', self.editor_callback_namecode)
+        c.connect('edited', self.editor_callback_proptype)
         dc.pack_start(c,True)
         dc.add_attribute(c,"text",2)
         self.data_view.append_column(dc)
@@ -107,7 +109,7 @@ class PropListEditor(editors.Editor):
         dc.set_title("Location")
         c = gtk.CellRendererText() 
         c.set_property('editable',True)
-        #c.connect('edited', self.editor_callback_namecode)
+        c.connect('edited', self.editor_callback_location)
         dc.pack_start(c,True)
         dc.add_attribute(c,"text",3)
         self.data_view.append_column(dc)
@@ -115,7 +117,8 @@ class PropListEditor(editors.Editor):
         dc = gtk.TreeViewColumn()
         dc.set_title("Rotate?")
         c = gtk.CellRendererToggle() 
-        #c.connect('toggled', self.editor_callback_namecode)
+        #c.set_activatable(True)
+        #c.connect('toggled', self.editor_callback_rotate)
         dc.pack_start(c,True)
         dc.add_attribute(c,"active",4)
         self.data_view.append_column(dc)
@@ -124,7 +127,7 @@ class PropListEditor(editors.Editor):
         dc.set_title("Aspect")
         c = gtk.CellRendererText() 
         c.set_property('editable',True)
-        #c.connect('edited', self.editor_callback_namecode)
+        c.connect('edited', self.editor_callback_aspect)
         dc.pack_start(c,True)
         dc.add_attribute(c,"text",5)
         self.data_view.append_column(dc)
@@ -133,7 +136,7 @@ class PropListEditor(editors.Editor):
         dc.set_title("D1")
         c = gtk.CellRendererText() 
         c.set_property('editable',True)
-        #c.connect('edited', self.editor_callback_namecode)
+        c.connect('edited', self.editor_callback_d1)
         dc.pack_start(c,True)
         dc.add_attribute(c,"text",6)
         self.data_view.append_column(dc)
@@ -142,7 +145,7 @@ class PropListEditor(editors.Editor):
         dc.set_title("D2")
         c = gtk.CellRendererText() 
         c.set_property('editable',True)
-        #c.connect('edited', self.editor_callback_namecode)
+        c.connect('edited', self.editor_callback_d2)
         dc.pack_start(c,True)
         dc.add_attribute(c,"text",7)
         self.data_view.append_column(dc)
@@ -151,7 +154,7 @@ class PropListEditor(editors.Editor):
         dc.set_title("D3")
         c = gtk.CellRendererText() 
         c.set_property('editable',True)
-        #c.connect('edited', self.editor_callback_namecode)
+        c.connect('edited', self.editor_callback_d3)
         dc.pack_start(c,True)
         dc.add_attribute(c,"text",8)
         self.data_view.append_column(dc)
@@ -160,7 +163,7 @@ class PropListEditor(editors.Editor):
         dc.set_title("Prop Reference")
         c = gtk.CellRendererText() 
         c.set_property('editable',True)
-        #c.connect('edited', self.editor_callback_namecode)
+        c.connect('edited', self.editor_callback_propref)
         dc.pack_start(c,True)
         dc.add_attribute(c,"text",9)
         self.data_view.append_column(dc)
@@ -169,20 +172,48 @@ class PropListEditor(editors.Editor):
         dc.set_title("Storage")
         c = gtk.CellRendererText() 
         c.set_property('editable',True)
-        #c.connect('edited', self.editor_callback_namecode)
+        c.connect('edited', self.editor_callback_storage)
         dc.pack_start(c,True)
         dc.add_attribute(c,"text",10)
+        self.data_view.append_column(dc)
+
+        dc = gtk.TreeViewColumn()
+        dc.set_title("Unknown")
+        c = gtk.CellRendererText() 
+        c.set_property('editable',False)
+        #c.connect('edited', self.editor_callback_u)
+        dc.pack_start(c,True)
+        dc.add_attribute(c,"text",13)
         self.data_view.append_column(dc)
 
 
         sw.add(self.data_view)
         pbox.pack_start(sw, True, True, 5)
         self.add(pbox)
-    def load(self):
+    def file_save(self, *argv):
+        self.props.empty()
+        itr = self.tree_data.get_iter_first()
+        while itr:
+            self.props.append(delv.level.PropListEntry(
+                flags=int(self.tree_data.get_value(itr, 1)[2:],16),
+                loc=int(self.tree_data.get_value(itr, 3)[2:8],16),
+                aspect=int(self.tree_data.get_value(itr, 5))|(
+                    0x20 if self.tree_data.get_value(itr, 4) else 0x00),
+                proptype=int(self.tree_data.get_value(itr, 2)[2:5],16),
+                d3=int(self.tree_data.get_value(itr, 8)[2:],16),
+                propref=int(self.tree_data.get_value(itr, 9)[2:],16),
+                storeref=int(self.tree_data.get_value(itr, 10)[2:],16),
+                u=int(self.tree_data.get_value(itr, 13)[2:],16),
+            ))
+            itr = self.tree_data.iter_next(itr)
+        self.res.set_data(self.props.get_data())
+        self.unsaved = False
+        self.redelv.unsaved = True
+    def load(self,*argv):
         self.lmap = self.library.get_object(self.res.resid - 0x0100)
-        self.props = delv.level.PropList(self.res)
+        self.props = self.canonical_object
         self.tree_data = gtk.ListStore(str,str,str,str,bool,str,
-            str,str,str,str,str,int,bool)
+            str,str,str,str,str,int,bool,str)
         self.data_view.set_model(self.tree_data)
         for idx,prop in enumerate(self.props):
             self.tree_data.append(["%d"%idx, "0x%02X"%prop.flags,
@@ -191,14 +222,162 @@ class PropListEditor(editors.Editor):
                 prop.rotated, "%d"%prop.aspect, "%d"%prop.get_d1(),
                 "%d"%prop.get_d2(), "0x%04X"%prop.get_d3(),
                 "0x%08X"%prop.propref, "0x%04X"%prop.storeref, idx,
-                prop.okay_to_take()
-                ])
+                prop.okay_to_take(),"0x%04X"%prop.u
+                ]) 
+    def editor_callback_location(self, renderer, path, new_text):
+        itr = self.tree_data.get_iter(path)
+        new_text = new_text.replace('(','').replace(')','').strip()
+        oldloc = int(self.tree_data.get_value(itr,3)[2:8],16)
+        try:
+            if '0x' in new_text or '$' in new_text:
+                rloc = int(new_text.split()[0].replace(
+                     '0x','').replace('$',''),16)
+            elif ',' in new_text:
+                x,y = new_text.split(',')
+                x,y = int(x),int(y)
+                rloc =(x<<12)|y 
+            elif '@' in new_text:
+                container = int(new_text[1:])
+                rloc = (oldloc&0xFF0000)|container
+            else:
+                rloc = int(new_text)
+        except: return
+        flags = int(self.tree_data.get_value(itr,1)[2:],16)
+        self.tree_data.set_value(itr, 3, 
+            delv.level.textual_location(flags, rloc))
+        self.unsaved = True
+    def editor_callback_flags(self, renderer, path, new_text):
+        try:
+            ival = int(new_text.replace('0x','').replace('$',''), 16)
+        except:
+            return
+        if ival < 0 or ival > 255: return
+        # This is just hideous... maybe not worth it to have save/revert
+        # as usual pygtk not making it any nicer either
+        itr = self.tree_data.get_iter(path)
+        loc = int(self.tree_data.get_value(itr,3)[2:8],16)
+        proptype = int(self.tree_data.get_value(itr,2)[2:5],16)
+        aspect = int(self.tree_data.get_value(itr,5))
+        self.tree_data.set_value(itr, 1, "0x%02X"%ival)
+        self.tree_data.set_value(itr, 12, ival&0x01)
+        self.tree_data.set_value(itr, 3, 
+            delv.level.textual_location(ival, loc))
+        self.tree_data.set_value(itr, 2,
+            "0x%03X (%s)"%(proptype, delv.level.proptypename_with_flags(
+                 ival, proptype, aspect, self.redelv.get_library())))
+
+        self.unsaved = True
+    #def editor_callback_free(self, renderer, path, new_text):
+    #    itr = self.tree_data.get_iter(path)flags = 
+    def editor_callback_aspect(self, renderer, path, new_text):
+        try:
+            aspect = int(new_text.strip())
+        except: return
+        if aspect < 0 or aspect > 31: return
+        itr = self.tree_data.get_iter(path)
+        proptype = int(self.tree_data.get_value(itr,2)[2:5],16)
+        flags = int(self.tree_data.get_value(itr,1)[2:],16)
+        self.tree_data.set_value(itr, 2,
+            "0x%03X (%s)"%(proptype, delv.level.proptypename_with_flags(
+                 flags, proptype, aspect, self.redelv.get_library())))
+        self.tree_data.set_value(itr, 5,
+                 "%d"%aspect)
+        self.unsaved = True
+    def editor_callback_d1(self ,  renderer, path, new_text):
+        try:
+            if '0x' in new_text or '$' in new_text:
+                d1 = int(new_text.strip().split()[0].replace(
+                    '0x','').replace('$',''), 16)
+            else:
+                d1 = int(new_text.strip().split()[0])
+        except Exception,e: 
+            print repr(e)
+            return
+        if d1 < 0 or d1 > 255: return
+        itr = self.tree_data.get_iter(path)
+        d3 =  int(self.tree_data.get_value(itr, 8)[2:],16)  
+        d3 &= 0x00FF
+        d3 |= (d1<<8)
+        self.tree_data.set_value(itr, 6, "%d"%d1)
+        self.tree_data.set_value(itr, 8, "0x%04X"%d3)
+    def editor_callback_d2(self ,  renderer, path, new_text):
+        try:
+            if '0x' in new_text or '$' in new_text:
+                d2 = int(new_text.strip().split()[0].replace(
+                    '0x','').replace('$',''), 16)
+            else:
+                d2 = int(new_text.strip().split()[0])
+        except Exception,e: 
+            print repr(e)
+            return
+        if d2 < 0 or d2 > 255: return
+        itr = self.tree_data.get_iter(path)
+        d3 =  int(self.tree_data.get_value(itr, 8)[2:],16)  
+        d3 &= 0xFF00
+        d3 |= d2
+        self.tree_data.set_value(itr, 7, "%d"%d2)
+        self.tree_data.set_value(itr, 8, "0x%04X"%d3)
+    def editor_callback_d3(self ,  renderer, path, new_text):
+        try:
+            if '0x' in new_text or '$' in new_text:
+                d3 = int(new_text.strip().split()[0].replace(
+                    '0x','').replace('$',''), 16)
+            else:
+                d3 = int(new_text.strip().split()[0])
+        except Exception,e: 
+            print repr(e)
+            return
+        if d3 < 0 or d3 > 0xFFFF: return
+        itr = self.tree_data.get_iter(path)
+        self.tree_data.set_value(itr, 6, "%d"%(d3>>8)     )   
+        self.tree_data.set_value(itr, 7, "%d"%(d3&0x00FF))
+        self.tree_data.set_value(itr, 8, "0x%04X"%d3)
+    def editor_callback_proptype(self,  renderer, path, new_text):
+        try:
+            proptype = int(new_text.split()[0].replace(
+                '0x','').replace('$',''), 16)
+        except: return
+        if proptype < 0 or proptype > 0x3FF: return
+
+        itr = self.tree_data.get_iter(path)
+        aspect = int(self.tree_data.get_value(itr,5))
+        flags = int(self.tree_data.get_value(itr,1)[2:],16)
+        self.tree_data.set_value(itr, 2,
+            "0x%03X (%s)"%(proptype, delv.level.proptypename_with_flags(
+                 flags, proptype, aspect, self.redelv.get_library())))
+        self.unsaved = True
+    def editor_callback_storage(self,  renderer, path, new_text):
+        try:
+            storeref = int(new_text.strip().split()[0].replace(
+                '0x','').replace('$',''), 16)
+        except: return
+        if storeref < 0 or storeref > 0xFFFF: return
+
+        itr = self.tree_data.get_iter(path)
+        self.tree_data.set_value(itr, 10,"0x%04X"%storeref)
+        self.unsaved = True
+    def editor_callback_propref(self,  renderer, path, new_text):
+        try:
+            propref = int(new_text.strip().split()[0].replace(
+                '0x','').replace('$',''), 16)
+        except: return
+        if storeref < 0 or storeref > 0xFFFFFFFF: return
+
+        itr = self.tree_data.get_iter(path)
+        self.tree_data.set_value(itr, 9,"0x%08X"%propref)
+        self.unsaved = True
 
     def editor_setup(self):
         self.set_title("Prop List Editor [%04X]"%self.res.resid)
         self.map_editor = None
         self.library = self.redelv.get_library()
         self.load()
+    def edit_insert(self, *argv):
+        idx = len(self.tree_data)
+        self.tree_data.append(["%d"%idx, "0xFF", "0x000", "0x000000",
+            False, "0", "0","0","0x0000", "0x00000000", "0x0000", idx, True,
+            "0x0000" 
+            ])
     def cleanup(self):
         if self.map_editor: self.map_editor.prop_editor = None
 
@@ -210,6 +389,9 @@ class PropListEditor(editors.Editor):
             self.map_editor = self.redelv.open_editor(self.res.resid-0x0100)
             self.map_editor.marry(self)
             self.map_editor.prop_editor = self
+    def reload_map(self, *argv):
+        if not self.map_editor: self.open_map()
+        self.map_editor.revert()
     def send_selection(self, *argv):
         if not self.map_editor: self.open_map()
         tm,paths = self.data_view.get_selection().get_selected_rows()
@@ -239,7 +421,7 @@ class MapEditor(editors.Editor):
         self.set_default_size(*self.default_size)
         menu_items = (
             ("/File/Save Resource", "<control>S", None, 0, None),
-            ("/File/Revert",        None,    self.load, 0, None),
+            ("/File/Revert",        None,    self.revert, 0, None),
             ("/File/Export Image",  None,    self.export_img, 0, None),
             ("/Edit/Cut",           "<control>X", None, 0, None),
             ("/Edit/Copy",          "<control>C", None, 0, None),
@@ -477,11 +659,15 @@ class MapEditor(editors.Editor):
                     offset=proptype.get_offset(p.aspect), as_prop=True,
                     rotated=p.rotated, pal=delv.colormap.selected_rgb24)
 
-
         self.display.set_from_pixmap(self.pixmap,None)
 
-    def load(self):
-        self.lmap = delv.level.Map(self.res)
+    def revert(self, *argv):
+        #if self.unsaved and not
+        self.load()
+        self.selection = None
+        self.draw_map()
+    def load(self, *argv):
+        self.lmap = self.canonical_object
         self.props = self.library.get_object(self.res.resid + 0x0100)
     def change_selection(self, ns):
         if self.selection == ns: return 

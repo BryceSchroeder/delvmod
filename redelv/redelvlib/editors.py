@@ -31,6 +31,8 @@ class Editor(gtk.Window):
         self.redelv = redelv
         try:
             self.res = resource
+            self.canonical_object = redelv.get_library().get_object(
+                self.res.resid)
             self.mated_editors = []
             self.set_title(self.name)
             self.gui_setup()

@@ -182,8 +182,8 @@ class BinaryHandler(object):
         self.write_struct(self.S_uint8, v, offset)
     def write_uint16(self,v,offset=None):
         self.write_struct(self.S_uint16, v, offset)
-    def write_uint6_uint10(self,v,offset=None):
-        self.write_uint16((v[0]<<10)|v[1],offset)
+    def write_uint6_uint10(self,v1,v2,offset=None):
+        self.write_uint16((v1<<10)|(v2&0x3FF),offset)
     def write_sint16(self,v,offset=None):
         self.write_struct(self.S_sint16, v, offset)
     def write_uint32(self,v,offset=None):
@@ -192,6 +192,11 @@ class BinaryHandler(object):
         self.write_struct(self.S_offlen, (offs,length), offset)
 
     def write_sint24(self,v,offset=None):
+        if offset is not None: self.seek(offset)
+        self.write_uint8((v&0xFF0000)>>16)
+        return self.write_uint16((v&0x00FFFF))
+
+    def write_uint24(self,v,offset=None):
         if offset is not None: self.seek(offset)
         self.write_uint8((v&0xFF0000)>>16)
         return self.write_uint16((v&0x00FFFF))
@@ -246,9 +251,13 @@ class BinaryHandler(object):
     def read_sint16(self, offset=None):
         "Read 16-bit big endian signed integer."
         return self.read_struct(self.S_sint16, offset)[0]
+    def read_uint24(self, offset=None):
+        first_part  = self.read_uint8(offset)
+        return (first_part<<16) | self.read_uint16()
     def read_sint24(self, offset=None):
         "Return a signed 24-bit integer."
-        uvar = (self.read_uint8(offset)<<8) | self.read_uint16()
+        first_part  = self.read_uint8(offset)
+        uvar = (first_part<<16) | self.read_uint16()
         if uvar & 0x800000:
             uvar = ~uvar + 1
         return uvar

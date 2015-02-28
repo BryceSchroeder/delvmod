@@ -78,6 +78,7 @@ class TileAttributesList(Store):
         if dest is None: dest = self.src
         dest.seek(0)
         for attr in self.contents: dest.write_uint32(attr)
+        dest.truncate()
     def __getitem__(self, n):
         return self.contents[n]
     def __setitem__(self, n, value):
@@ -99,6 +100,7 @@ class ByteList(Store):
         if dest is None: dest = self.src
         dest.seek(0)
         dest.write(self.contents)
+        dest.truncate()
     def __getitem__(self, n):
         return self.contents[n]
     def __setitem__(self, n, value):
@@ -120,6 +122,7 @@ class PropTileList(Store):
         if dest is None: dest = self.src
         dest.seek(0)
         for attr in self.contents: dest.write_uint16(attr)
+        dest.truncate()
     def __getitem__(self, n):
         return self.contents[n]
     def __setitem__(self, n, value):
@@ -143,6 +146,7 @@ class TileFauxPropsList(Store):
         dest.seek(0)
         for ptype,aspect,rotate in self.contents: dest.write_uint16(
             ptype|(aspect<<10)|(rotate<<15))
+        dest.truncate()
     def __getitem__(self, n):
         return self.contents[n]
     def __setitem__(self, n, value):
@@ -169,6 +173,7 @@ class TileCompositionList(Store):
         if dest is None: dest = self.src
         dest.seek(0)
         for attr in self.contents: dest.write_uint32(attr)
+        dest.truncate()
     def __getitem__(self, n):
         return self.contents[n]
     def __setitem__(self, n, value):
@@ -208,6 +213,7 @@ class TileNameList(Store):
         for cutoff, name in zip(self.cutoffs,self.names):
             dest.write_uint16(cutoff)
             dest.write_cstring(name)
+        dest.truncate()
     def load_from_bfile(self):
         while not self.src.eof():
             value = self.src.read_uint16()
