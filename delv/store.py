@@ -39,6 +39,7 @@ import tile
 class Store(object):
     def __init__(self, src):
         self.data = None
+        self.checked_out = 0
         self.set_source(src)
     def set_source(self, src):
         self.src = None
@@ -51,8 +52,18 @@ class Store(object):
         elif src:
             self.src = util.BinaryHandler(src)
             self.res = None
+    def check_out(self):
+        """Inform the archive system that this object might be altered by the
+           user unpredictably."""
+        self.checked_out += 1
+    def return_to_library(self):
+        """Inform the archive that the object is no longer subject to 
+           alteration by the user."""
+        self.checked_out -= 1
+        assert self.checked_out >= 0
+        if not self.checked_out: self.data = None
     def get_data(self):
-        if not self.data:
+        if self.checked_out or not self.data:
             buf = StringIO.StringIO()
             bh = util.BinaryHandler(buf)
             self.write_to_bfile(bh)

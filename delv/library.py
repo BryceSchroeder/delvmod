@@ -60,9 +60,9 @@ class Library(object):
 
     def load_props(self):
         self.props = []
-        proptiles = self.get_object(0xF000)
-        xoffsets = self.get_object(0xF011)
-        yoffsets = self.get_object(0xF012)
+        proptiles = self.get_object(0xF000,rw=False)
+        xoffsets = self.get_object(0xF011,rw=False)
+        yoffsets = self.get_object(0xF012,rw=False)
         if not proptiles: raise util.LibraryIncomplete(util.DLI_MSG)
         for pid,tile in enumerate(proptiles):
             self.props.append(prop.Prop(pid, tile, zip(
@@ -71,11 +71,11 @@ class Library(object):
                        library=self))
 
     def load_tiles(self):
-        tilenames = self.get_object(0xF004)
-        tileattrs = self.get_object(0xF002)
-        tilecompositions = self.get_object(0xF013)
-        tilefauxprops = self.get_object(0xF010)
-        tilesheets = self.objects(hints.GRAPHICS_TILESHEET, True)
+        tilenames = self.get_object(0xF004,rw=False)
+        tileattrs = self.get_object(0xF002,rw=False)
+        tilecompositions = self.get_object(0xF013,rw=False)
+        tilefauxprops = self.get_object(0xF010,rw=False)
+        tilesheets = self.objects(hints.GRAPHICS_TILESHEET, True,rw=False)
         if not tilenames: raise util.DelverLibraryIncomplete(util.DLI_MSG)
         self.tiles = []
         tile_Nothing = tile.Tile(0,tilenames[0], tileattrs[0],
@@ -115,11 +115,13 @@ class Library(object):
     def _get_prop(self, ptype):
         return self.props[ptype]
 
-    def objects(self,si=None,dense=False):
+    def objects(self,si=None,dense=False,rw=True):
         if dense:
-            return [self.get_object((si,n)) for n in xrange(256)]
+            return [self.get_object((si,n),rw=rw
+                ) for n in xrange(256)]
         else:
-            return [self.get_object(resid) for resid in self.resource_ids(si)]
+            return [self.get_object(resid,rw=rw
+                ) for resid in self.resource_ids(si)]
     def resources(self,si=None):
         return [self.get_resource(resid) for resid in self.resource_ids(si)]
     def resource_ids(self, si=None):
@@ -133,7 +135,7 @@ class Library(object):
             r = archive.get(resid)
             if r: return r
         return None
-    def get_object(self, resid):
+    def get_object(self, resid, rw=True):
         """Get the appropriate kind of object for a specified resource."""
         r = self.get_resource(resid)
         if not r: return None
@@ -142,5 +144,9 @@ class Library(object):
         if not C: return None
         ob = C(r)
         self.cache[r] = ob
+        if rw: ob.check_out() 
+        # Tell it to regenerate its data every time it's saved,
         return ob
+    def return_object(self, res):
+        self.cache[res.resid].return_to_library()
     
