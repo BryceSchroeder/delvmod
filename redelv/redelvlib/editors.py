@@ -17,7 +17,11 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import gtk, images
+import gtk, images, delv.util
+import sys
+MSG_NO_UNDERLAY = """Couldn't create library; if you are editing a saved game, 
+you need to underlay a scenario before opening resources that use library
+facilities (e.g. refer to props or tiles.) Exception was: %s"""
 class Editor(gtk.Window):
     name = "Unspecified Editor"
     def __del__(self):
@@ -25,15 +29,19 @@ class Editor(gtk.Window):
     def __init__(self, redelv, resource, *argv, **argk):
         gtk.Window.__init__(self,gtk.WINDOW_TOPLEVEL, *argv,**argk)
         self.redelv = redelv
-        self.res = resource
-        self.mated_editors = []
-        self.set_title(self.name)
-        self.gui_setup()
-        self.unsaved = False
-        self.connect("delete_event", self.delete_event)
-        self.set_icon(
-                gtk.gdk.pixbuf_new_from_file(images.icon_path))
-        self.editor_setup()
+        try:
+            self.res = resource
+            self.mated_editors = []
+            self.set_title(self.name)
+            self.gui_setup()
+            self.unsaved = False
+            self.connect("delete_event", self.delete_event)
+            self.set_icon(
+                    gtk.gdk.pixbuf_new_from_file(images.icon_path))
+            self.editor_setup()
+        except delv.util.LibraryIncomplete,e:
+            self.redelv.error_message(MSG_NO_UNDERLAY%repr(e))
+            sys.exit(-1)
         self.redelv.register_editor(self)
     def delete_event(self, w=None, d=None):
         if self.unsaved: return self.ask_unsaved()

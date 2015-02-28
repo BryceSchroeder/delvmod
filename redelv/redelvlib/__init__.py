@@ -39,7 +39,8 @@ ABOUT_TEXT = """<span font_family="monospace">
 
 version = '0.1.21'
 PATCHINFO = """Created with redelv %s, based on the delv library."""%version
-
+MSG_NO_UNDERLAY = """Couldn't create library; if you are editing a saved game, 
+you need to underlay a scenario. Exception was: %s"""
 import delv
 import delv.archive, delv.library
 
@@ -55,6 +56,7 @@ class ReDelv(object):
         self.base_archive=None
         self.patch_base=None
         self.library = None
+        self.underlay = None
         self.patch_output_path=None
         # Signals 
         self.open_editors = {}
@@ -101,6 +103,7 @@ class ReDelv(object):
             ("/File/_Import",    None,          self.menu_import,0, None),
             ("/File/_Export",    "<control>E",  self.menu_export,0, None),
             ("/File/_Export _As",None,          self.menu_export_as,0,None),
+            ("/File/Underlay Scenario","<control>U",self.menu_underlay,0,None),
             ("/File/sep2",       None,          None,          0,"<Separator>"),
             ("/File/_Quit",      "<control>Q",  self.menu_quit ,0,  None),
  
@@ -223,12 +226,17 @@ class ReDelv(object):
 
         self.window.show_all()
         if len(sys.argv) > 1: self.open_file(sys.argv[1])
+        if len(sys.argv) > 2: self.underlay_archive(
+            delv.archive.Scenario(sys.argv[2]))
     def main(self):
         gtk.main()
     def refresh_tree(self): 
         "Change the tree to reflect current data."
         print "WARNING: TreeView may be out of date."
         return
+
+    def underlay_archive(self, archive):
+        self.underlay = archive
     # Callbacks
     def row_activated(self, w, path, *argv):
         self.cursor_changed(w)
@@ -247,17 +255,22 @@ class ReDelv(object):
             self.current_resource_id = 0
         else:
             self.current_resource_id = delv.archive.resid(si,rn)
-            self.current_resource = self.archive.get((si,rn))
+            self.current_resource = self.get_library().get_resource(
+                self.current_resource_id)
         self.current_subindex_id = si
 
         for recp in self.subindexchange: recp.signal_subindexchange()
         for recp in self.resourcechange: recp.signal_resourcechange()
-
+    
     def menu_new(self, widget, data=None):
         #for recp in self.filechange: recp.signal_filechange()
         #for recp in self.subindexchange: recp.signal_subindexchange()
         #for recp in self.resourcechange: recp.signal_resourcechange()
         return None
+    def menu_underlay(self, *argv):
+        path = self.ask_open_path("Select a scenario to underlay...")
+        if not path: return
+        self.underlay_archive(delv.archive.Scenario(path))
     def ask_open_path(self,msg="Select a file..."):
         if self.unsaved and self.warn_unsaved_changes(): return
         chooser = gtk.FileChooserDialog(title=msg,
@@ -489,7 +502,7 @@ class ReDelv(object):
             self.error_message("No resource is selected.")
     def open_editor(self, resid):
         ed = editgui.editor_for_resource(resid)(
-                self,self.archive.get(resid))
+                self,self.get_library().get_resource(resid))
         ed.show_all()
         return ed
     def menu_resource_editor(self, widget, data=None):
@@ -617,8 +630,11 @@ class ReDelv(object):
     def send_resourcechange(self):
         for recp in self.resourcechange: recp.signal_resourcechange()
     def get_library(self):
-        if not self.library:
-            self.library = delv.library.Library(self.archive) 
+        try:
+            if not self.library:
+                self.library=delv.library.Library(self.archive,self.underlay) 
+        except Exception,e:
+            self.error_message(MSG_NO_UNDERLAY%repr(e))
         return self.library
     def register_editor(self, editor):
         if not self.open_editors.has_key(editor.res.resid):

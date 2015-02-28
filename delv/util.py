@@ -287,3 +287,7 @@ class BinaryHandler(object):
         return str(buf)
 
 class UnimplementedFeature (Exception): pass
+
+
+DLI_MSG = """This archive must be underlayed with a Scenario."""
+class LibraryIncomplete(Exception): pass

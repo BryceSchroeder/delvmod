@@ -24,7 +24,7 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import archive,hints,tile,prop
+import archive,hints,tile,prop,util
 import array
 class Library(object):
     """This class is a wrapper around one or more Delver archives, and 
@@ -49,15 +49,21 @@ class Library(object):
            archives B and C both contain a resource 0xFFFF, and you ask for
            0xFFFF, you will get the one from archive C."""
         self.cache = {}
-        self.archives = archives[::-1]
-        self.load_tiles()
-        self.load_props()
+        self.archives = filter(None,archives[::-1])
+        self.load()
+    def load(self):
+        #self.load_tiles()
+        #self.load_props()
+        pass # lazy now
+
+        
 
     def load_props(self):
         self.props = []
         proptiles = self.get_object(0xF000)
         xoffsets = self.get_object(0xF011)
         yoffsets = self.get_object(0xF012)
+        if not proptiles: raise util.LibraryIncomplete(util.DLI_MSG)
         for pid,tile in enumerate(proptiles):
             self.props.append(prop.Prop(pid, tile, zip(
                        xoffsets[pid<<5:(pid<<5)+32],
@@ -70,6 +76,7 @@ class Library(object):
         tilecompositions = self.get_object(0xF013)
         tilefauxprops = self.get_object(0xF010)
         tilesheets = self.objects(hints.GRAPHICS_TILESHEET, True)
+        if not tilenames: raise util.DelverLibraryIncomplete(util.DLI_MSG)
         self.tiles = []
         tile_Nothing = tile.Tile(0,tilenames[0], tileattrs[0],
             tilefauxprops[0],
@@ -94,8 +101,18 @@ class Library(object):
                 
     def get_tile(self, tid):
         """Returns the specified Tile, or "Nothing" if there is none such."""
+        self.load_tiles()
+        self.get_tile = self._get_tile
+        return self.get_tile(tid)
+    def _get_tile(self, tid):
         return self.tiles[tid]
-    def get_prop(self, ptype):
+
+    def get_prop(self,ptype):
+        """Returns the specified proptype."""
+        self.load_props()
+        self.get_prop = self._get_prop
+        return self.get_prop(ptype)
+    def _get_prop(self, ptype):
         return self.props[ptype]
 
     def objects(self,si=None,dense=False):

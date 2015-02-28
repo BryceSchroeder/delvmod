@@ -40,6 +40,8 @@ class PropListEntry(object):
         self.proptype=proptype;self.d3=d3;self.propref=propref
         self.storeref=storeref;self.u=u
     def textual_location(self):
+        if self.flags == 0xFF:
+            return "0x%06X Deleted"%(self.raw_location)
         if self.flags & 0x08:
             return "0x%06X (@%d)"%(self.raw_location,self.container)
         else:
@@ -48,6 +50,7 @@ class PropListEntry(object):
         return self.flags & 0x08
     def show_in_map(self):
         # This is probably wrong - many details yet to be determined. FIXME
+        if self.flags == 0xFF: return False
         return not (self.flags & 0x48)
     def get_loc(self): # FIXME
         return self.loc[0],self.loc[1]
