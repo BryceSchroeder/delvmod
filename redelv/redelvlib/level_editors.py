@@ -31,12 +31,54 @@ import delv.colormap, delv.level
 import editors
 import cStringIO as StringIO
 import gtk
+import operator
+
+class SearchCriterion(object):
+    def __init__(self, mode, accessor):
+        # Yeah, this is kinda hokey, maybe it should use a parser?
+        # or have drop down menus to pick these
+        self.accessor = accessor
+        ops = [('>=', operator.ge), ('<=', operator.le),
+               ('>', operator.gt),  ('<', operator.lt),
+               ('!=',operator.ne),  ('&', operator.and_)]
+        self.op = operator.eq
+        self.mask = 0xFFFFFFFF
+        if '@' in mode: self.mask=0x0000FFFF
+        for tok,op in ops:
+            if tok in mode: 
+                 self.op = op
+                 mode = mode.replace(tok,'')
+                 break
+        
+        self.operand = self.parse_int(mode)
+    def parse_int(self,mode):
+        base = 10
+        mask = 0xFFFFFFFF
+        if '@' in mode:
+            mode = mode.replace('@','')
+        if '0x' in mode:
+            base = 16
+            mode = mode.replace('0x','')
+        if ',' in mode:
+            x,y = mode.split(',')
+            x,y = int(x,base), int(y,base)
+            return (x<<12)|y
+            #mask=0x000000FFFF
+            return int(mode,base)
+        else:
+            return int(mode,base)
+    def evaluate(self, thing):
+        value = self.accessor(thing)
+        if isinstance(value, str):
+            value=self.parse_int(value.strip().split()[0])
+        return self.op(value&self.mask, self.operand&self.mask)
 
 class PropListEditor(editors.Editor):
     name = "Prop List Editor [nothing opened]"
     default_size = 800,600
     def gui_setup(self):
         pbox = gtk.VBox(False,0)
+        self.search_criteria = {}
         self.set_default_size(*self.default_size)
 
         menu_items = (
@@ -189,6 +231,66 @@ class PropListEditor(editors.Editor):
 
         sw.add(self.data_view)
         pbox.pack_start(sw, True, True, 5)
+
+
+        hbox = gtk.HBox(False,0)
+        #hbox.pack_start(gtk.Label("Search:"))
+
+        hbox.pack_start(gtk.Label("Search by... Index:"))
+        self.search_index = gtk.Entry()
+        self.search_index.connect("changed", self.criterion_change,
+            (lambda i: self.tree_data.get_value(i, 11)))
+        hbox.pack_start(self.search_index)
+
+        hbox.pack_start(gtk.Label("Flags:"))
+        self.search_flags = gtk.Entry()
+        self.search_flags.connect("changed", self.criterion_change,
+            (lambda i: self.tree_data.get_value(i, 1)))
+        hbox.pack_start(self.search_flags)
+
+        hbox.pack_start(gtk.Label("PropType:"))
+        self.search_proptype = gtk.Entry()
+        self.search_proptype.connect("changed", self.criterion_change,
+            (lambda i: self.tree_data.get_value(i, 2)))
+        hbox.pack_start(self.search_proptype)
+
+        hbox.pack_start(gtk.Label("Location:"))
+        self.search_location = gtk.Entry()
+        self.search_location.connect("changed", self.criterion_change,
+            (lambda i: self.tree_data.get_value(i, 3)))
+        hbox.pack_start(self.search_location)
+
+
+        hbox.pack_start(gtk.Label("Aspect:"))
+        self.search_aspect = gtk.Entry()
+        self.search_aspect.connect("changed", self.criterion_change,
+            (lambda i: self.tree_data.get_value(i, 5)))
+        hbox.pack_start(self.search_aspect)
+
+        hbox.pack_start(gtk.Label("d1:"))
+        self.search_d1 = gtk.Entry()
+        self.search_d1.connect("changed", self.criterion_change,
+            (lambda i: self.tree_data.get_value(i, 6)))
+        hbox.pack_start(self.search_d1)
+
+        hbox.pack_start(gtk.Label("d2:"))
+        self.search_d2 = gtk.Entry()
+        self.search_d2.connect("changed", self.criterion_change,
+            (lambda i: self.tree_data.get_value(i, 7)))
+        hbox.pack_start(self.search_d2)
+
+        hbox.pack_start(gtk.Label("d3:"))
+        self.search_d3 = gtk.Entry()
+        self.search_d3.connect("changed", self.criterion_change,
+            (lambda i: self.tree_data.get_value(i, 8)))
+
+        hbox.pack_start(self.search_d3)
+
+        #self.searchbutton = gtk.Button("Search")
+        #hbox.pack_start(self.searchbutton)
+        self.showall = gtk.Button("Show All")
+        hbox.pack_start(self.showall)
+        pbox.pack_start(hbox, False, True, 0)
         self.add(pbox)
     def file_save(self, *argv):
         self.props.empty()
@@ -214,7 +316,9 @@ class PropListEditor(editors.Editor):
         self.props = self.canonical_object
         self.tree_data = gtk.ListStore(str,str,str,str,bool,str,
             str,str,str,str,str,int,bool,str)
-        self.data_view.set_model(self.tree_data)
+        self.tree_filter = self.tree_data.filter_new()
+        self.tree_filter.set_visible_func(self.search_filter)
+        self.data_view.set_model(self.tree_filter)
         for idx,prop in enumerate(self.props):
             self.tree_data.append(["%d"%idx, "0x%02X"%prop.flags,
                 "0x%03X (%s)"%(prop.proptype,prop.get_name(self.library)),
@@ -224,6 +328,20 @@ class PropListEditor(editors.Editor):
                 "0x%08X"%prop.propref, "0x%04X"%prop.storeref, idx,
                 prop.okay_to_take(),"0x%04X"%prop.u
                 ]) 
+    def criterion_change(self, entry, accessor):
+        new_text = entry.get_text()
+        if not new_text: 
+            del self.search_criteria[accessor]
+        else:
+            try:
+                self.search_criteria[accessor] = SearchCriterion(
+                    new_text, accessor)
+            except: pass
+        self.tree_filter.refilter()
+    def search_filter(self, model, itr, *argv):
+        for criterion in self.search_criteria.values():
+            if not criterion.evaluate(itr): return False
+        return True
     def editor_callback_location(self, renderer, path, new_text):
         itr = self.tree_data.get_iter(path)
         new_text = new_text.replace('(','').replace(')','').strip()
