@@ -153,6 +153,7 @@ class PropList(store.Store):
     def load_from_bfile(self):
         self.empty()
         index = 0
+        self.src.seek(0)
         while not self.src.eof():
             flags=self.src.read_uint8()
             loc= self.src.read_xy24()
@@ -195,6 +196,8 @@ class Map(store.Store):
         """Return base tile at this location."""
         return self.map_data[x+y*self.width]
     def load_from_bfile(self):
+        print "map loading"
+        self.src.seek(0)
         self.width = self.src.read_uint16()
         self.height = self.src.read_uint16()
         self.unknown = self.src.read_uint16()

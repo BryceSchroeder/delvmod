@@ -17,6 +17,14 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 import cProfile
+import delv
+import delv.archive, delv.library
+import gobject
+
+version = '0.1.24'
+PATCHINFO = """Created with redelv %s, based on the delv library."""%version
+MSG_NO_UNDERLAY = """Couldn't create library; if you are editing a saved game, 
+you need to underlay a scenario. Exception was: %s"""
 ABOUT_TEXT = """<span font_family="monospace">
     This program is free software: you can redistribute it and/or modify 
     it under the terms of the GNU General Public License as published by 
@@ -31,33 +39,36 @@ ABOUT_TEXT = """<span font_family="monospace">
     You should have received a copy of the GNU General Public License 
     along with this program.  If not, see <a href="http://www.gnu.org/licenses/">the GNU website</a>.
 </span>
-
  <i>Cythera</i> and <i>Delver</i> are trademarks of either Glenn Andreas or Ambrosia Software, Inc. 
  redelv is copyright 2015 Bryce Schroeder, bryce.schroeder@gmail.com, <a href="http://www.bryce.pw/">bryce.pw</a>
- Based on the <a href="http://www.ferazelhosting.net/wiki/delv">delv</a> Python module. Repository: <a href="https://github.com/BryceSchroeder/delvmod/">GitHub</a>
-"""
-
-version = '0.1.22'
-PATCHINFO = """Created with redelv %s, based on the delv library."""%version
-MSG_NO_UNDERLAY = """Couldn't create library; if you are editing a saved game, 
-you need to underlay a scenario. Exception was: %s"""
-import delv
-import delv.archive, delv.library
-
+ Based on the <a href="http://www.ferazelhosting.net/wiki/delv">delv</a> Python module. Repository: <a href="https://github.com/BryceSchroeder/delvmod/">GitHub</a> 
+delv version %s, redelv version %s
+"""%(delv.version,version)
 import pygtk
 pygtk.require('2.0')
-import gtk, os, sys, gobject
+import gtk, os, sys, gobject, tempfile, subprocess, datetime
 
 import images, editgui
 
 class ReDelv(object):
-    preferences = {'play_sound_cmd': 'mplayer %s'}
+    preferences = {# Command that will play sounds:
+                   'play_sound_cmd': 'mplayer %s', 
+                   # Enter the command for your hex editor here, e.g. ghex
+                   'hex_editor_cmd': 'bless %s',
+                   # If True, when an external editor edits a file open in
+                   # an active editor, propagate those changes immediately
+                   # (this generally looks pretty cool, but it will hose your
+                   #  unsaved changes if any.)
+                   'instant_editor_propagation':True}
     def __init__(self):
         self.base_archive=None
         self.patch_base=None
         self.library = None
         self.underlay = None
         self.patch_output_path=None
+        self.hex_editors_open = {}
+        self.queued_changes = []
+        self.timeout_sid = None
         # Signals 
         self.open_editors = {}
         self.filechange = []
@@ -527,7 +538,77 @@ class ReDelv(object):
         else:
             self.error_message("No resource is selected.")
     def menu_hex_editor(self, widget, data=None):
-        self.specific_ed("Hex")
+        if not self.current_resource:
+            self.error_message("No resource is selected.")
+            return
+        if self.current_resource_id in self.hex_editors_open:
+            self.error_message(
+                "Close the existing hex editor for resid %04X first."%(
+                     self.current_resource_id))
+            return
+
+        print "Using external hex editor", self.preferences['hex_editor_cmd']
+        temp = tempfile.NamedTemporaryFile('w+b',
+            prefix="redelv",
+            suffix="resid%04X"%self.current_resource_id)
+        temp.write(self.get_library().get_resource(
+            self.current_resource_id).get_data())
+        temp.flush()
+        command = self.preferences['hex_editor_cmd']%temp.name
+        p=subprocess.Popen(command, shell=True)
+        mtime = os.path.getmtime(temp.name)
+        self.hex_editors_open[self.current_resource_id] = (p,temp,mtime)
+        # turns out bless is a replacer rather than an overwriter...
+        if self.timeout_sid is None:
+            self.timeout_sid = gobject.timeout_add(300, self.file_mon_timer)
+        #gfile =  gio.File(path=temp.name)
+        #monitor =gfile.monitor_file(
+        #    gio.FILE_MONITOR_NONE, None)
+        #monitor = gfile.monitor_file()
+        #monitor.connect("changed", self.hex_editor_changed, 
+        #    (self.current_resource, temp,gfile))
+        print "returning from menu_hex_editor"
+        #self.specific_ed("Hex")
+    def file_mon_timer(self):
+        if not self.hex_editors_open:
+            self.timeout_sid = None
+            return False
+        terminated = []
+        for res,tfile in self.queued_changes:
+            print "implemented queued change to", res.resid
+            tfile.seek(0)
+            res.set_data(tfile.read())
+            self.get_library().purge_cache(res.resid)
+            if self.preferences['instant_editor_propagation']:
+                 # just be lazy, it's late
+                 if self.open_editors.has_key(res.resid):
+                     for editor in self.open_editors[res.resid]:
+                         editor.revert()
+        self.queued_changes = []
+        for rid, (process, tempf, mtime) in self.hex_editors_open.items():
+            if process.poll() is not None:
+                terminated.append(rid)
+                print "finished watching external editor for ", rid
+                continue
+            new_mtime = os.path.getmtime(tempf.name)
+            if new_mtime != mtime:
+                print "external editor changed file", rid, mtime, new_mtime
+                self.queued_changes.append((
+                     self.get_library().get_resource(rid), tempf))
+                self.hex_editors_open[rid] = (process, tempf, new_mtime)
+        for rid in terminated: del self.hex_editors_open[rid]
+        return True
+
+    def signal_resource_saved(self, resid):
+        if not self.hex_editors_open.has_key(resid):
+            return
+        print "Sending changes to an external editor for", resid
+        process, tempf, mtime = self.hex_editors_open[resid]
+        tempf.seek(0)
+        tempf.write(self.library.get_resource(resid).get_data())
+        tempf.flush()
+        self.hex_editors_open[resid] = (
+            process, tempf, os.path.getmtime(tempf.name))
     def menu_image_browser(self, widget, data=None):
         return None
 

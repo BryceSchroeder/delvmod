@@ -72,7 +72,10 @@ class DelvImage(store.Store):
         #else:
         #    self.src = None
         store.Store.__init__(self,src)
-        
+        if src: self.load_from_bfile()
+    def load_from_bfile(self):
+        self.src.seek(0)
+        src = self.src
         if self.has_header and self.src:
             header = self.src.readb(4)
             #self.src = self.src[4:]
@@ -115,7 +118,10 @@ class DelvImage(store.Store):
             self.logical_height = self.height
         self.cursor = 0
         self.image = bytearray(self.logical_width * self.logical_height)
-        if src: self.decompress(self.src.readb(), data_cursor)
+        try:
+            if src: self.decompress(self.src.readb(), data_cursor)
+        except IndexError,e:
+            print "Cursor", self.cursor, repr(e)
         self.cached_visual = None
     def decompress(self, data, cursor):
         """Decompress the indexable-item data provided into this image.

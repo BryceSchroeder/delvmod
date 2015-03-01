@@ -26,6 +26,7 @@ class Editor(gtk.Window):
     name = "Unspecified Editor"
     def set_saved(self):
         if self._unsaved: self.set_title(self.get_title()[10:])
+        self.redelv.signal_resource_saved(self.res.resid)
         self._unsaved = False
     def set_savedstate(self,v):
         if v: self.set_saved()
@@ -61,6 +62,8 @@ class Editor(gtk.Window):
         if self.is_unsaved(): return self.ask_unsaved()
         self.cleanup()
         return False
+    def revert(self,*argv):
+        self.load()
     def cleanup(self):
         pass
     def gui_setup(self):

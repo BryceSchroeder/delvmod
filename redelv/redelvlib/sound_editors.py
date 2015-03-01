@@ -125,6 +125,7 @@ class SoundEditor(editors.Editor):
         self.temp = tempfile.NamedTemporaryFile('wb')
         self.wave_out(self.temp)
         command = self.play_command.get_text()
+        self.temp.flush()
         subprocess.Popen(command%self.temp.name, shell=True)
     def editor_setup(self):
         self.load()

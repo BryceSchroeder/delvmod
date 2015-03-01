@@ -52,6 +52,8 @@ class Store(object):
         elif src:
             self.src = util.BinaryHandler(src)
             self.res = None
+    def is_checked_out(self):
+        return self.checked_out
     def check_out(self):
         """Inform the archive system that this object might be altered by the
            user unpredictably."""

@@ -36,7 +36,7 @@ class GraphicsEditor(editors.Editor):
             ("/File/Export RGB", None, self.file_export, 0, None),
             ("/File/Export Indexed","<control>E",self.file_indexed,0,None),
             ("/File/Save Resource", "<control>S", self.file_save, 0, None),
-            ("/File/Revert", None, self.load_image, 0, None),
+            ("/File/Revert", None, self.revert, 0, None),
             ("/Edit/Cut", "<control>X", self.edit_cut, 0, None),
             ("/Edit/Copy", "<control>C", self.edit_copy, 0, None),
             ("/Edit/Paste","<control>V", self.edit_paste, 0, None),
@@ -97,6 +97,7 @@ class GraphicsEditor(editors.Editor):
         return True
     def editor_setup(self):
         self.load_image()
+    def revert(self, *args): self.load_image()
     def load_image(self, *args):
         if self.force_type:
             self.image = self.force_type(self.res)

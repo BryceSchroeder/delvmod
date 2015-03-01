@@ -115,7 +115,7 @@ class PropListEditor(editors.Editor):
 
         menu_items = (
             ("/File/Save Resource", "<control>S", self.file_save, 0, None),
-            ("/File/Revert",        None,    self.load, 0, None),
+            ("/File/Revert",        None,    self.revert, 0, None),
             #("/File/Export CSV",  None,    self.export_csv, 0, None),
             #("/File/Import CSV",  None,    self.import_csv, 0, None),
             #("/Edit/Cut",           "<control>X", None, 0, None),
@@ -856,8 +856,8 @@ class MapEditor(editors.Editor):
 
     def revert(self, *argv):
         #if self.unsaved and not
-        self.load()
         self.selection = None
+        self.load()
         self.draw_map()
     def load(self, *argv):
         self.lmap = self.canonical_object

@@ -135,6 +135,18 @@ class Library(object):
             r = archive.get(resid)
             if r: return r
         return None
+    def purge_cache(self, resid):
+        r = self.get_resource(resid)
+        if self.cache.has_key(r):
+            if self.cache[r].is_checked_out():
+                print "WARNING: Someone using %04X, and cache was purged."%(
+                    resid)
+                print "Going to try to reload it instead..."
+                self.cache[r].src.seek(0)
+                self.cache[r].load_from_bfile()
+            else:
+                print "purging", resid
+                del self.cache[r]
     def get_object(self, resid, rw=True):
         """Get the appropriate kind of object for a specified resource."""
         r = self.get_resource(resid)
