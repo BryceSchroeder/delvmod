@@ -71,6 +71,7 @@ class SearchCriterion(object):
         value = self.accessor(thing)
         if isinstance(value, str):
             value=self.parse_int(value.strip().split()[0])
+        if self.mask == 0x0000FFFF: value -= 0x100
         return self.op(value&self.mask, self.operand&self.mask)
 
 class PropListEditor(editors.Editor):
@@ -238,24 +239,28 @@ class PropListEditor(editors.Editor):
 
         hbox.pack_start(gtk.Label("Search by... Index:"))
         self.search_index = gtk.Entry()
+        self.search_index.set_width_chars(6)
         self.search_index.connect("changed", self.criterion_change,
             (lambda i: self.tree_data.get_value(i, 11)))
         hbox.pack_start(self.search_index)
 
         hbox.pack_start(gtk.Label("Flags:"))
         self.search_flags = gtk.Entry()
+        self.search_flags.set_width_chars(6)
         self.search_flags.connect("changed", self.criterion_change,
             (lambda i: self.tree_data.get_value(i, 1)))
         hbox.pack_start(self.search_flags)
 
         hbox.pack_start(gtk.Label("PropType:"))
         self.search_proptype = gtk.Entry()
+        self.search_proptype.set_width_chars(8)
         self.search_proptype.connect("changed", self.criterion_change,
             (lambda i: self.tree_data.get_value(i, 2)))
         hbox.pack_start(self.search_proptype)
 
         hbox.pack_start(gtk.Label("Location:"))
         self.search_location = gtk.Entry()
+        self.search_location.set_width_chars(8)
         self.search_location.connect("changed", self.criterion_change,
             (lambda i: self.tree_data.get_value(i, 3)))
         hbox.pack_start(self.search_location)
@@ -263,24 +268,28 @@ class PropListEditor(editors.Editor):
 
         hbox.pack_start(gtk.Label("Aspect:"))
         self.search_aspect = gtk.Entry()
+        self.search_aspect.set_width_chars(4)
         self.search_aspect.connect("changed", self.criterion_change,
             (lambda i: self.tree_data.get_value(i, 5)))
         hbox.pack_start(self.search_aspect)
 
         hbox.pack_start(gtk.Label("d1:"))
         self.search_d1 = gtk.Entry()
+        self.search_d1.set_width_chars(6)
         self.search_d1.connect("changed", self.criterion_change,
             (lambda i: self.tree_data.get_value(i, 6)))
         hbox.pack_start(self.search_d1)
 
         hbox.pack_start(gtk.Label("d2:"))
         self.search_d2 = gtk.Entry()
+        self.search_d2.set_width_chars(6)
         self.search_d2.connect("changed", self.criterion_change,
             (lambda i: self.tree_data.get_value(i, 7)))
         hbox.pack_start(self.search_d2)
 
         hbox.pack_start(gtk.Label("d3:"))
         self.search_d3 = gtk.Entry()
+        self.search_d3.set_width_chars(8)
         self.search_d3.connect("changed", self.criterion_change,
             (lambda i: self.tree_data.get_value(i, 8)))
 
