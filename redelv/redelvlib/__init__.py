@@ -47,20 +47,28 @@ delv version %s, redelv version %s
 import pygtk
 pygtk.require('2.0')
 import gtk, os, sys, gobject, tempfile, subprocess, datetime
-
+import json
 import images, editgui
-
-class ReDelv(object):
-    preferences = {# Command that will play sounds:
+DEFAULT_PREFS = {# Command that will play sounds:
                    'play_sound_cmd': 'mplayer %s', 
                    # Enter the command for your hex editor here, e.g. ghex
                    'hex_editor_cmd': 'bless %s',
                    # If True, when an external editor edits a file open in
                    # an active editor, propagate those changes immediately
-                   # (this generally looks pretty cool, but it will hose your
+                   # (this generally looks pretty cool, but it may hose your
                    #  unsaved changes if any.)
-                   'instant_editor_propagation':True}
+                   'instant_editor_propagation':True,
+                   'graphics_editor_cmd': 'gimp %s',}
+PREFS_PATH = os.path.expanduser('~/.redelv')
+
+class ReDelv(object):
+
     def __init__(self):
+        if os.path.exists(PREFS_PATH):
+            self.preferences = json.load(open(PREFS_PATH))
+        else:
+            self.preferences = DEFAULT_PREFS
+            json.dump(self.preferences, open(PREFS_PATH,'wb'),indent=True)
         self.base_archive=None
         self.patch_base=None
         self.library = None
@@ -537,13 +545,15 @@ class ReDelv(object):
                 self,self.current_resource).show_all()
         else:
             self.error_message("No resource is selected.")
+    #def menu_image_editor(self, *argv):
+        
     def menu_hex_editor(self, widget, data=None):
         if not self.current_resource:
             self.error_message("No resource is selected.")
             return
         if self.current_resource_id in self.hex_editors_open:
             self.error_message(
-                "Close the existing hex editor for resid %04X first."%(
+                "Close the existing external editor for resid %04X first."%(
                      self.current_resource_id))
             return
 

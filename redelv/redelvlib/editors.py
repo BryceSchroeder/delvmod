@@ -24,6 +24,8 @@ you need to underlay a scenario before opening resources that use library
 facilities (e.g. refer to props or tiles.) Exception was: %s"""
 class Editor(gtk.Window):
     name = "Unspecified Editor"
+    def load(self):
+        print "An editor class isn't overloading load():",repr(self.__class__)
     def set_saved(self):
         if self._unsaved: self.set_title(self.get_title()[10:])
         self.redelv.signal_resource_saved(self.res.resid)
