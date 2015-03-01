@@ -385,7 +385,8 @@ class PropListEditor(editors.Editor):
             if not criterion.evaluate(itr): return False
         return True
     def editor_callback_location(self, renderer, path, new_text):
-        itr = self.tree_data.get_iter(path)
+        itr = self.tree_data.get_iter(
+            self.tree_filter.convert_path_to_child_path(path))
         new_text = new_text.replace('(','').replace(')','').strip()
         oldloc = int(self.tree_data.get_value(itr,3)[2:8],16)
         try:
@@ -420,7 +421,9 @@ class PropListEditor(editors.Editor):
         if ival < 0 or ival > 255: return
         # This is just hideous... maybe not worth it to have save/revert
         # as usual pygtk not making it any nicer either
-        itr = self.tree_data.get_iter(path)
+        itr = self.tree_data.get_iter(
+             self.tree_filter.convert_path_to_child_path(path))
+        
         loc = int(self.tree_data.get_value(itr,3)[2:8],16)
         proptype = int(self.tree_data.get_value(itr,2)[2:5],16)
         aspect = int(self.tree_data.get_value(itr,5))
@@ -440,7 +443,9 @@ class PropListEditor(editors.Editor):
             aspect = int(new_text.strip())
         except: return
         if aspect < 0 or aspect > 31: return
-        itr = self.tree_data.get_iter(path)
+        itr = self.tree_data.get_iter(
+            self.tree_filter.convert_path_to_child_path(path))
+
         proptype = int(self.tree_data.get_value(itr,2)[2:5],16)
         flags = int(self.tree_data.get_value(itr,1)[2:],16)
         self.tree_data.set_value(itr, 2,
@@ -460,7 +465,9 @@ class PropListEditor(editors.Editor):
             print repr(e)
             return
         if d1 < 0 or d1 > 255: return
-        itr = self.tree_data.get_iter(path)
+        itr = self.tree_data.get_iter(
+            self.tree_filter.convert_path_to_child_path(path))
+
         d3 =  int(self.tree_data.get_value(itr, 8)[2:],16)  
         d3 &= 0x00FF
         d3 |= (d1<<8)
@@ -477,7 +484,9 @@ class PropListEditor(editors.Editor):
             print repr(e)
             return
         if d2 < 0 or d2 > 255: return
-        itr = self.tree_data.get_iter(path)
+        itr = self.tree_data.get_iter(
+            self.tree_filter.convert_path_to_child_path(path))
+
         d3 =  int(self.tree_data.get_value(itr, 8)[2:],16)  
         d3 &= 0xFF00
         d3 |= d2
@@ -494,7 +503,9 @@ class PropListEditor(editors.Editor):
             print repr(e)
             return
         if d3 < 0 or d3 > 0xFFFF: return
-        itr = self.tree_data.get_iter(path)
+        itr = self.tree_data.get_iter(
+            self.tree_filter.convert_path_to_child_path(path))
+
         self.tree_data.set_value(itr, 6, "%d"%(d3>>8)     )   
         self.tree_data.set_value(itr, 7, "%d"%(d3&0x00FF))
         self.tree_data.set_value(itr, 8, "0x%04X"%d3)
@@ -504,8 +515,9 @@ class PropListEditor(editors.Editor):
                 '0x','').replace('$',''), 16)
         except: return
         if proptype < 0 or proptype > 0x3FF: return
+        itr = self.tree_data.get_iter(
+            self.tree_filter.convert_path_to_child_path(path))
 
-        itr = self.tree_data.get_iter(path)
         aspect = int(self.tree_data.get_value(itr,5))
         flags = int(self.tree_data.get_value(itr,1)[2:],16)
         self.tree_data.set_value(itr, 2,
@@ -518,8 +530,8 @@ class PropListEditor(editors.Editor):
                 '0x','').replace('$',''), 16)
         except: return
         if storeref < 0 or storeref > 0xFFFF: return
-
-        itr = self.tree_data.get_iter(path)
+        itr = self.tree_data.get_iter(
+            self.tree_filter.convert_path_to_child_path(path))
         self.tree_data.set_value(itr, 10,"0x%04X"%storeref)
         self.set_unsaved()
     def editor_callback_propref(self,  renderer, path, new_text):
@@ -528,8 +540,9 @@ class PropListEditor(editors.Editor):
                 '0x','').replace('$',''), 16)
         except: return
         if storeref < 0 or storeref > 0xFFFFFFFF: return
+        itr = self.tree_data.get_iter(
+            self.tree_filter.convert_path_to_child_path(path))
 
-        itr = self.tree_data.get_iter(path)
         self.tree_data.set_value(itr, 9,"0x%08X"%propref)
         self.set_unsaved()
 

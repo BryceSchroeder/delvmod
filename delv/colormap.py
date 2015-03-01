@@ -132,4 +132,4 @@ animated_rgb24 = panimate(rgb24)
 animated_rgb   = panimate(rgb)
 animated_html  = panimate(html)
 
-selected_rgb24 = [c|0x00802080 for c in rgb24]
+selected_rgb24 = [c|0x00F020F0 for c in rgb24]
