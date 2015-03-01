@@ -76,6 +76,7 @@ class ReDelv(object):
         self.patch_output_path=None
         self.hex_editors_open = {}
         self.queued_changes = []
+        self.tempfile_references = {}
         self.timeout_sid = None
         # Signals 
         self.open_editors = {}
@@ -565,6 +566,7 @@ class ReDelv(object):
             self.current_resource_id).get_data())
         temp.flush()
         command = self.preferences['hex_editor_cmd']%temp.name
+        self.tempfile_references[self.current_resource_id] = temp
         p=subprocess.Popen(command, shell=True)
         mtime = os.path.getmtime(temp.name)
         self.hex_editors_open[self.current_resource_id] = (p,temp,mtime)
@@ -577,7 +579,6 @@ class ReDelv(object):
         #monitor = gfile.monitor_file()
         #monitor.connect("changed", self.hex_editor_changed, 
         #    (self.current_resource, temp,gfile))
-        print "returning from menu_hex_editor"
         #self.specific_ed("Hex")
     def file_mon_timer(self):
         if not self.hex_editors_open:
@@ -586,9 +587,13 @@ class ReDelv(object):
         terminated = []
         for res,tfile in self.queued_changes:
             print "implemented queued change to", res.resid
-            tfile.seek(0)
+            tfile = open(tfile.name,'r+b')
             res.set_data(tfile.read())
             self.get_library().purge_cache(res.resid)
+            if self.hex_editors_open.has_key(res.resid):
+                process, oldfile, mtime = self.hex_editors_open[res.resid]
+                self.hex_editors_open[res.resid] = (process, tfile, 
+                    os.path.getmtime(tfile.name))
             if self.preferences['instant_editor_propagation']:
                  # just be lazy, it's late
                  if self.open_editors.has_key(res.resid):
@@ -606,7 +611,9 @@ class ReDelv(object):
                 self.queued_changes.append((
                      self.get_library().get_resource(rid), tempf))
                 self.hex_editors_open[rid] = (process, tempf, new_mtime)
-        for rid in terminated: del self.hex_editors_open[rid]
+        for rid in terminated: 
+            del self.hex_editors_open[rid]
+            del self.tempfile_references[rid]
         return True
 
     def signal_resource_saved(self, resid):
