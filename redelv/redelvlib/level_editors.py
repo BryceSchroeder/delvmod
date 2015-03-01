@@ -43,6 +43,7 @@ class SearchCriterion(object):
                ('!=',operator.ne),  ('&', operator.and_)]
         self.op = operator.eq
         self.mask = 0xFFFFFFFF
+        
         if '@' in mode: self.mask=0x0000FFFF
         for tok,op in ops:
             if tok in mode: 
@@ -297,8 +298,8 @@ class PropListEditor(editors.Editor):
 
         #self.searchbutton = gtk.Button("Search")
         #hbox.pack_start(self.searchbutton)
-        self.showall = gtk.Button("Show All")
-        hbox.pack_start(self.showall)
+        #self.showall = gtk.Button("Show All")
+        #hbox.pack_start(self.showall)
         pbox.pack_start(hbox, False, True, 0)
         self.add(pbox)
     def file_save(self, *argv):
