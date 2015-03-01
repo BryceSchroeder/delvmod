@@ -37,7 +37,7 @@ ABOUT_TEXT = """<span font_family="monospace">
  Based on the <a href="http://www.ferazelhosting.net/wiki/delv">delv</a> Python module. Repository: <a href="https://github.com/BryceSchroeder/delvmod/">GitHub</a>
 """
 
-version = '0.1.21'
+version = '0.1.22'
 PATCHINFO = """Created with redelv %s, based on the delv library."""%version
 MSG_NO_UNDERLAY = """Couldn't create library; if you are editing a saved game, 
 you need to underlay a scenario. Exception was: %s"""
