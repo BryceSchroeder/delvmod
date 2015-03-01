@@ -31,13 +31,29 @@ import delv.colormap, delv.level
 import editors
 import cStringIO as StringIO
 import gtk
-import operator
+import operator, re
 
 class SearchCriterion(object):
     def __init__(self, mode, accessor):
         # Yeah, this is kinda hokey, maybe it should use a parser?
         # or have drop down menus to pick these
         self.accessor = accessor
+        # has to be first since re have funny characters :D
+        self.remode = '/' in mode
+        if self.remode:
+            try:
+                self.re = re.compile(mode[1:])
+            except Exception,e:
+                # would like an error message but we'd have to give up on
+                # live updates of the search window...
+                print repr(e)#self.error_message(
+                self.re = None
+            return
+
+        self.stringmode = '"' in mode
+        if self.stringmode:
+            self.query = mode.replace('"','')
+            return
         ops = [('>=', operator.ge), ('<=', operator.le),
                ('>', operator.gt),  ('<', operator.lt),
                ('!=',operator.ne),  
@@ -78,6 +94,12 @@ class SearchCriterion(object):
             return int(mode,base)
     def evaluate(self, thing):
         value = self.accessor(thing)
+        if self.remode:
+            if not self.re: return None
+            return self.re.search(value) is not None
+        if self.stringmode:
+            return self.query in value
+        
         if isinstance(value, str):
             value=self.parse_int(value.strip().split()[0])
         if self.mask != 0xFFFFFFFF: value -= self.offset
@@ -101,9 +123,11 @@ class PropListEditor(editors.Editor):
             #("/Edit/Paste",         "<control>V", None, 0, None),
             #("/Edit/Delete",          None,        None, 0, None),
             ("/Edit/Insert Entry",  "<control>N", self.edit_insert,0,None),
+            ("/Edit/Select All",    "<control>A", self.select_all,0,None),
             ("/Map/Open Map",        "<control>M",    self.open_map, 0, None),
-            ("/Map/Send Selection to Map",  "S", self.send_selection, 0, None),
-            ("/Map/Reload Map",  "R", self.reload_map, 0, None),
+            ("/Map/Send Selection to Map",  "<alt>S", 
+                  self.send_selection, 0, None),
+            ("/Map/Reload Map",  "<alt>R", self.reload_map, 0, None),
             #("/Select/Container Contents", "<control>O",None,0,None),
             #("/Select/Others in Cell","<control>T",None,0,None),
             #("/Select/Parent","<control>P",None,0,None),
@@ -262,7 +286,7 @@ class PropListEditor(editors.Editor):
 
         hbox.pack_start(gtk.Label("PropType:"))
         self.search_proptype = gtk.Entry()
-        self.search_proptype.set_width_chars(8)
+        self.search_proptype.set_width_chars(12)
         self.search_proptype.connect("changed", self.criterion_change,
             (lambda i: self.tree_data.get_value(i, 2)))
         hbox.pack_start(self.search_proptype)
@@ -540,12 +564,25 @@ class PropListEditor(editors.Editor):
         selected = [
             tm.get_value(tm.get_iter(path),11) for path in paths]
         self.map_editor.change_selection(selected)
+        self.map_editor.scroll_to_selection()
+    def select_all(self,*argv):
+        self.data_view.get_selection().select_all()
     def select_props_by_index(self, selection):
         tsel = self.data_view.get_selection()
         tsel.unselect_all()
         if not selection: return
-        for prop in selection:
-            tsel.select_path(prop)
+        itr = self.tree_data.get_iter_first()
+        while itr:
+            index = self.tree_data.get_value(itr, 11)
+            # you see what I have to put up with: 
+            if index in selection:
+                try:
+                    pth = self.tree_filter.convert_child_path_to_path(
+                            self.tree_data.get_path(itr))
+                    tsel.select_path(pth)
+                    self.data_view.scroll_to_cell(pth)
+                except TypeError: pass
+            itr = self.tree_data.iter_next(itr)
 
      
 
@@ -581,8 +618,9 @@ class MapEditor(editors.Editor):
             ("/View/Preview Palette Animation",None,None, 0, None),
             ("/View/Display Roof Layer",None,     None, 0, None),
             ("/View/Display Props",  None,        None, 0, None),
-            ("/View/Send Selection to Prop List","S",self.send_selection,
+            ("/View/Send Selection to Prop List","<alt>S",self.send_selection,
                     0,None),
+            ("/View/Scroll to Selection","L",self.scroll_to_selection,0,None),
             ("/Windows/Tile Selector", "<control>T", None, 0, None),
             ("/Windows/Props List", "<control>P", self.open_props, 0, None),
             ("/Windows/Brushes",    "<control>B", None, 0, None),
@@ -815,6 +853,13 @@ class MapEditor(editors.Editor):
         if self.selection == ns: return 
         self.selection = ns
         self.draw_map()
+    def scroll_to_tile(self, x, y):
+        x = max(0,min(32*(x-2),
+            self.display.allocation.width-self.sw.allocation.width))
+        y = max(0,min(32*(y-2),
+            self.display.allocation.height-self.sw.allocation.height))
+        self.sw.get_hadjustment().set_value(x)
+        self.sw.get_vadjustment().set_value(y)
     def select_none(self, *argv):
         self.change_selection(None)
     def tile_select(self, *argv):
@@ -867,6 +912,18 @@ class MapEditor(editors.Editor):
         if newp != self.mouse_position:
             self.mouse_position = newp
             self.update_cursor_info()
+    def scroll_to_selection(self, *argv):
+         if isinstance(self.selection, tuple):
+             self.scroll_to_tile(*self.selection)
+         elif self.selection is None:
+             self.scroll_to_tile(0,0)
+         elif self.props:
+             for pidx in self.selection:
+                p = self.props[pidx]
+                if not p.inside_something():
+                    self.scroll_to_tile(*p.loc)
+                    break
+
     def mouse_click(self, widget, event):
         if event.x is None or event.y is None: return
         x,y= widget.translate_coordinates(self.display, 

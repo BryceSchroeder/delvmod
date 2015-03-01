@@ -75,7 +75,7 @@ class PropListEntry(object):
     def textual_location(self):
         return textual_location(self.flags,self.raw_location)
     def inside_something(self):
-        return self.flags & 0x08
+        return self.flags & 0x18
     def show_in_map(self):
         # This is probably wrong - many details yet to be determined. FIXME
         if self.flags == 0xFF: return False
