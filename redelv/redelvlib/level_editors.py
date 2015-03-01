@@ -40,11 +40,17 @@ class SearchCriterion(object):
         self.accessor = accessor
         ops = [('>=', operator.ge), ('<=', operator.le),
                ('>', operator.gt),  ('<', operator.lt),
-               ('!=',operator.ne),  ('&', operator.and_)]
+               ('!=',operator.ne),  ('&', operator.and_),
+               ('!&',lambda a,b: not (a & b))]
         self.op = operator.eq
         self.mask = 0xFFFFFFFF
-        
-        if '@' in mode: self.mask=0x0000FFFF
+        self.offset = 0
+        if '#' in mode: 
+            self.mask=0x0000FFFF
+            self.offset = 0
+        if '@' in mode: 
+            self.mask=0x0000FFFF
+            self.offset = 0x100
         for tok,op in ops:
             if tok in mode: 
                  self.op = op
@@ -57,6 +63,8 @@ class SearchCriterion(object):
         mask = 0xFFFFFFFF
         if '@' in mode:
             mode = mode.replace('@','')
+        if '#' in mode:
+            mode = mode.replace('#','')
         if '0x' in mode:
             base = 16
             mode = mode.replace('0x','')
@@ -72,7 +80,7 @@ class SearchCriterion(object):
         value = self.accessor(thing)
         if isinstance(value, str):
             value=self.parse_int(value.strip().split()[0])
-        if self.mask == 0x0000FFFF: value -= 0x100
+        if self.mask != 0xFFFFFFFF: value -= self.offset
         return self.op(value&self.mask, self.operand&self.mask)
 
 class PropListEditor(editors.Editor):
@@ -88,18 +96,18 @@ class PropListEditor(editors.Editor):
             ("/File/Revert",        None,    self.load, 0, None),
             #("/File/Export CSV",  None,    self.export_csv, 0, None),
             #("/File/Import CSV",  None,    self.import_csv, 0, None),
-            ("/Edit/Cut",           "<control>X", None, 0, None),
-            ("/Edit/Copy",          "<control>C", None, 0, None),
-            ("/Edit/Paste",         "<control>V", None, 0, None),
-            ("/Edit/Delete",          None,        None, 0, None),
+            #("/Edit/Cut",           "<control>X", None, 0, None),
+            #("/Edit/Copy",          "<control>C", None, 0, None),
+            #("/Edit/Paste",         "<control>V", None, 0, None),
+            #("/Edit/Delete",          None,        None, 0, None),
             ("/Edit/Insert Entry",  "<control>N", self.edit_insert,0,None),
             ("/Map/Open Map",        "<control>M",    self.open_map, 0, None),
             ("/Map/Send Selection to Map",  "S", self.send_selection, 0, None),
             ("/Map/Reload Map",  "R", self.reload_map, 0, None),
-            ("/Select/Container Contents", "<control>O",None,0,None),
-            ("/Select/Others in Cell","<control>T",None,0,None),
-            ("/Select/Parent","<control>P",None,0,None),
-            ("/Select/Scroll to Selected","<control>F",None,0,None),
+            #("/Select/Container Contents", "<control>O",None,0,None),
+            #("/Select/Others in Cell","<control>T",None,0,None),
+            #("/Select/Parent","<control>P",None,0,None),
+            #("/Select/Scroll to Selected","<control>F",None,0,None),
             )
 
         accel = gtk.AccelGroup()
@@ -357,18 +365,24 @@ class PropListEditor(editors.Editor):
         new_text = new_text.replace('(','').replace(')','').strip()
         oldloc = int(self.tree_data.get_value(itr,3)[2:8],16)
         try:
+            base = 10
             if '0x' in new_text or '$' in new_text:
-                rloc = int(new_text.split()[0].replace(
-                     '0x','').replace('$',''),16)
-            elif ',' in new_text:
+                base = 16
+                new_text = new_text.replace('$','').replace('0x','')
+            if ',' in new_text:
                 x,y = new_text.split(',')
-                x,y = int(x),int(y)
+                x,y = int(x,base),int(y,base)
                 rloc =(x<<12)|y 
             elif '@' in new_text:
-                container = int(new_text[1:])
+                new_text = new_text.replace('@','')
+                container = int(new_text.strip().split()[0],base)
+                rloc = (oldloc&0xFF0000)|(container+0x100)
+            elif '#' in new_text:
+                new_text = new_text.replace('#','')
+                container = int(new_text.strip().split()[0],base)
                 rloc = (oldloc&0xFF0000)|container
-            else:
-                rloc = int(new_text)
+            else: 
+                rloc = int(new_text.strip().split()[0],base)
         except: return
         flags = int(self.tree_data.get_value(itr,1)[2:],16)
         self.tree_data.set_value(itr, 3, 

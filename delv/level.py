@@ -34,6 +34,8 @@ def textual_location(flags, raw_location):
     container = (raw_location&0x00FFFF) - 0x100
     if flags == 0xFF:
         return "0x%06X Deleted"%(raw_location)
+    if flags & 0x10:
+        return "0x%06X (#%d)"%(raw_location,container+0x100)
     if flags & 0x08:
         return "0x%06X (@%d)"%(raw_location,container)
     else:
@@ -77,7 +79,7 @@ class PropListEntry(object):
     def show_in_map(self):
         # This is probably wrong - many details yet to be determined. FIXME
         if self.flags == 0xFF: return False
-        return not (self.flags & 0x48)
+        return not (self.flags & 0x58)
     def get_loc(self): # FIXME
         return self.loc[0],self.loc[1]
     def okay_to_take(self):
@@ -116,7 +118,7 @@ class PropListEntry(object):
             return "EGG"
         elif self.flags == 0x44:
             return "ROOF"
-        elif self.flags&0xF0:
+        elif self.flags&0xE0:
             return "(%s?)"%library.get_prop(
                 self.proptype).get_name(self.aspect)
         else:
