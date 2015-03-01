@@ -40,8 +40,8 @@ class SearchCriterion(object):
         self.accessor = accessor
         ops = [('>=', operator.ge), ('<=', operator.le),
                ('>', operator.gt),  ('<', operator.lt),
-               ('!=',operator.ne),  ('&', operator.and_),
-               ('!&',lambda a,b: not (a & b))]
+               ('!=',operator.ne),  
+               ('!&',(lambda a,b: not (a & b))), ('&', operator.and_)]
         self.op = operator.eq
         self.mask = 0xFFFFFFFF
         self.offset = 0
