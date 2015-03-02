@@ -17,8 +17,8 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import gtk, images, delv.util
-import sys
+import gtk, images, delv.util, gobject
+import sys, tempfile, os, subprocess
 MSG_NO_UNDERLAY = """Couldn't create library; if you are editing a saved game, 
 you need to underlay a scenario before opening resources that use library
 facilities (e.g. refer to props or tiles.) Exception was: %s"""
@@ -39,11 +39,66 @@ class Editor(gtk.Window):
         self.redelv.set_unsaved()
     def is_unsaved(self):
         return self._unsaved
+    def open_external_editor(self, editor, write_cb, read_cb, 
+           file_extension='.data', cb_data=None):
+        """Open an external editor with the provided command (which should
+           be something like 'gimp %s') on a tempfile, after writing to
+           that tempfile with the provided callback. The callback will be
+           called as write_cb(filename, cb_data).
+           When (if) the file is changed by the external editor, it will run
+           read_cb(filename, cb_data). 
+           """
+        if self.external_editor:
+            self.error_message("Close the existing external editor first.")
+            return
+        self.external_editor_tempfile = tempfile.NamedTemporaryFile('w+b',
+            prefix='redelvobj', 
+            suffix='%04X%s'%(self.res.resid,file_extension))
+        write_cb(self.external_editor_tempfile, cb_data)
+        proc = subprocess.Popen(editor%self.external_editor_tempfile.name,
+                                shell=True)
+        mtime = os.path.getmtime(self.external_editor_tempfile.name)
+        self.external_editor = proc,mtime,self.external_editor_tempfile.name
+        self.file_monitor_sid = gobject.timeout_add(300,self.file_mon_timer)
+        self.file_monitor_cb_data = cb_data
+        self.queued_change = None
+        self.file_monitor_read_cb = read_cb
+
+    def file_mon_timer(self):
+        proc, mtime, name = self.external_editor
+        new_mtime = os.path.getmtime(name)
+
+        if mtime != new_mtime:
+            print "Changed by external editor", mtime, new_mtime
+            self.queued_change = self.file_monitor_read_cb
+            self.external_editor = proc, new_mtime, name
+            return True
+
+        if proc.poll() is not None:
+            if not self.queued_change:
+                print "External editor has finished."
+                self.external_editor = None
+                self.external_editor_tempfile = None
+                return False
+            return True
+
+        if self.queued_change and mtime == new_mtime:
+            print "Implemented change", mtime, new_mtime
+            self.queued_change(name, self.file_monitor_cb_data)
+            self.queued_change = None
+            return True
+
+        return True
+       
+        
     def __del__(self):
         self.redelv.unregister_editor(self)
     def __init__(self, redelv, resource, *argv, **argk):
         gtk.Window.__init__(self,gtk.WINDOW_TOPLEVEL, *argv,**argk)
         self.redelv = redelv
+        self.external_editor = None
+        self.external_editor_tempfile = None
+        self.file_monitor_sid = None
         try:
             self.res = resource
             self.canonical_object = redelv.get_library().get_object(

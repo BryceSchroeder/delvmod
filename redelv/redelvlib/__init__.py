@@ -58,7 +58,7 @@ DEFAULT_PREFS = {# Command that will play sounds:
                    # (this generally looks pretty cool, but it may hose your
                    #  unsaved changes if any.)
                    'instant_editor_propagation':True,
-                   'graphics_editor_cmd': 'gimp %s',}
+                   'graphics_editor_cmd': 'gimp -n %s',}
 PREFS_PATH = os.path.expanduser('~/.redelv')
 
 class ReDelv(object):

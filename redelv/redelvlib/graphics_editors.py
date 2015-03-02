@@ -40,7 +40,9 @@ class GraphicsEditor(editors.Editor):
             ("/Edit/Cut", "<control>X", self.edit_cut, 0, None),
             ("/Edit/Copy", "<control>C", self.edit_copy, 0, None),
             ("/Edit/Paste","<control>V", self.edit_paste, 0, None),
-            ("/Edit/Clear", None, self.edit_clear, 0, None),)
+            ("/Edit/Clear", None, self.edit_clear, 0, None),
+            ("/Edit/Open in External Editor","<control>G",self.edit_external,
+              0,None))
         accel = gtk.AccelGroup()
         ifc = gtk.ItemFactory(gtk.MenuBar, "<main>", accel)
         self.add_accel_group(accel)
@@ -67,6 +69,19 @@ class GraphicsEditor(editors.Editor):
 
         self.add(pbox)
         self.animation_sid = None
+    def edit_external(self, *argv):
+        try:
+            import Image
+            self.Image = Image        
+        except ImportError:
+            self.error_message("Couldn't import python imaging library (PIL)")
+            return
+
+        self.open_external_editor(
+            self.redelv.preferences['graphics_editor_cmd'],
+            self.external_writeout, self.load_image_from_path,
+            file_extension='.png')
+        
     def cleanup(self):
         if self.animation_sid is not None:
             gobject.source_remove(self.animation_sid)
@@ -82,7 +97,8 @@ class GraphicsEditor(editors.Editor):
             self.animation_sid = gobject.timeout_add(
                 100, self.animation_timer)
         else:
-            gobject.source_remove(self.animation_sid)
+            if self.animation_sid is not None:
+                gobject.source_remove(self.animation_sid)
             self.animation_sid = None
     def animation_timer(self):
         gc = self.pixmap.new_gc()
@@ -137,6 +153,18 @@ class GraphicsEditor(editors.Editor):
         pbuf.get_from_drawable(self.pixmap, gtk.gdk.colormap_get_system(),
             0,0,0,0,self.image.logical_width,self.image.logical_height)
         return pbuf
+    def load_image_from_path(self,path,*argv):
+        pil_img = self.Image.open(path)
+        self.pixmap = gtk.gdk.Pixmap(None, pil_img.size[0], pil_img.size[1],
+           gtk.gdk.visual_get_system().depth)
+        gc = self.pixmap.new_gc()
+        print pil_img.size, len(pil_img.tostring())
+        self.pixmap.draw_indexed_image(gc, 0,0,pil_img.size[0], 
+           pil_img.size[1], gtk.gdk.RGB_DITHER_NORMAL, 
+           pil_img.tostring(),
+           pil_img.size[0], delv.colormap.rgb24)
+        self.set_unsaved()
+        self.display.set_from_pixmap(self.pixmap,None)
     def file_import(self,*args):
         #if self.unsaved and self.warn_unsaved_changes(): return 
         path = "<undefined>"
@@ -154,13 +182,21 @@ class GraphicsEditor(editors.Editor):
         self.set_unsaved()
         self.display.set_from_pixmap(self.pixmap,None)
         self.redelv.set_unsaved()
-    def file_export(self,*args):
+    
+    def file_export(self, *args):
         path = self.ask_save_path(default = "RGB%04X.png"%self.res.resid)
         if not path: return
         if not path.endswith(".png"): path += ".png"
         pbuf = self.get_pixbuf_from_pixmap()
         # The text chunk mechanism could be used to preserve non-visual data...
         pbuf.save(path, "png", {})
+    def external_writeout(self, path, cbdata):
+        pil_img = self.Image.frombuffer("P", 
+                (self.image.logical_width, self.image.logical_height), 
+                self.image.get_logical_image(), "raw",
+                ("P",0,1))
+        pil_img.putpalette(delv.colormap.pil)
+        pil_img.save(path)
     def file_indexed(self,*args):
         path = self.ask_save_path(default = "%04X.png"%self.res.resid)
         if not path: return
