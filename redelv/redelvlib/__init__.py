@@ -58,7 +58,9 @@ DEFAULT_PREFS = {# Command that will play sounds:
                    # (this generally looks pretty cool, but it may hose your
                    #  unsaved changes if any.)
                    'instant_editor_propagation':True,
-                   'graphics_editor_cmd': 'gimp -n %s',}
+                   'graphics_editor_cmd': 'gimp -n %s',
+                   'audio_editor': 'audacity %s',
+                   'default_patch_info':PATCHINFO,}
 PREFS_PATH = os.path.expanduser('~/.redelv')
 
 class ReDelv(object):
@@ -66,6 +68,9 @@ class ReDelv(object):
     def __init__(self):
         if os.path.exists(PREFS_PATH):
             self.preferences = json.load(open(PREFS_PATH))
+            for key in DEFAULT_PREFS.keys():
+                if not self.preferences.has_key(key):
+                    self.preferences[key] = DEFAULT_PREFS[key]
         else:
             self.preferences = DEFAULT_PREFS
             json.dump(self.preferences, open(PREFS_PATH,'wb'),indent=True)
@@ -500,7 +505,7 @@ class ReDelv(object):
             self.patch_output_path = self.ask_save_path("Untitled Patch")
         if not self.patch_output_path: return
         newpatch = delv.archive.Patch()
-        newpatch.patch_info(PATCHINFO)
+        newpatch.patch_info(self.preferences['default_patch_info'])
         newpatch.diff(self.base_archive, self.archive)
         newpatch.to_path(self.patch_output_path)
         print "Saved patch with %d resources"%len(newpatch.resources())
