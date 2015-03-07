@@ -95,7 +95,7 @@ _SCEN_HINTS = {
     7: "Shared Dialogue Scripts",
     8: "Scripts", 9: "Scripts", 10: "Scripts", 11: "Scripts", 12: "Scripts",
     13: "Scripts", 14: "Scripts", 16: "Object Scripts", 19: "Zone Scripts",
-    15: "Dialogue Scripts", 20: "Composite Zone Scripts", 
+    15: "Object Scripts", 20: "Composite Zone Scripts", 
     23: "Dialogue Scripts", 25: "Skill and Action Scripts", 
     26: "Area Scripts", 27: "Area Scripts", 47: "Character Action Scripts",
     127: "Maps", 128: "Prop Lists", 131: "Landscape Graphics", 

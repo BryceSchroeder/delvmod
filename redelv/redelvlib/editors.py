@@ -24,6 +24,7 @@ you need to underlay a scenario before opening resources that use library
 facilities (e.g. refer to props or tiles.) Exception was: %s"""
 class Editor(gtk.Window):
     name = "Unspecified Editor"
+    co_object = None
     def load(self):
         print "An editor class isn't overloading load():",repr(self.__class__)
     def set_saved(self):
@@ -93,7 +94,7 @@ class Editor(gtk.Window):
         
     def __del__(self):
         self.redelv.unregister_editor(self)
-    def __init__(self, redelv, resource, *argv, **argk):
+    def __init__(self, redelv, resource, canonical=True, *argv, **argk):
         gtk.Window.__init__(self,gtk.WINDOW_TOPLEVEL, *argv,**argk)
         self.redelv = redelv
         self.external_editor = None
@@ -101,8 +102,12 @@ class Editor(gtk.Window):
         self.file_monitor_sid = None
         try:
             self.res = resource
-            self.canonical_object = redelv.get_library().get_object(
-                self.res.resid)
+            if canonical:
+                self.canonical_object = redelv.get_library().get_object(
+                    self.res.resid)
+            elif self.co_object:
+                self.canonical_object = self.co_object(
+                    redelv.get_library().get_resource(self.res.resid))
             self.mated_editors = []
             self.set_title(self.name)
             self.gui_setup()

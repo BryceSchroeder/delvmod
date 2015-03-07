@@ -16,12 +16,11 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import cProfile
 import delv
 import delv.archive, delv.library
 import gobject
 
-version = '0.1.24'
+version = '0.1.25'
 PATCHINFO = """Created with redelv %s, based on the delv library."""%version
 MSG_NO_UNDERLAY = """Couldn't create library; if you are editing a saved game, 
 you need to underlay a scenario. Exception was: %s"""
@@ -44,6 +43,7 @@ ABOUT_TEXT = """<span font_family="monospace">
  Based on the <a href="http://www.ferazelhosting.net/wiki/delv">delv</a> Python module. Repository: <a href="https://github.com/BryceSchroeder/delvmod/">GitHub</a> 
 delv version %s, redelv version %s
 """%(delv.version,version)
+
 import pygtk
 pygtk.require('2.0')
 import gtk, os, sys, gobject, tempfile, subprocess, datetime
@@ -537,7 +537,7 @@ class ReDelv(object):
     def specific_ed(self, which="Hex"):
         if self.current_resource:
             editgui.editor_for_name(which)(
-                self, self.current_resource).show_all()
+                self, self.current_resource,canonical=False).show_all()
         else:
             self.error_message("No resource is selected.")
     def open_editor(self, resid):
@@ -614,6 +614,7 @@ class ReDelv(object):
                 continue
             new_mtime = os.path.getmtime(tempf.name)
             if new_mtime != mtime:
+                self.set_unsaved()
                 print "external editor changed file", rid, mtime, new_mtime
                 self.queued_changes.append((
                      self.get_library().get_resource(rid), tempf))

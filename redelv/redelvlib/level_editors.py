@@ -108,6 +108,7 @@ class SearchCriterion(object):
 class PropListEditor(editors.Editor):
     name = "Prop List Editor [nothing opened]"
     default_size = 800,600
+    co_object = delv.level.PropList
     def gui_setup(self):
         pbox = gtk.VBox(False,0)
         self.search_criteria = {}
@@ -354,7 +355,9 @@ class PropListEditor(editors.Editor):
         self.set_saved()
         self.redelv.set_unsaved()
     def load(self,*argv):
-        self.lmap = self.library.get_object(self.res.resid - 0x0100)
+        if self.res.subindex == 128:
+            self.lmap = self.library.get_object(self.res.resid - 0x0100)
+        else: self.lmap = None
         self.props = self.canonical_object
         self.tree_data = gtk.ListStore(str,str,str,str,bool,str,
             str,str,str,str,str,int,bool,str)
@@ -606,6 +609,7 @@ class PropListEditor(editors.Editor):
 class MapEditor(editors.Editor):
     name = "Map Editor [nothing opened]"
     default_size = 800,600
+    co_object = delv.level.Map
     def gui_setup(self): 
         self.mouse_position = 0,0
 
