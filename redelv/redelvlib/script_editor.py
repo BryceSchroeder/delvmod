@@ -29,5 +29,5 @@ class ScriptEditor(editors.Editor):
         self.load()
     def load(self):
         self.canonical_object.load_from_library(self.redelv.get_library())
-        self.canonical_object.printout(sys.stdout)
+        self.canonical_object.printout(sys.stdout,0)
 
