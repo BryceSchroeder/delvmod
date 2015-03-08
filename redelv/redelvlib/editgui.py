@@ -26,6 +26,7 @@ import generic_editors
 import level_editors
 import patch_editor
 import sound_editors
+import script_editor
 
 # hokey
 _EDITORS_BY_NAME = {
@@ -39,7 +40,8 @@ _EDITORS_BY_NAME = {
     "Sized": graphics_editors.SizedEditor,
     "Sound": sound_editors.SoundEditor,
     "Patch": patch_editor.PatchEditor,
-    "Hex": generic_editors.HexEditor
+    "Hex": generic_editors.HexEditor,
+    "Script": script_editor.ScriptEditor,
 }
 _EDITORS_FOR_RESOURCE = {
     0xF004: generic_editors.TileNameListEditor,
@@ -56,6 +58,8 @@ _EDITORS_FOR_SUBINDEX = {
     144: sound_editors.SoundEditor,
     254: patch_editor.PatchEditor,
 }
+for n in xrange(0x7F): _EDITORS_FOR_SUBINDEX[n] = script_editor.ScriptEditor
+del _EDITORS_FOR_SUBINDEX[3]
 
 def editor_for_name(name):
     return _EDITORS_BY_NAME.get(name, generic_editors.HexEditor)

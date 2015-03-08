@@ -26,8 +26,19 @@
 # Ambrosia Software, Inc. 
 import cStringIO as StringIO, struct
 
-# This whole file is intended to be 'private' to delv; it isn't part of the 
-# public API.
+class dref(object):
+    def __init__(self,resid,offset,length=None):
+        self.resid = resid
+        self.offset = offset
+        self.length=None
+    def load_from_library(self,library,TF=None):
+        if TF:
+            return TF(library.get_dref(self))
+        else:
+            return library.get_dref(self)
+    def __str__(self):
+        return "<dref 0x%04X:%04X %s>"%(self.resid,self.offset,self.length)
+
 
 def int_to_bits(value,size):
     result = bytearray(size)
@@ -184,13 +195,15 @@ class BinaryHandler(object):
         self.write_struct(self.S_uint16, v, offset)
     def write_uint6_uint10(self,v1,v2,offset=None):
         self.write_uint16((v1<<10)|(v2&0x3FF),offset)
+    def write_fo16(self, flags, roffset, offset=None):
+        self.write_uint16(((flags&0x0F)<<12)|roffset, offset)
     def write_sint16(self,v,offset=None):
         self.write_struct(self.S_sint16, v, offset)
     def write_uint32(self,v,offset=None):
         self.write_struct(self.S_uint32, v, offset)
     def write_offlen(self,offs,length,offset=None):
         self.write_struct(self.S_offlen, (offs,length), offset)
-
+    
     def write_sint24(self,v,offset=None):
         if offset is not None: self.seek(offset)
         self.write_uint8((v&0xFF0000)>>16)
@@ -254,13 +267,47 @@ class BinaryHandler(object):
     def read_uint24(self, offset=None):
         first_part  = self.read_uint8(offset)
         return (first_part<<16) | self.read_uint16()
+    def read_atom(self, offset=None):
+        "Read a simple delver scripting system value"
+        ty = self.read_uint8(offset)
+        if ty == 0x50:
+            empty = self.read_uint8()
+            assert not empty
+            empty = self.read_uint16()
+            assert empty == 0xFFFF
+            return None
+        elif ty == 0x00:
+            return self.read_sint24()
+        elif ty >= 0x80:
+            resid = ((ty&~0x80)<<8)|self.read_uint8()
+            offset = self.read_uint16()
+            return dref(resid,offset)
+        else:
+            assert False
+    def write_atom(self, v, offset=None):
+        if offset is not None: self.seek(offset)
+        if v is None:
+            self.write_uint32(0x5000FFFF)
+        elif isinstance(v, dref):
+            self.write_uint16(v.resid+0x8000)
+            self.write_uint16(v.offset)
+        elif isinstance(v, int):
+            self.write_uint8(0x00)
+            self.write_sint24(v)
+        else:
+            assert False, "Can't write (%s) as a delver atom"%v
+        
+
     def read_sint24(self, offset=None):
         "Return a signed 24-bit integer."
         first_part  = self.read_uint8(offset)
         uvar = (first_part<<16) | self.read_uint16()
         if uvar & 0x800000:
-            uvar = ~uvar + 1
+            uvar = -((0xFFFFFF^uvar)+1)
         return uvar
+    def read_fo16(self, offset=None):
+        v = self.read_uint16(offset)
+        return (v&0xF000)>>12,v&0x0FFF
     def read_xy24(self, offset=None):
         "Read packed 12-bit xy coordinates, as used in prop lists."
         if offset is not None: self.seek(offset)

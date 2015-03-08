@@ -24,7 +24,7 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import graphics, sound, store, level
+import graphics, sound, store, level, script
 GRAPHICS_LANDSCAPE = 131
 GRAPHICS_PORTRAIT = 135
 GRAPHICS_TILESHEET = 141
@@ -37,7 +37,16 @@ _OBJECT_SI_HINTS = {
    141: graphics.TileSheet,
    142: graphics.General,
    144: sound.Asnd,
+   15: script.ClassContainer,
+   16: script.ClassContainer,
+   17: script.ClassContainer,
+   18: script.ClassContainer,
 }
+for n in xrange(0x7E): 
+    if not n in _OBJECT_SI_HINTS:
+        _OBJECT_SI_HINTS[n] = script.Script
+_OBJECT_SI_HINTS[n] = store.Store
+
 _OBJECT_RESID_HINTS = {
   0xF004: store.TileNameList,
   0xF000: store.PropTileList,
@@ -80,6 +89,14 @@ _RES_HINTS = {
  0x0413: "Defend",
  0x0414: "Berserk",
  0x0415: "Missile Script",
+ 0x0A00: "Sustenance Potion",
+ 0x0A01: "Healing Potion",
+ 0x0A02: "Mage's Friend Potion",
+ 0x0A03: "Free Motion Potion",
+ 0x0A04: "Antidote Potion",
+ 0x0A05: "Clear Mind Potion",
+ 0x0A06: "Smith's Friend Potion",
+ 0x0A07: "Far Sight Potion",
  0xF008: "Monster Statistics",
  0xF000: "Prop-Tile Associations",
  0xF004: "Tile Names",
@@ -93,9 +110,12 @@ _RES_HINTS = {
 _SCEN_HINTS = {
     1: "String Lists",2: "Static Data",3: "AI Scripts",4: "Script Data",
     7: "Shared Dialogue Scripts",
-    8: "Scripts", 9: "Scripts", 10: "Scripts", 11: "Scripts", 12: "Scripts",
-    13: "Scripts", 14: "Scripts", 16: "Object Scripts", 19: "Zone Scripts",
-    15: "Object Scripts", 20: "Composite Zone Scripts", 
+    8: "Scripts", 9: "Potion Scripts", 10: "Scripts", 11: "Scripts", 
+    12: "Scripts",
+    13: "Game Mechanics Scripts", 14: "Scripts", 
+    16: "Object Scripts", 19: "Zone Scripts",
+    15: "Object Scripts",17:"Object Scripts",18:"Object Scripts",
+    20: "Composite Zone Scripts", 
     23: "Dialogue Scripts", 25: "Skill and Action Scripts", 
     26: "Area Scripts", 27: "Area Scripts", 47: "Character Action Scripts",
     127: "Maps", 128: "Prop Lists", 131: "Landscape Graphics", 

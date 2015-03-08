@@ -135,6 +135,8 @@ class Library(object):
             r = archive.get(resid)
             if r: return r
         return None
+    def get_dref(self, mdref):
+        return self.get_resource(mdref.resid).get_dref(mdref) 
     def purge_cache(self, resid):
         r = self.get_resource(resid)
         if self.cache.has_key(r):

@@ -94,36 +94,45 @@ def indices(resid):
 class ResourceFile(util.BinaryHandler):
     """Implements a simple file-like interface for resources, with the
        binary utility functions of BinaryHandler."""
-    def __init__(self, resource):
+    def __init__(self, resource, trans_offset=0, length_limit=None):
         self.resource = resource
-        self.position = 0
+        self.trans_offset = trans_offset
+        self.position = trans_offset
+        self.length_limit = len(self.resource) if length_limit is None else (
+            length_limit)
         self.name = repr(self)
+    def __len__(self):
+        return self.length_limit-self.trans_offset
     def __repr__(self):
-        return '<ResourceFile from %s. P=%d>'%(self.resource, self.position)
+        return '<ResourceFile from %s. P=%d T=%d L=%s>'%(repr(self.resource), 
+            self.position, self.trans_offset, self.length_limit)
     def tell(self):
-        return self.position
+        return self.position - self.trans_offset
     def seek(self, offset, whence=0):
+        offset += self.trans_offset
         if whence == 2: # Who uses this?
-            self.position = len(self.resource.data) - offset
+            self.position = self.length_limit - offset
         elif whence == 1:
             self.position += offset
         elif whence == 0:
             self.position = offset
         else:
             assert False, "Illegal seek whence: %d"%whence
-        if self.position >= len(self.resource.data):
+        if self.position >= self.length_limit:
             raise IndexError, "Bad seek to 0x%08X, size 0x%08X"%(
-                offset, len(self.resource.data))
+                offset, len(self))
     def eof(self):
-        return self.position >= len(self.resource.data)
+        return self.position >= self.length_limit
     def truncate(self, size=None):
+        assert not self.trans_offset
         if size is None: size = self.position
         self.resource.data = self.resource.data[:size]
         self.resource.dirty = True
     def readb(self, length=None):
+        if self.position >= self.length_limit: assert False
         if length is None:
-            rv = self.resource.data[self.position:]
-            self.position = len(self.resource.data)
+            rv = self.resource.data[self.position:self.length_limit]
+            self.position = self.length_limit
         else:
             rv = self.resource.data[self.position:self.position+length]
             self.position += length
@@ -153,6 +162,14 @@ class Resource(object):
         # Only needed for debugging and decryption.
         self.subindex = subindex
         self.n = n
+    def get_dref(self, mdref):
+        print "dref request:", mdref
+        if not self.loaded: self.load()
+        if mdref.length is None:
+            return ResourceFile(self, trans_offset=mdref.offset)
+        else:
+            return ResourceFile(self, trans_offset=mdref.offset, 
+                length_limit=mdref.offset+mdref.length)
     def preview(self): 
         """Generate a human-readable preview."""
         d = filter(
@@ -173,6 +190,7 @@ class Resource(object):
            out the Archive to save changes to disk. It defines read, write,
            seek, tell, truncate, and the various binary helper methods found in 
            delv.util.BinaryHandler."""
+        if not self.loaded:self.load()
         return ResourceFile(self)
      
     def __getitem__(self, n):
