@@ -55,6 +55,7 @@ _OBJECT_RESID_HINTS = {
   0xF012: store.ByteList,
   0xF002: store.TileAttributesList, 
   0xF013: store.TileCompositionList,
+  0x0201: script.CharacterNames,
   0x8EFF: graphics.General,
 }
 def class_by_resid(resid):

@@ -163,7 +163,6 @@ class Resource(object):
         self.subindex = subindex
         self.n = n
     def get_dref(self, mdref):
-        print "dref request:", mdref
         if not self.loaded: self.load()
         if mdref.length is None:
             return ResourceFile(self, trans_offset=mdref.offset)

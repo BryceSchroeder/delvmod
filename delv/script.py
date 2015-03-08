@@ -68,9 +68,7 @@ class _PrintOuter(object):
 def TypeFactory(script, src, library=None): 
         rewind = src.tell()
         cntype = src.read_uint8()
-        print "TYPEFACTORY %02X %04X"%(cntype,src.read_uint32())
         src.seek(rewind)
-        print repr(src)
 
         if cntype == 0x81:
             obj = Code()
@@ -85,6 +83,7 @@ def TypeFactory(script, src, library=None):
 
 
 class Array(list, _PrintOuter): 
+    override_dref = None
     def empty(self):
         self[:] = []
         self.references = {}
@@ -94,7 +93,10 @@ class Array(list, _PrintOuter):
         typecode,count = src.read_fo16()
         assert typecode == 9
         for n in xrange(count):
-            self.append(src.read_atom())
+            v = src.read_atom()
+            if self.override_dref is not None and isinstance(v,dref):
+                v.resid = self.override_dref
+            self.append(v)
     def marshal(self, dst):
         dst.write_do16(9, len(self))
         for a in self:
@@ -119,7 +121,6 @@ class Array(list, _PrintOuter):
                 self.pn(indent+1,'')
             else:
                 self.p(indent, "%4d: "%n)
-                print "$$$$$$$$$$$$$", repr(item)
                 self.disassemble_atom(indent+1,item)
                 self.pn(indent+1,'')
         self.pn(indent, "]")
@@ -127,7 +128,8 @@ class Array(list, _PrintOuter):
         print >> out, '\t'*level, "Array"
         for n,item in enumerate(self):
             print >> out, '\t'*(level+1), "%3d:"%n, item
-
+class CharacterNameArray(Array):
+    override_dref = 0x0201
 
 class DCOperation(_PrintOuter):
     def __init__(self, data):
@@ -159,7 +161,6 @@ class Code(list, _PrintOuter):
         self.localc = src.read_uint8()
         self.local_names = ["var_%d"%x for x in xrange(self.localc)]
         self.arg_names = ["arg_%d"%x for x in xrange(self.argc)]
-        print "reading from src Code", src
         self[:] = [DCBytes(src.readb())]
     def disassemble(self, out, indent):
         self.set_stream(out)
@@ -275,6 +276,7 @@ class Class(_PrintOuter):
  
 class Script(store.Store):
     class_container = False
+    character_names = False
     def __init__(self, src):
         store.Store.__init__(self, src)
         self.symbol_table = {}
@@ -312,7 +314,8 @@ class Script(store.Store):
                 self.obj = Code()
                 self.obj.demarshal(self, self.src)
             elif cntype&0xF0 == 0x90:
-                self.obj = Array()
+                self.obj = (
+                    CharacterNameArray if self.character_names else Array)()
                 self.obj.demarshal(self, self.src)
             elif cntype&0xF0 == 0xA0:
                 self.obj = DispatchTable()
@@ -334,4 +337,5 @@ class Script(store.Store):
 class ClassContainer(Script):
     class_container = True
 
-
+class CharacterNames(Script):
+    character_names = True
