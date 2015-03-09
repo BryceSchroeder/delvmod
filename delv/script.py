@@ -108,9 +108,11 @@ class Array(list, _PrintOuter):
         dst.write_do16(9, len(self))
         for a in self:
             dst.write_atom(a)
-    def load_from_library(self, library):
+    def load_from_library(self, library, only_local=False):
         for n in xrange(len(self)):
             if isinstance(self[n], dref):
+                if only_local and self.script.res.resid != self[n].resid:
+                    continue
                 self.references[n] = self[n]
                 self[n] = TypeFactory(self.script,
                     library.get_dref(self[n]), library, 
@@ -212,11 +214,12 @@ class DOPushArg(DCFixedFieldOperation):
 
 class DOPushLocal(DCFixedFieldOperation):
     mnemonic = 'push'
-    length = 2
+    length = 1
     def decode(self):
         self.which = self.data[0]
+        self.label = self.code_context.get_local_name(self.which)
     def get_fields(self):
-        return self.code_context.get_local_name(self.which)
+        return self.label
 
 class DCGoto(DCFixedFieldOperation):
     length = 3
@@ -256,11 +259,14 @@ class DOPushString(DCVariableFieldOperation):
 class DOPushData(DCVariableFieldOperation):
     mnemonic = 'push'
     def decode_length(self, data):
-        return (data[1]<<8)|data[2]
+        return (data[1]<<8)|data[2]+3
     def decode(self):
         s = util.BinaryHandler(StringIO.StringIO(self.data[3:]))
         self.contents = TypeFactory(self.script_context, s, 
              organic_offset=self.true_offset+3)
+        if hasattr(self.contents,'load_from_library'):
+            self.contents.load_from_library(
+                self.script_context.library,only_local=True)
     def disassemble(self,out,indent):
         self.set_stream(out)
         #self.dlabel(indent)
@@ -556,7 +562,7 @@ class Code(list, _PrintOuter):
     def __str__(self):
         return "<Code argc=%d localc=%d length=%d>"%(
             self.argc,self.localc,len(self))
-    def load_from_library(self, library):
+    def load_from_library(self, library, only_local=False):
         pass
     def printout(self, out, level=0):
         print >> out, '\t'*level, str(self)
@@ -592,9 +598,11 @@ class DispatchTable(dict, _PrintOuter):
         for k,v in self.items():
              dst.write_atom(v)
              dst.write_uint16(k)
-    def load_from_library(self, library):
+    def load_from_library(self, library,only_local=False):
         for n in self:
             if isinstance(self[n], dref):
+                if only_local and self.script.res.resid != dref.resid:
+                    continue
                 self.references[n] = self[n]
                 self[n] = TypeFactory(self.script,
                     library.get_dref(self[n]), library, 
@@ -647,7 +655,7 @@ class Class(_PrintOuter):
         self.dtindex = DispatchTable()
         self.dtindex.demarshal(self.script, src, dtoffset,
              organic_offset=dtoffset)
-    def load_from_library(self, library):
+    def load_from_library(self, library,only_local=False):
         self.dtindex.load_from_library(library)
         self.dispatch = self.dtindex
     def disassemble(self, out, indent):
@@ -670,6 +678,8 @@ class Script(store.Store):
         if self.src: self.load_from_bfile()
     def empty(self):
         self.obj = None
+    def set_library(self, library):
+        self.library = library
     def write_to_bfile(self, dest=None):
         if dest is None: dest = self.src
         dest.write(self.cobj.get_data())
@@ -710,9 +720,10 @@ class Script(store.Store):
                     organic_offset = 0)
             else:
                 self.obj = self.src.read_atom()
-    def load_from_library(self, library):
+    def load_from_library(self, library,only_local=False):
+        self.set_library(library)
         if hasattr(self.obj, 'load_from_library'):
-            self.obj.load_from_library(library)
+            self.obj.load_from_library(library,only_local)
     def printout(self, out, level=0):
         if not hasattr(self.obj, 'disassemble'):
             print >> out, "Atom:", self.obj
