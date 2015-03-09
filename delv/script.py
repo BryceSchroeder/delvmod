@@ -199,7 +199,7 @@ class DCVariableFieldOperation(DCFixedFieldOperation):
         self.data = data[i:i+end]
         self.decode()
     def decode_length(self, data):
-        i = data.find(terminator)
+        i = data.find(self.terminator)+1
         return i if i >= 0 else len(data)
 
 class DOPushArg(DCFixedFieldOperation):
@@ -251,7 +251,7 @@ class DOPushWord(DCFixedFieldOperation):
 class DOPushString(DCVariableFieldOperation):
     mnemonic = 'push'
     def get_fields(self):
-        return rstr(str(self.data[1:]))
+        return rstr(str(self.data[1:-1]))
 
 class DOPushData(DCVariableFieldOperation):
     mnemonic = 'push'
@@ -343,7 +343,7 @@ class DOOperator(DCFixedFieldOperation):
         0x4A: 'add',   0x4C: 'mul',   0x4B: 'sub',  0x4D: 'div',
         0x4F: 'mod?',
         0x51: 'gt', 0x54: 'neq',
-        0x5A: 'shl', 0x5E: 'and?',  
+        0x5A: 'shl', 0x5E: 'and?', 0x5D: 'bitwise_not?'
     }
     def decode(self):
         self.mnemonic = self.mnemonics[self.data[0]]
@@ -383,6 +383,8 @@ class DCReturn(DCExpressionContainer):
     groups = 1
     mnemonic = 'return'
     length = 1
+class DCUnknown(DCExpressionContainer):
+    mnemonic = 'print?'
 
 class DCIfStatement(DCExpressionContainer):
     mnemonic = 'if'
@@ -440,6 +442,8 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DCAttrAssignment
         elif opc == 0x88:
             op = DCGoto
+        elif opc == 0x8A:
+            op = DCUnknown
         elif opc == 0x8B:
             op = DCReturn
         elif opc == 0x8D:
@@ -455,7 +459,9 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
         elif opc&0xF0 == 0xB0:
             op = DCSeriesB
         elif opc&0xF0 == 0xC0:
-            op = DCSignal
+            op = DCSignal        
+        elif opc&0xF0 == 0xD0:
+            op = DCSeriesD
         elif opc&0xF0 == 0xE0:
             op = DCSeriesE
         else:
@@ -484,7 +490,7 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DOSeriesA
         elif opc >= 0x4A and opc <= 0x4D or opc == 0x4F:
             op = DOOperator
-        elif opc == 0x51 or opc == 0x54 or opc == 0x5E:
+        elif opc == 0x51 or opc == 0x54 or opc == 0x5E or opc == 0x5D:
             op = DOOperator
         elif opc == 0x5A:
             op = DOOperator
@@ -494,6 +500,10 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DOCast        
         elif opc == 0x9B:
             op = DC9B
+        elif opc == 0x9D:
+            op = DC9D
+        elif opc == 0x9F:
+            op = DCCallRes
         elif opc&0xF0 == 0xC0:
             op = DCSignal
         elif opc&0xF0 == 0xD0:

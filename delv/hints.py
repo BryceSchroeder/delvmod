@@ -42,9 +42,13 @@ _OBJECT_SI_HINTS = {
    17: script.ClassContainer,
    18: script.ClassContainer,
 }
+for n in xrange(15,30): 
+    if not n in _OBJECT_SI_HINTS:
+        _OBJECT_SI_HINTS[n] = script.ClassContainer
 for n in xrange(0x7E): 
     if not n in _OBJECT_SI_HINTS:
         _OBJECT_SI_HINTS[n] = script.Script
+
 _OBJECT_SI_HINTS[n] = store.Store
 
 _OBJECT_RESID_HINTS = {
