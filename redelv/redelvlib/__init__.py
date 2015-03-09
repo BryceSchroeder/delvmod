@@ -59,7 +59,8 @@ DEFAULT_PREFS = {# Command that will play sounds:
                    #  unsaved changes if any.)
                    'instant_editor_propagation':True,
                    'graphics_editor_cmd': 'gimp -n %s',
-                   'audio_editor': 'audacity %s',
+                   'audio_editor_cmd': 'audacity %s',
+                   'assembly_editor_cmd': 'gedit --standalone %s',
                    'default_patch_info':PATCHINFO,}
 PREFS_PATH = os.path.expanduser('~/.redelv')
 

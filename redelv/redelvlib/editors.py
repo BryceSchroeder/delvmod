@@ -25,6 +25,7 @@ facilities (e.g. refer to props or tiles.) Exception was: %s"""
 class Editor(gtk.Window):
     name = "Unspecified Editor"
     co_object = None
+    icon = images.icon_path
     def load(self):
         print "An editor class isn't overloading load():",repr(self.__class__)
     def set_saved(self):
@@ -114,7 +115,7 @@ class Editor(gtk.Window):
             self._unsaved = False
             self.connect("delete_event", self.delete_event)
             self.set_icon(
-                    gtk.gdk.pixbuf_new_from_file(images.icon_path))
+                    gtk.gdk.pixbuf_new_from_file(self.icon))
             self.editor_setup()
         except delv.util.LibraryIncomplete,e:
             self.redelv.error_message(MSG_NO_UNDERLAY%repr(e))

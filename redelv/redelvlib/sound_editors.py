@@ -20,7 +20,7 @@
 import gtk,editors
 import delv
 import delv.sound
-import os, tempfile, struct, wave, subprocess
+import os, tempfile, struct, wave, subprocess, images
 
 MAGPIE_WARN = """This patch is currently in Magpie format. Saving it will
 change the format to mag.py format, which is not compatible with Magpie. 
@@ -28,6 +28,7 @@ Proceed?
 """
 class SoundEditor(editors.Editor):
     name = "Sound Editor"
+    icon = images.sound_path
     default_size = 320,128
     s_lsint16 = struct.Struct('<h')
     s_lsint8 = struct.Struct('b')

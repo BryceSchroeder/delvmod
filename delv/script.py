@@ -26,7 +26,10 @@
 # Ambrosia Software, Inc. 
 import store, util
 from util import dref
-import sys
+import sys, StringIO
+def rstr(x):
+    return '"%s"'%repr(x)[1:-1].replace('"','\\"')
+
 INDENT='   '
 class _PrintOuter(object):
     indent=INDENT
@@ -42,6 +45,10 @@ class _PrintOuter(object):
         outstr = ' '.join(v)
         self.stream.write(outstr)
         self.nl = '\n' in outstr
+    def str_disassemble(self, indent):
+        p = StringIO()
+        self.disassemble(p, indent)
+        return p.getvalue()
     def disassemble_atom(self, il, atom):
         if atom is None:
             self.p(il, "nil")
@@ -50,9 +57,9 @@ class _PrintOuter(object):
         elif isinstance(atom, dref):
             self.p(il, "ref %s"%self.script.get_dref_label(atom))
         elif isinstance(atom, str):
-            self.p(il, repr(atom))
+            self.p(il, rstr(atom))
         else:
-            assert False, "Bad atom"
+            atom.disassemble(self.stream, il+1)
     def str_disassemble_atom(self, il, atom):
         if atom is None:
             return "nil"
@@ -61,11 +68,11 @@ class _PrintOuter(object):
         elif isinstance(atom, dref):
             return "ref %s"%self.script.get_dref_label(atom)
         elif isinstance(atom, str):
-            return repr(atom)
+            return rstr(atom)
         else:
-            assert False, "Bad atom"
+            return atom.str_disassemble(il+1)
 
-def TypeFactory(script, src, library=None): 
+def TypeFactory(script, src, library=None, organic_offset=None): 
         rewind = src.tell()
         cntype = src.read_uint8()
         src.seek(rewind)
@@ -76,7 +83,7 @@ def TypeFactory(script, src, library=None):
             obj = Array()
         else:
             return src.read_cstring()
-        obj.demarshal(script, src, len(src))
+        obj.demarshal(script, src, len(src), organic_offset=organic_offset)
         if library: obj.load_from_library(library)
         return obj
 
@@ -87,7 +94,7 @@ class Array(list, _PrintOuter):
     def empty(self):
         self[:] = []
         self.references = {}
-    def demarshal(self, script, src, end=None):
+    def demarshal(self, script, src, end=None, organic_offset=0):
         self.empty()
         self.script = script
         typecode,count = src.read_fo16()
@@ -106,21 +113,23 @@ class Array(list, _PrintOuter):
             if isinstance(self[n], dref):
                 self.references[n] = self[n]
                 self[n] = TypeFactory(self.script,
-                    library.get_dref(self[n]), library)
+                    library.get_dref(self[n]), library, 
+                         organic_offset=self[n].offset)
     def disassemble(self, out, indent):
+        self.set_stream(out)
         if len(self) < 2:
             self.pn(indent, "array [%s]"%(' '.join(map(
-                 lambda (n,a):('%d: '%n)+self.str_disassemble_atom(indent+1,a),
+                 lambda (n,a):self.str_disassemble_atom(0,a),
                      enumerate(self)))))
             return
         self.pn(indent, "array [")
         for n,item in enumerate(self):
             if False: #self.references.has_key(n): 
-                self.p(indent, "%4d: "%n)
+                self.p(indent, "#{ %4d: }# "%n)
                 self.disassemble_atom(indent+1,self.references[n])
                 self.pn(indent+1,'')
             else:
-                self.p(indent, "%4d: "%n)
+                self.p(indent+1, "%3d: "%n)
                 self.disassemble_atom(indent+1,item)
                 self.pn(indent+1,'')
         self.pn(indent, "]")
@@ -132,28 +141,384 @@ class CharacterNameArray(Array):
     override_dref = 0x0201
 
 class DCOperation(_PrintOuter):
-    def __init__(self, data):
-        self.data = data
+    def __init__(self, data, i=0, toff=0):
+        self.data = data[i:]
+        self.true_offset = toff
         self.decode()
     def decode(self):
         pass
     def disassemble(self, out, indent):
         self.set_stream(out)
+        #self.dlabel(indent)
         self.pn("UNKNOWN OPERATION")
+    def __len__(self): return len(self.data)
+    def dlabel(self, out, indent):
+        self.set_stream(out)
+        lab = self.script_context.get_offset_label(self.true_offset,
+            check_only=True)
+        #print "**", lab, '%04X'%self.true_offset, self.get_mnemonic()
+        if lab is not None:
+            self.pn(indent, '%s: '%lab)
+        else:
+            self.pn(indent, '/* 0x%04X */'%self.true_offset)
 
 class DCBytes(DCOperation):
     def disassemble(self, out, indent):
         self.set_stream(out)
+        #self.dlabel(indent)
         self.pn(indent, "bytes [")
-        howmany = (80 - indent*len(self.indent) - 2)/5
+        howmany = (80 - indent*len(self.indent) - 5)/5
         for n,b in enumerate(self.data):
             self.p(indent+1, "0x%02X "%b)
             if not (n+1)%howmany: self.p(indent,'\n')
         self.pn(indent, "]")
+
+class DCFixedFieldOperation(DCOperation):
+    length = 1
+    mnemonic = 'ERR'
+    def __init__(self, data, i, toff=0):
+        self.true_offset = toff
+        self.data = data[i:i+self.length]
+        self.decode()
+    def decode(self):
+        pass
+    def get_mnemonic(self):
+        return self.mnemonic
+    def get_fields(self):
+        return ''
+    def disassemble(self, out, indent):
+        self.set_stream(out)
+        #self.dlabel(indent)
+        self.pn(indent, self.get_mnemonic(), self.get_fields())
+
+class DCVariableFieldOperation(DCFixedFieldOperation):
+    terminator = '\0'
+    def __init__(self, data, i,toff):
+        self.true_offset = toff
+        end = self.decode_length(data[i:])
+        self.data = data[i:i+end]
+        self.decode()
+    def decode_length(self, data):
+        i = data.find(terminator)
+        return i if i >= 0 else len(data)
+
+class DOPushArg(DCFixedFieldOperation):
+    mnemonic = 'push'
+    def decode(self):
+        self.which = self.data[0]&0x0F
+        self.arg_name = self.code_context.get_arg_name(self.which)
+    def get_fields(self):
+        return self.arg_name
+
+class DOPushLocal(DCFixedFieldOperation):
+    mnemonic = 'push'
+    length = 2
+    def decode(self):
+        self.which = self.data[0]
+    def get_fields(self):
+        return self.code_context.get_local_name(self.which)
+
+class DCGoto(DCFixedFieldOperation):
+    length = 3
+    branch_count = 0
+    mnemonic = 'goto'
+    def decode(self):
+        self.offset = (self.data[1]<<8)|self.data[2]
+        self.label = self.script_context.get_offset_label(self.offset,
+            suggestion='skip_%d'%DCGoto.branch_count)
+    def get_fields(self):
+        return self.label
+
+class DOPushByte(DCFixedFieldOperation):
+    mnemonic = 'push'
+    length = 2
+    def get_fields(self):
+        return '0x%02X'%self.data[1]
+class DOGlobal(DCFixedFieldOperation):
+    mnemonic = 'global'
+    length = 2
+    def decode(self):
+        self.name = 'g_%02X'%self.data[1]
+    def get_fields(self):
+        return self.name
+
+class DOPushWord(DCFixedFieldOperation):
+    mnemonic = 'push'
+    length = 5
+    def get_fields(self):
+        return '0x%02X%02X%02X%02X'%tuple(self.data[1:])
+
+class DOPushString(DCVariableFieldOperation):
+    mnemonic = 'push'
+    def get_fields(self):
+        return rstr(str(self.data[1:]))
+
+class DOPushData(DCVariableFieldOperation):
+    mnemonic = 'push'
+    def decode_length(self, data):
+        return (data[1]<<8)|data[2]
+    def decode(self):
+        s = util.BinaryHandler(StringIO.StringIO(self.data[3:]))
+        self.contents = TypeFactory(self.script_context, s, 
+             organic_offset=self.true_offset+3)
+    def disassemble(self,out,indent):
+        self.set_stream(out)
+        #self.dlabel(indent)
+        self.pn(indent, '%s ['%self.mnemonic)
+        self.contents.disassemble(out, indent+1)
+        self.pn(indent, ']')
+
+class DCExpressionContainer(DCVariableFieldOperation):
+    groups = 1
+    length = 1
+    afterlength = 0
+    mnemonic = 'ERR_EXPR'
+    def __init__(self, data, i, toff):
+        self.true_offset = toff
+        self.items = [[] for g in xrange(self.groups)]
+        self.flat_items = []
+        inside = self.groups
+        group = 0
+        original_i = i
+        i += self.length
+        while inside:
+            op,i = DCOperationFactory(data, i, self.code_context,
+                        self.script_context, mode = 'expression',
+                        organic_offset = 0)
+            if op:
+                self.items[group].append(op)
+                self.flat_items.append(op)
+            else:
+                inside -= 1
+                group += 1
+        self.data = data[original_i:i+self.get_afterlength(data[i:])]
+        self.decode()
+    def get_afterlength(self, data):
+        return self.afterlength
+    def decode(self): pass
+    def disassemble(self, out, indent): 
+        self.set_stream(out)
+        #self.dlabel(indent)
+        self.p(indent, self.get_mnemonic())
+        for group in self.items:
+            self.pn(indent, '(')
+            for item in group:
+                 item.disassemble(out, indent+1)
+            self.pn(indent, ')')
+        
+class DC9D(DCExpressionContainer):
+    mnemonic = 'op9D_%02X'
+    length = 2
+    def decode(self):
+        self.which = self.data[1]
+    def get_mnemonic(self):
+        return self.mnemonic%self.which
+class DC9B(DC9D):
+    mnemonic='op9B_%02X'
+
+class DCStringConstant(DCVariableFieldOperation):
+    mnemonic = ''
+    def decode_length(self,data):
+        i = 0
+        while i < len(data):
+            if data[i] >= 0x80: break
+            i += 1
+        return i
+    def disassemble(self,out,indent):
+        self.set_stream(out)
+        #self.dlabel(indent)
+        self.pn(indent,rstr(str(self.data)))
+
+class DOSeriesA(DCExpressionContainer):
+    mnemonic = 'sysa_%1X'
+    groups = 1
+    def decode(self):
+        self.which = self.data[0]&0x0F
+    def get_mnemonic(self):
+        return self.mnemonic%self.which
+    
+class DOOperator(DCFixedFieldOperation):
+    mnemonics = {
+        0x46: 'index',
+        0x4A: 'add',   0x4C: 'mul',   0x4B: 'sub',  0x4D: 'div',
+        0x4F: 'mod?',
+        0x51: 'gt', 0x54: 'neq',
+        0x5A: 'shl', 0x5E: 'and?',  
+    }
+    def decode(self):
+        self.mnemonic = self.mnemonics[self.data[0]]
+
+class DOField(DCFixedFieldOperation):
+    length = 2
+    mnemonic = 'field'
+    def get_fields(self):
+        return '.attr_%02X'%self.data[1]
+class DOCast(DCFixedFieldOperation):
+    length = 2
+    mnemonic = 'cast'
+    def get_fields(self):
+        return 'cast_%02X'%self.data[1]
+
+class DCLocalAssignment(DCExpressionContainer):
+    groups = 1
+    mnemonic = 'set'
+    length = 2
+    def decode(self):
+        self.which = self.data[1]
+        #print 'XXXXXX %02X/%02X/%02X/%02X'%tuple(self.data[0:4])
+        self.local_name = self.code_context.get_local_name(self.which)
+    def get_mnemonic(self):
+        return '%s %s'%(self.mnemonic,self.local_name)
+class DCAttrAssignment(DCExpressionContainer):
+    groups = 2
+    mnemonic = 'set'
+    length = 2
+    def decode(self):
+        self.which = self.data[1]
+        self.field_name = '.attr_%02X'%self.which
+    def get_mnemonic(self):
+        return '%s%s '%(self.mnemonic,self.field_name)
+
+class DCReturn(DCExpressionContainer):
+    groups = 1
+    mnemonic = 'return'
+    length = 1
+
+class DCIfStatement(DCExpressionContainer):
+    mnemonic = 'if'
+    branch_count = 0
+    groups = 1
+    afterlength = 2
+    def decode(self):
+        self.offset = (self.data[-2]<<8)|self.data[-1] 
+        self.label = self.script_context.get_offset_label(self.offset,
+            suggestion='branch_%d'%DCIfStatement.branch_count)
+        DCIfStatement.branch_count += 1
+    def get_mnemonic(self):
+        return 'goto %s if '%self.label
+class DCCallRes(DCExpressionContainer):
+    mnemonic = 'call'
+    length = 3
+    def decode(self):
+        self.resid = (self.data[1]<<8)|self.data[2] 
+    def get_mnemonic(self):
+        return '%s res 0x%04X'%(self.mnemonic,self.resid)
+class DCCallArray(DCExpressionContainer):
+    mnemonic = 'dispatch'
+    length = 3
+    groups = 2
+    def decode(self):
+        self.base_resid = (self.data[1]<<8)|self.data[2] 
+    def get_mnemonic(self):
+        return '%s res 0x%04X'%(self.mnemonic,self.base_resid)
+class DCSignal(DCExpressionContainer):
+    mnemonic = 'signal'
+    def decode(self):
+        self.argc = self.data[0]&0x0F
+    def get_mnemonic(self):
+        return self.mnemonic+'_%01X'%self.argc
+class DCSeriesE(DCSignal):
+    mnemonic = 'syse'
+class DCSeriesB(DCSignal):
+    mnemonic = 'sysb'
+class DCSeriesD(DCSignal):
+    mnemonic = 'sysd'
+
+
+def DCOperationFactory(data, i, code, script, mode = 'toplevel',
+    organic_offset=0):
+    if i == len(data): return None,i
+    DCOperation.code_context = code
+    DCOperation.script_context = script
+    opc = data[i]
+    if mode is 'toplevel':
+        if opc < 0x80:
+            op = DCStringConstant
+        elif opc == 0x82:
+            op = DCLocalAssignment
+        elif opc == 0x86:
+            op = DCAttrAssignment
+        elif opc == 0x88:
+            op = DCGoto
+        elif opc == 0x8B:
+            op = DCReturn
+        elif opc == 0x8D:
+            op = DCIfStatement
+        elif opc == 0x9C:
+            op = DCCallArray
+        elif opc == 0x9D:
+            op = DC9D
+        elif opc == 0x9B:
+            op = DC9B
+        elif opc == 0x9F:
+            op = DCCallRes
+        elif opc&0xF0 == 0xB0:
+            op = DCSeriesB
+        elif opc&0xF0 == 0xC0:
+            op = DCSignal
+        elif opc&0xF0 == 0xE0:
+            op = DCSeriesE
+        else:
+            op = DCBytes
+        op = op(data,i,organic_offset+i)
+        i += len(op)
+        return op, i
+    elif mode is 'expression':
+        if opc &0xF0 == 0x30:
+            op = DOPushArg
+        elif opc < 0x30:
+            op = DOPushLocal
+        elif opc == 0x41:
+            op = DOPushByte
+        elif opc == 0x43:
+            op = DOPushWord
+        elif opc == 0x44:
+            op = DOPushString
+        elif opc == 0x45:
+            op = DOPushData
+        elif opc == 0x46:
+            op = DOOperator
+        elif opc == 0x48:
+            op = DOGlobal
+        elif opc&0xF0 == 0xA0:
+            op = DOSeriesA
+        elif opc >= 0x4A and opc <= 0x4D or opc == 0x4F:
+            op = DOOperator
+        elif opc == 0x51 or opc == 0x54 or opc == 0x5E:
+            op = DOOperator
+        elif opc == 0x5A:
+            op = DOOperator
+        elif opc == 0x62:
+            op = DOField
+        elif opc == 0x63:
+            op = DOCast        
+        elif opc == 0x9B:
+            op = DC9B
+        elif opc&0xF0 == 0xC0:
+            op = DCSignal
+        elif opc&0xF0 == 0xD0:
+            op = DCSeriesD
+        elif opc == 0x40:
+            op = None
+            i += 1
+        else:
+            op = DCBytes
+        
+        if op:
+            op = op(data,i,organic_offset+i) 
+            i += len(op)
+        return op,i
 class Code(list, _PrintOuter):
     def empty(self):
         self[:] = []
-    def demarshal(self, script, src, end=None):
+    def get_local_name(self, n):
+        if len(self.local_names) <= n:
+            return '<LOCAL NAME 0x%02X>'%n
+        return self.local_names[n]
+    def get_arg_name(self,n):
+        return self.arg_names[n]
+    def demarshal(self, script, src, end=None,organic_offset=0):
+        self.empty()
         self.script = script
         typecode = src.read_uint8()
         assert typecode == 0x81
@@ -161,14 +526,23 @@ class Code(list, _PrintOuter):
         self.localc = src.read_uint8()
         self.local_names = ["var_%d"%x for x in xrange(self.localc)]
         self.arg_names = ["arg_%d"%x for x in xrange(self.argc)]
-        self[:] = [DCBytes(src.readb())]
+        data = src.readb()
+        i = 0
+        while i < len(data):
+            op,i = DCOperationFactory(data,i,self,script,
+                 organic_offset=organic_offset+3)
+            self.append(op)
+        #self[:] = [DCBytes(src.readb())]
     def disassemble(self, out, indent):
         self.set_stream(out)
-        self.pn(indent, "function (%s)"%(' '.join(self.arg_names)))
+        self.p(indent, "function (%s) "%(' '.join(self.arg_names)))
         if self.localc: self.pn(indent+1, 
-                'with (%s)'%(' '.join(self.local_names)))
+                'with (%s) {'%(' '.join(self.local_names)))
+        else: self.pn(indent, "{")
         for op in self:
+            op.dlabel(out,indent+1)
             op.disassemble(out, indent+1)
+        self.pn(indent, "}")
     def __str__(self):
         return "<Code argc=%d localc=%d length=%d>"%(
             self.argc,self.localc,len(self))
@@ -183,7 +557,7 @@ class DispatchTable(dict, _PrintOuter):
         self.references = {}
         self.item_labels = {}
         self.clear()
-    def demarshal(self, script, src, end):
+    def demarshal(self, script, src, end,organic_offset=0):
         self.empty()
         typecode,count = src.read_fo16()
         self.script = script
@@ -213,7 +587,8 @@ class DispatchTable(dict, _PrintOuter):
             if isinstance(self[n], dref):
                 self.references[n] = self[n]
                 self[n] = TypeFactory(self.script,
-                    library.get_dref(self[n]), library)
+                    library.get_dref(self[n]), library, 
+                         organic_offset=self[n].offset)
                 if self.references[n].resid == self.script.res.resid:
                     self.item_labels[self.script.get_dref_label(
                         self.references[n])]=self[n]
@@ -249,30 +624,30 @@ class DispatchTable(dict, _PrintOuter):
             else: print >> out, '\t'*(level+2), repr(item)[:40]
 
 class Class(_PrintOuter):
-    def __init__(self, script, src=None, end=None):
+    def __init__(self, script, src=None, end=None, organic_offset=0):
         self.dispatch = None 
         self.script = script
-        if src: self.demarshal(self.script, src, end)
-    def demarshal(self, script, src, end=None):
+        if src: self.demarshal(self.script, src, end,
+             organic_offset=organic_offset)
+    def demarshal(self, script, src, end=None, organic_offset = 0):
         self.script = script
         src.seek(0)
         dtoffset = src.read_uint16()
         src.seek(dtoffset)
         self.dtindex = DispatchTable()
-        self.dtindex.demarshal(self.script, src, dtoffset)
+        self.dtindex.demarshal(self.script, src, dtoffset,
+             organic_offset=dtoffset)
     def load_from_library(self, library):
         self.dtindex.load_from_library(library)
         self.dispatch = self.dtindex
-    def disassemble(self, out, level):
-        print >> out, '\t'*level, "Class with Dispatch Table"
-        self.dtindex.disassemble(out, level+1)
     def disassemble(self, out, indent):
-        self.pn(indent, "class (")
+        self.set_stream(out)
+        self.pn(indent, "class {")
         for label, item in self.dtindex.item_labels.items():
             self.pn(indent+1, "%s:"%label)
             item.disassemble(out, indent+2)
         self.dtindex.disassemble(out, indent+1)
-        self.pn(indent, ")")
+        self.pn(indent, "}")
  
 class Script(store.Store):
     class_container = False
@@ -288,19 +663,21 @@ class Script(store.Store):
     def write_to_bfile(self, dest=None):
         if dest is None: dest = self.src
         dest.write(self.cobj.get_data())
-    def get_dref_label(self, ref, suggestion=None):
+    def get_dref_label(self, ref, suggestion=None, check_only=False):
         if ref in self.symbol_table:
             return self.symbol_table[ref]
         if ref.resid == self.res.resid and ref.offset in self.symbol_table:
             return self.symbol_table[ref.offset]
+        if check_only: return None
         if suggestion is None: 
             suggestion = "label_%d"%self.unique_symbol
             self.unique_symbol += 1
         self.symbol_table[ref] = suggestion
         self.symbol_table[ref.offset] = suggestion
         return suggestion
-    def get_offset_label(self, offset, suggestion=None):
-        return self.get_dref_label(dref(self.res.resid, offset))
+    def get_offset_label(self, offset, suggestion=None,check_only=False):
+        return self.get_dref_label(dref(self.res.resid, offset),
+            suggestion,check_only=check_only)
         
     def load_from_bfile(self):
         #print repr(self.src.resource)
@@ -312,14 +689,15 @@ class Script(store.Store):
             self.src.seek(0)
             if cntype == 0x81:
                 self.obj = Code()
-                self.obj.demarshal(self, self.src)
+                self.obj.demarshal(self, self.src, organic_offset = 0)
             elif cntype&0xF0 == 0x90:
                 self.obj = (
                     CharacterNameArray if self.character_names else Array)()
-                self.obj.demarshal(self, self.src)
+                self.obj.demarshal(self, self.src, organic_offset = 0)
             elif cntype&0xF0 == 0xA0:
                 self.obj = DispatchTable()
-                self.obj.demarshal(self, self.src,len(self.src))
+                self.obj.demarshal(self, self.src,len(self.src),
+                    organic_offset = 0)
             else:
                 self.obj = self.src.read_atom()
     def load_from_library(self, library):
@@ -331,6 +709,31 @@ class Script(store.Store):
             return
         print >> out, "-- Script Object from %s --"%repr(self.src)
         self.obj.disassemble(out, 1)
+    def disassemble(self, target=None):
+        if target is None: 
+             out = StringIO.StringIO()
+        else:
+             out = target
+        if not hasattr(self.obj, 'disassemble'):
+            print >> out, self.str_disassemble_atom(self.obj)
+        else:
+            self.obj.disassemble(out, 0)
+
+        if target is None: return out.getvalue()
+        return "<ERROR>"
+    def str_disassemble_atom(self, atom):
+        if atom is None:
+            return "nil"
+        elif isinstance(atom, int):
+            return "%d"%atom
+        elif isinstance(atom, dref):
+            return "ref %s"%self.get_dref_label(atom)
+        elif isinstance(atom, str):
+            return rstr(atom)
+        else:
+            return "<BAD ATOM>"
+
+        
         
         
         

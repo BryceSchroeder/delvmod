@@ -175,6 +175,13 @@ class BinaryHandler(object):
         self.file.write(*vargs, **kwargs)
     def tell(self, *vargs, **kwargs):
         return self.file.tell(*vargs, **kwargs)
+    def __len__(self):
+        p = self.tell()
+        self.seek(0)
+        # somewhere a Real Programmer is crying
+        length = len(self.read())
+        self.seek(p)
+        return length
     def truncate(self, *vargs, **kwargs):
         return self.file.truncate(*vargs,**kwargs)
 
