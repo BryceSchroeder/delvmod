@@ -400,8 +400,8 @@ class DOSeriesA(DCExpressionContainer):
 class DOOperator(DCFixedFieldOperation):
     mnemonics = {
         0x46: 'index',
-        0x4A: 'add',   0x4C: 'mul',   0x4B: 'sub',  0x4D: 'div',
-        0x4F: 'mod?',
+        0x4A: 'add',   0x4C: 'mul',   0x4B: 'sub',  0x4D: 'div', 
+        0x4E: 'arithmetic?', 0x4F: 'mod?',
         0x51: 'gt', 0x52: 'le?', 0x54: 'neq', #0x57: 'op57',
         0x53: 'lt?',
         0x5A: 'shl', 0x5B: 'bitwise?', 0x5E: 'not?', 0x5D: 'bitwise_not?',
@@ -640,7 +640,7 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DOPushAtom
         elif opc&0xF0 == 0xA0:
             op = DOSeriesA
-        elif opc >= 0x4A and opc <= 0x4D or opc == 0x4F:
+        elif opc >= 0x4A and opc <= 0x4F:
             op = DOOperator
         elif opc in [0x51,0x52,0x53,0x54,0x56,0x57,0x5E,0x5D,0x5B,0x5C,0x5F]:
             op = DOOperator

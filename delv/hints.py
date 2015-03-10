@@ -121,7 +121,7 @@ _SCEN_HINTS = {
     16: "Object Scripts", 19: "Zone Scripts",
     15: "Object Scripts",17:"Object Scripts",18:"Object Scripts",
     20: "Composite Zone Scripts", 
-    23: "Dialogue Scripts", 25: "Skill and Action Scripts", 
+    23: "Character Scripts", 25: "Skill and Action Scripts", 
     26: "Area Scripts", 27: "Area Scripts", 47: "Character Action Scripts",
     127: "Maps", 128: "Prop Lists", 131: "Landscape Graphics", 
     135: "Character Portraits", 137: "Skill Icons", 141: "Tile Graphics",
