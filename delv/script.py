@@ -261,6 +261,7 @@ class DCGoto(DCFixedFieldOperation):
         self.offset = (self.data[1]<<8)|self.data[2]
         self.label = self.script_context.get_offset_label(self.offset,
             suggestion='skip_%d'%DCGoto.branch_count)
+        DCGoto.branch_count += 1
     def get_fields(self):
         return self.label
 
@@ -320,7 +321,11 @@ class DOPushData(DCVariableFieldOperation):
         self.set_stream(out)
         #self.dlabel(indent)
         self.pn(indent, '%s ['%self.mnemonic)
-        self.contents.disassemble(out, indent+1)
+        if hasattr(self.contents,'disassemble'):
+            self.contents.disassemble(out, indent+1)
+        else:
+            self.pn(indent+1, self.str_disassemble_atom(indent+1,
+                self.contents))
         self.pn(indent, ']')
 
 class DCExpressionContainer(DCVariableFieldOperation):
