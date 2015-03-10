@@ -73,7 +73,7 @@ class ScriptEditor(editors.Editor):
     
     def editor_setup(self):
         self.load()
-    def load(self):
+    def load(self, *argv):
         self.canonical_object.load_from_library(self.redelv.get_library())
         asmc = self.canonical_object.disassemble()
         self.text_buf.set_text("<DISASSEMBLING>")

@@ -208,13 +208,24 @@ class DCConversationPrompt(DCVariableFieldOperation):
     mnemonic = 'prompt'
     def decode_length(self, data):
         i = data.find(self.terminator)
-        if i < 5: return 8
         return i + 3
     def decode(self):
         self.promptstr = self.data[
              1:self.data.find(self.terminator)].split(',')
+        self.nextfield = (self.data[-2]<<8)|self.data[-1]
+        self.nextlabel = self.script_context.get_offset_label(self.nextfield,
+            suggestion='conv_%03X'%self.nextfield)
     def get_fields(self):
         return ', '.join(map(rstr, self.promptstr))
+         
+class DCAsk(DCVariableFieldOperation):
+    mnemonic = 'ask'
+    def decode_length(self, data):
+        i = data.find(self.terminator)
+        return i+1
+    def get_fields(self):
+        return rstr(self.data[1:self.data.find(self.terminator)])
+
 
 class DOPushArg(DCFixedFieldOperation):
     mnemonic = 'push'
@@ -259,12 +270,29 @@ class DOGlobal(DCFixedFieldOperation):
         self.name = 'g_%02X'%self.data[1]
     def get_fields(self):
         return self.name
-
-class DOPushWord(DCFixedFieldOperation):
+class DOPushShort(DCFixedFieldOperation):
     mnemonic = 'push'
-    length = 5
+    length = 3
     def get_fields(self):
-        return '0x%02X%02X%02X%02X'%tuple(self.data[1:])
+        return '0x%02X%02X'%tuple(self.data[1:])
+class DOPushWord(DCVariableFieldOperation):
+    mnemonic = 'push'
+    length = 1
+    afterlength = 0
+    def decode_length(self, data):
+        if data[1] == 0x30: 
+             self.mnemonic = 'push.3?'
+             return 4
+        elif data[1] == 0x01:
+             self.mnemonic = 'push.2?'
+             return 3
+        else: return 5
+    def get_fields(self):
+        return '0x' + ''.join(['%02X'%x for x in self.data[1:]])
+class DOPushAtom(DOPushWord):
+    mnemonic = 'pushatom?'
+    def decode_length(self,data):
+        return 5
 
 class DOPushString(DCVariableFieldOperation):
     mnemonic = 'push'
@@ -363,11 +391,14 @@ class DOOperator(DCFixedFieldOperation):
         0x46: 'index',
         0x4A: 'add',   0x4C: 'mul',   0x4B: 'sub',  0x4D: 'div',
         0x4F: 'mod?',
-        0x51: 'gt', 0x54: 'neq',
-        0x5A: 'shl', 0x5E: 'and?', 0x5D: 'bitwise_not?'
+        0x51: 'gt', 0x52: 'le?', 0x54: 'neq', #0x57: 'op57',
+        0x53: 'lt?',
+        0x5A: 'shl', 0x5B: 'bitwise?', 0x5E: 'not?', 0x5D: 'bitwise_not?',
+        0x5C: 'shr?', 0x5F: 'bitand?'
     }
     def decode(self):
-        self.mnemonic = self.mnemonics[self.data[0]]
+        self.mnemonic = self.mnemonics.get(self.data[0],
+            "op%02X"%self.data[0])
 
 class DOField(DCFixedFieldOperation):
     length = 2
@@ -378,7 +409,23 @@ class DOCast(DCFixedFieldOperation):
     length = 2
     mnemonic = 'cast'
     def get_fields(self):
-        return 'cast_%02X'%self.data[1]
+        return '_%02X'%self.data[1]
+class DONField(DOCast):
+    menmonic = 'field64?'
+class DON60(DOCast):
+    menmonic = 'field60?'
+class DON61(DOCast):
+    mnemonic = 'unknown61?'
+    length = 3
+    def get_fields(self):
+        return '_%02X%02X'%tuple(self.data[1:])
+
+class DO92(DCExpressionContainer):
+    mnemonic = 'unkn92'
+    length=2
+    groups=1
+    def get_mnemonic(self):
+        return '%s_%02X'%(self.mnemonic,self.data[1])
 
 class DCLocalAssignment(DCExpressionContainer):
     groups = 1
@@ -407,6 +454,20 @@ class DCReturn(DCExpressionContainer):
 class DCUnknown(DCExpressionContainer):
     mnemonic = 'print?'
 
+class DCUnknown7(DC9D):
+    mnemonic = 'unkn7_%02X'
+    length = 2
+    groups = 1
+class DCUnknown5(DC9D):
+    mnemonic = 'unkn5_%08X'
+    length = 5
+    groups = 1
+    def decode(self):
+        self.value = (self.data[1]<<24)|(self.data[2]<<16)|(
+            self.data[3]<<8)|self.data[4]
+    def get_mnemonic(self):
+        return self.mnemonic%self.value
+
 class DCIfStatement(DCExpressionContainer):
     mnemonic = 'if'
     branch_count = 0
@@ -419,9 +480,20 @@ class DCIfStatement(DCExpressionContainer):
         DCIfStatement.branch_count += 1
     def get_mnemonic(self):
         return 'goto %s %s '%(self.label,self.mnemonic)
+class DCEEStatement(DCFixedFieldOperation):
+    mnemonic = 'unknEE'
+    length = 1
+
+class DCF5(DCFixedFieldOperation):
+    mnemonic = 'unknF5'
+    length = 1
+
+class DCCE(DCFixedFieldOperation):
+    mnemonic = 'unknCE'
+    length = 1
 
 class DCWhileStatement(DCIfStatement):
-    mnemonic = 'while?'
+    mnemonic = 'ifnot?'
 
 
 class DCCallRes(DCExpressionContainer):
@@ -439,6 +511,15 @@ class DCCallArray(DCExpressionContainer):
         self.base_resid = (self.data[1]<<8)|self.data[2] 
     def get_mnemonic(self):
         return '%s res 0x%04X'%(self.mnemonic,self.base_resid)
+
+class DC9E(DCCallArray):
+    mnemonic = 'endgame?'
+    length = 3
+    groups = 1
+    def get_mnemonic(self):
+        return '%s 0x%02X%02X'%((self.mnemonic,)+tuple(self.data[1:3]))
+ 
+
 class DCSignal(DCExpressionContainer):
     mnemonic = 'signal'
     def decode(self):
@@ -447,11 +528,14 @@ class DCSignal(DCExpressionContainer):
         return self.mnemonic+'_%01X'%self.argc
 class DCSeriesE(DCSignal):
     mnemonic = 'syse'
-class DCSeriesB(DCSignal):
+class DCSeriesA(DCExpressionContainer):
+    mnemonic = 'sysa'
+class DCSeriesB(DCExpressionContainer):
     mnemonic = 'sysb'
 class DCSeriesD(DCSignal):
     mnemonic = 'sysd'
-
+class DCSeriesF(DCSignal):
+    mnemonic = 'sysf'
 
 def DCOperationFactory(data, i, code, script, mode = 'toplevel',
     organic_offset=0):
@@ -464,8 +548,12 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DCStringConstant
         elif opc == 0x82:
             op = DCLocalAssignment
+        elif opc == 0x85:
+            op = DCUnknown5
         elif opc == 0x86:
             op = DCAttrAssignment
+        elif opc == 0x87:
+            op = DCUnknown7
         elif opc == 0x88:
             op = DCGoto
         elif opc == 0x8A:
@@ -478,24 +566,41 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DCIfStatement
         elif opc == 0x8E:
             op = DCConverse
+        elif opc == 0x8F:
+            op = DCAsk
         elif opc == 0x90:
             op = DCConversationPrompt  
+        elif opc == 0x92:
+            op = DO92  
         elif opc == 0x9C:
             op = DCCallArray
         elif opc == 0x9D:
             op = DC9D
         elif opc == 0x9B:
             op = DC9B
+        elif opc == 0x9E:
+            op = DC9E
         elif opc == 0x9F:
             op = DCCallRes
+        elif opc&0xF0 == 0xA0:
+            op = DCSeriesA
         elif opc&0xF0 == 0xB0:
             op = DCSeriesB
+
+        elif opc == 0xCE:
+            op = DCCE
         elif opc&0xF0 == 0xC0:
             op = DCSignal        
+
         elif opc&0xF0 == 0xD0:
             op = DCSeriesD
         elif opc&0xF0 == 0xE0:
             op = DCSeriesE
+        
+        elif opc == 0xF5:
+            op = DCF5
+        elif opc&0xF0 == 0xF0:
+            op = DCSeriesF
         else:
             op = DCBytes
         op = op(data,i,organic_offset+i)
@@ -508,6 +613,8 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DOPushLocal
         elif opc == 0x41:
             op = DOPushByte
+        elif opc == 0x42:
+            op = DOPushShort
         elif opc == 0x43:
             op = DOPushWord
         elif opc == 0x44:
@@ -518,28 +625,42 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DOOperator
         elif opc == 0x48:
             op = DOGlobal
+        elif opc == 0x49:
+            op = DOPushAtom
         elif opc&0xF0 == 0xA0:
             op = DOSeriesA
         elif opc >= 0x4A and opc <= 0x4D or opc == 0x4F:
             op = DOOperator
-        elif opc == 0x51 or opc == 0x54 or opc == 0x5E or opc == 0x5D:
+        elif opc in [0x51,0x52,0x53,0x54,0x56,0x57,0x5E,0x5D,0x5B,0x5C,0x5F]:
             op = DOOperator
         elif opc == 0x5A:
             op = DOOperator
+        elif opc == 0x60:
+            op = DON60
+        elif opc == 0x61:
+            op = DON61
         elif opc == 0x62:
             op = DOField
+        elif opc == 0x64:
+            op = DONField
         elif opc == 0x63:
-            op = DOCast      
+            op = DOCast    
         elif opc == 0x9B:
             op = DC9B
         elif opc == 0x9D:
             op = DC9D
         elif opc == 0x9F:
             op = DCCallRes
+        elif opc&0xF0 == 0xB0:
+            op = DCSeriesB
         elif opc&0xF0 == 0xC0:
             op = DCSignal
+        elif opc == 0xEE:
+            op = DCEEStatement
         elif opc&0xF0 == 0xD0:
             op = DCSeriesD
+        elif opc&0xF0 == 0xF0:
+            op = DCSeriesF
         elif opc == 0x40:
             op = None
             i += 1
