@@ -367,7 +367,7 @@ class DCExpressionContainer(DCVariableFieldOperation):
             self.pn(indent, ')')
         
 class DC9D(DCExpressionContainer):
-    mnemonic = 'op9D_%02X'
+    mnemonic = 'signal_self? 0x%02X'
     length = 2
     def decode(self):
         self.which = self.data[1]
@@ -463,6 +463,7 @@ class DCReturn(DCExpressionContainer):
     mnemonic = 'return'
     length = 1
 class DCPrint(DCExpressionContainer):
+    """Prints whatever is on the top of its stack."""
     mnemonic = 'print'
 
 class DCUnknown7(DC9D):
@@ -760,7 +761,8 @@ class DispatchTable(dict, _PrintOuter):
     def load_from_library(self, library,only_local=False):
         for n in self:
             if isinstance(self[n], dref):
-                if only_local and self.script.res.resid != dref.resid:
+                self.references[n] = self[n]
+                if only_local and self.script.res.resid != self[n].resid:
                     continue
                 self.references[n] = self[n]
                 self[n] = TypeFactory(self.script,
@@ -785,9 +787,13 @@ class DispatchTable(dict, _PrintOuter):
             elif isinstance(value, int):
                 self.pn(indent+1, '0x%04X: %d'%(key,value))
             elif isinstance(value, dref):
-                self.pn(indent+1, '0x%04X: ref %s'%(key,
-                    self.script.get_dref_label(
-                        value, "signal_%04X"%key)))
+                if value.resid == self.script.res.resid:
+                    self.pn(indent+1, '0x%04X: ref %s'%(key,
+                        self.script.get_dref_label(
+                            value, "signal_%04X"%key)))
+                else:
+                    self.pn(indent+1, '0x%04X: ref 0x%04X:0x%04X'%(
+                               key,value.resid,value.offset))
             else:
                 self.pn(indent+1,
                     '0x%04X:'%(key))
@@ -815,7 +821,7 @@ class Class(_PrintOuter):
         self.dtindex.demarshal(self.script, src, dtoffset,
              organic_offset=dtoffset)
     def load_from_library(self, library,only_local=False):
-        self.dtindex.load_from_library(library)
+        self.dtindex.load_from_library(library, only_local=True)
         self.dispatch = self.dtindex
     def disassemble(self, out, indent):
         self.set_stream(out)
@@ -895,11 +901,15 @@ class Script(store.Store):
              out = StringIO.StringIO()
         else:
              out = target
-        if not hasattr(self.obj, 'disassemble'):
-            print >> out, self.str_disassemble_atom(self.obj)
-        else:
-            self.obj.disassemble(out, 0)
-
+        try:
+            if not hasattr(self.obj, 'disassemble'):
+                print >> out, self.str_disassemble_atom(self.obj)
+            else:
+                self.obj.disassemble(out, 0)
+        except IndexError, e:
+            print >> out, '\n', ' DISASSEMBLY ERROR '.center(78,'*')
+            print >> out, repr(e)
+            
         if target is None: return out.getvalue()
         return "<ERROR>"
     def str_disassemble_atom(self, atom):

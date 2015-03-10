@@ -22,7 +22,7 @@ import csv
 import gtk, pango
 import editors
 import delv.store
-import sys
+import sys, traceback
 import images
 class ScriptEditor(editors.Editor):
     name = "Scripting System Editor"
@@ -75,11 +75,12 @@ class ScriptEditor(editors.Editor):
     def editor_setup(self):
         self.load()
     def load(self, *argv):
-        self.canonical_object.load_from_library(self.redelv.get_library())
-        asmc = self.canonical_object.disassemble()
-        self.text_buf.set_text("<DISASSEMBLING>")
-        self.text_buf.set_text(asmc)
         self.set_title("Script Editor [%04X]"%self.res.resid)
+        self.text_buf.set_text("<DISASSEMBLING>")
+        self.canonical_object.load_from_library(
+             self.redelv.get_library())
+        asmc = self.canonical_object.disassemble()
+        self.text_buf.set_text(asmc)
         self.asm_status.set_text("Disassembly complete.")
         #self.canonical_object.printout(sys.stdout,0)
     def edit_external(self, *argv):
