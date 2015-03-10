@@ -111,6 +111,8 @@ class ResourceFile(util.BinaryHandler):
     def res_tell(self):
         "Give position in the underlying resource."
         return self.position
+    def get_res(self):
+        return self.resource
     def seek(self, offset, whence=0):
         offset += self.trans_offset
         if whence == 2: # Who uses this?

@@ -29,6 +29,7 @@ import cStringIO as StringIO, struct
 class dref(object):
     def __init__(self,resid,offset,length=None):
         self.resid = resid
+        #print "%04X %04X / %s"%(resid,offset,length)
         self.offset = offset
         self.length=None
     def load_from_library(self,library,TF=None):

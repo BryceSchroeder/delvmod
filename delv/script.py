@@ -77,7 +77,8 @@ class _PrintOuter(object):
         else:
             return atom.str_disassemble(il+1)
 
-def TypeFactory(script, src, library=None, organic_offset=None): 
+def TypeFactory(script, src, library=None, organic_offset=None,
+        only_local=False): 
         rewind = src.tell()
         cntype = src.read_uint8()
         src.seek(rewind)
@@ -86,10 +87,16 @@ def TypeFactory(script, src, library=None, organic_offset=None):
             obj = Code()
         elif cntype&0xF0 == 0x90:
             obj = Array()
+        elif cntype == 0xA0:
+            obj = DispatchTable()
         else:
             return src.read_cstring()
-        obj.demarshal(script, src, len(src), organic_offset=organic_offset)
-        if library: obj.load_from_library(library)
+        if isinstance(obj,DispatchTable):
+            obj.demarshal(script, src, len(src), 
+                 organic_offset=organic_offset,classtable=False)
+        else:
+            obj.demarshal(script, src, len(src), organic_offset=organic_offset)
+        if library: obj.load_from_library(library, only_local=only_local)
         return obj
 
 
@@ -114,12 +121,14 @@ class Array(list, _PrintOuter):
         for a in self:
             dst.write_atom(a)
     def load_from_library(self, library, only_local=False):
+        print '-----------------', only_local, library
         if only_local: library = FauxLibrary(self.script.res)
         for n in xrange(len(self)):
+            print "--->", n, repr(self[n])
+            self.references[n] = self[n]
             if isinstance(self[n], dref):
                 if only_local and self.script.res.resid != self[n].resid:
                     continue
-                self.references[n] = self[n]
                 self[n] = TypeFactory(self.script,
                     library.get_dref(self[n]), library, 
                          organic_offset=self[n].offset)
@@ -296,8 +305,8 @@ class DOPushWord(DCVariableFieldOperation):
         else: return 5
     def get_fields(self):
         return '0x' + ''.join(['%02X'%x for x in self.data[1:]])
-class DOPushAtom(DOPushWord):
-    mnemonic = 'pushatom?'
+class DOPushDeref(DOPushWord):
+    mnemonic = 'deref '
     def decode_length(self,data):
         return 5
 
@@ -313,7 +322,8 @@ class DOPushData(DCVariableFieldOperation):
     def decode(self):
         s = util.BinaryHandler(StringIO.StringIO(self.data[3:]))
         self.contents = TypeFactory(self.script_context, s, 
-             organic_offset=self.true_offset+3)
+             library=FauxLibrary(self.script_context.res),
+             organic_offset=self.true_offset+3,only_local=True)
         if hasattr(self.contents,'load_from_library'):
             self.contents.load_from_library(
                 self.script_context.library,only_local=True)
@@ -638,7 +648,7 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
         elif opc == 0x48:
             op = DOGlobal
         elif opc == 0x49:
-            op = DOPushAtom
+            op = DOPushDeref
         elif opc&0xF0 == 0xA0:
             op = DOSeriesA
         elif opc >= 0x4A and opc <= 0x4F:
@@ -733,7 +743,7 @@ class DispatchTable(dict, _PrintOuter):
         self.references = {}
         self.item_labels = {}
         self.clear()
-    def demarshal(self, script, src, end,organic_offset=0):
+    def demarshal(self, script, src, end,organic_offset=0,classtable=True):
         self.empty()
         typecode,count = src.read_fo16()
         self.script = script
@@ -746,12 +756,13 @@ class DispatchTable(dict, _PrintOuter):
             self[signal] = atom
             if isinstance(atom, util.dref):
                 offsets.append((atom.offset,atom))
-        self.suggest_table_names()
+        if classtable: self.suggest_table_names()
         if not offsets: return
-        offsets.sort()
-        for (a,da),(b,db) in zip(offsets[:-1],offsets[1:]):
-            da.length = b-a
-        offsets[-1][1].length = end - offsets[-1][1].offset
+        if classtable:
+            offsets.sort()
+            for (a,da),(b,db) in zip(offsets[:-1],offsets[1:]):
+                da.length = b-a
+            offsets[-1][1].length = end - offsets[-1][1].offset
     def marshal(self, dst):
         dst.write_uint8(0xA0)
         dst.write_uint8(len(self))
@@ -759,15 +770,16 @@ class DispatchTable(dict, _PrintOuter):
              dst.write_atom(v)
              dst.write_uint16(k)
     def load_from_library(self, library,only_local=False):
+        library = FauxLibrary(self.script.res) if only_local else library
         for n in self:
             if isinstance(self[n], dref):
                 self.references[n] = self[n]
                 if only_local and self.script.res.resid != self[n].resid:
                     continue
-                self.references[n] = self[n]
                 self[n] = TypeFactory(self.script,
-                    library.get_dref(self[n]), library, 
-                         organic_offset=self[n].offset)
+                    library.get_dref(self[n]), 
+                    library, 
+                    organic_offset=self[n].offset, only_local=only_local)
                 if self.references[n].resid == self.script.res.resid:
                     self.item_labels[self.script.get_dref_label(
                         self.references[n])]=self[n]
