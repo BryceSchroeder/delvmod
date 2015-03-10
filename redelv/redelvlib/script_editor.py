@@ -78,6 +78,7 @@ class ScriptEditor(editors.Editor):
         asmc = self.canonical_object.disassemble()
         self.text_buf.set_text("<DISASSEMBLING>")
         self.text_buf.set_text(asmc)
+        self.set_title("Script Editor [%04X]"%self.res.resid)
         self.asm_status.set_text("Disassembly complete.")
         #self.canonical_object.printout(sys.stdout,0)
     def edit_external(self, *argv):

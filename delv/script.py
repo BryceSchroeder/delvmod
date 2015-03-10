@@ -28,7 +28,7 @@ import store, util
 from util import dref
 import sys, StringIO
 def rstr(x):
-    return '"%s"'%repr(x)[1:-1].replace('"','\\"')
+    return '"%s"'%repr(str(x))[1:-1].replace('"','\\"')
 
 INDENT='   '
 class _PrintOuter(object):
@@ -204,6 +204,18 @@ class DCVariableFieldOperation(DCFixedFieldOperation):
         i = data.find(self.terminator)+1
         return i if i >= 0 else len(data)
 
+class DCConversationPrompt(DCVariableFieldOperation):
+    mnemonic = 'prompt'
+    def decode_length(self, data):
+        i = data.find(self.terminator)
+        if i < 5: return 8
+        return i + 3
+    def decode(self):
+        self.promptstr = self.data[
+             1:self.data.find(self.terminator)].split(',')
+    def get_fields(self):
+        return ', '.join(map(rstr, self.promptstr))
+
 class DOPushArg(DCFixedFieldOperation):
     mnemonic = 'push'
     def decode(self):
@@ -220,6 +232,9 @@ class DOPushLocal(DCFixedFieldOperation):
         self.label = self.code_context.get_local_name(self.which)
     def get_fields(self):
         return self.label
+
+class DCConverse(DCFixedFieldOperation):
+    mnemonic = 'converse'
 
 class DCGoto(DCFixedFieldOperation):
     length = 3
@@ -461,6 +476,10 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DCWhileStatement
         elif opc == 0x8D:
             op = DCIfStatement
+        elif opc == 0x8E:
+            op = DCConverse
+        elif opc == 0x90:
+            op = DCConversationPrompt  
         elif opc == 0x9C:
             op = DCCallArray
         elif opc == 0x9D:
@@ -510,7 +529,7 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
         elif opc == 0x62:
             op = DOField
         elif opc == 0x63:
-            op = DOCast        
+            op = DOCast      
         elif opc == 0x9B:
             op = DC9B
         elif opc == 0x9D:
