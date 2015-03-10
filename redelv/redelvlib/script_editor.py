@@ -55,6 +55,7 @@ class ScriptEditor(editors.Editor):
         self.text_buf.set_text(" Nothing Loaded ".center(78,'#'))
         self.text_view = gtk.TextView()
         self.text_view.set_buffer(self.text_buf)
+        self.text_view.set_wrap_mode(gtk.WRAP_CHAR)
         fontdesc = pango.FontDescription("monospace 10")
         self.text_view.modify_font(fontdesc)
         sw = gtk.ScrolledWindow()

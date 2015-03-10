@@ -29,7 +29,12 @@ from util import dref
 import sys, StringIO
 def rstr(x):
     return '"%s"'%repr(str(x))[1:-1].replace('"','\\"')
-
+class FauxLibrary(object):
+    def __init__(self, resource):
+        self.resource = resource
+    def get_dref(self, mdref):
+        assert mdref.resid == self.resource.resid
+        return self.resource.get_dref(mdref)
 INDENT='   '
 class _PrintOuter(object):
     indent=INDENT
@@ -109,6 +114,7 @@ class Array(list, _PrintOuter):
         for a in self:
             dst.write_atom(a)
     def load_from_library(self, library, only_local=False):
+        if only_local: library = FauxLibrary(self.script.res)
         for n in xrange(len(self)):
             if isinstance(self[n], dref):
                 if only_local and self.script.res.resid != self[n].resid:
@@ -816,6 +822,7 @@ class Class(_PrintOuter):
  
 class Script(store.Store):
     class_container = False
+    library = None
     character_names = False
     def __init__(self, src):
         store.Store.__init__(self, src)
