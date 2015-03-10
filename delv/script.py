@@ -46,7 +46,7 @@ class _PrintOuter(object):
         self.stream.write(outstr)
         self.nl = '\n' in outstr
     def str_disassemble(self, indent):
-        p = StringIO()
+        p = StringIO.StringIO()
         self.disassemble(p, indent)
         return p.getvalue()
     def disassemble_atom(self, il, atom):
@@ -403,7 +403,12 @@ class DCIfStatement(DCExpressionContainer):
             suggestion='branch_%d'%DCIfStatement.branch_count)
         DCIfStatement.branch_count += 1
     def get_mnemonic(self):
-        return 'goto %s if '%self.label
+        return 'goto %s %s '%(self.label,self.mnemonic)
+
+class DCWhileStatement(DCIfStatement):
+    mnemonic = 'while?'
+
+
 class DCCallRes(DCExpressionContainer):
     mnemonic = 'call'
     length = 3
@@ -452,6 +457,8 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DCUnknown
         elif opc == 0x8B:
             op = DCReturn
+        elif opc == 0x8C:
+            op = DCWhileStatement
         elif opc == 0x8D:
             op = DCIfStatement
         elif opc == 0x9C:
