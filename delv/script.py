@@ -401,7 +401,7 @@ class DOOperator(DCFixedFieldOperation):
     mnemonics = {
         0x46: 'index',
         0x4A: 'add',   0x4C: 'mul',   0x4B: 'sub',  0x4D: 'div', 
-        0x4E: 'arithmetic?', 0x4F: 'mod?',
+        0x4E: 'arithmetic?', 0x4F: 'mod_candidate?', 0x50: 'op_50?',
         0x51: 'gt', 0x52: 'le?', 0x54: 'neq', #0x57: 'op57',
         0x53: 'lt?',
         0x5A: 'shl', 0x5B: 'bitwise?', 0x5E: 'not?', 0x5D: 'bitwise_not?',
@@ -462,8 +462,8 @@ class DCReturn(DCExpressionContainer):
     groups = 1
     mnemonic = 'return'
     length = 1
-class DCUnknown(DCExpressionContainer):
-    mnemonic = 'print?'
+class DCPrint(DCExpressionContainer):
+    mnemonic = 'print'
 
 class DCUnknown7(DC9D):
     mnemonic = 'unkn7_%02X'
@@ -568,7 +568,7 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
         elif opc == 0x88:
             op = DCGoto
         elif opc == 0x8A:
-            op = DCUnknown
+            op = DCPrint
         elif opc == 0x8B:
             op = DCReturn
         elif opc == 0x8C:
@@ -642,7 +642,8 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DOSeriesA
         elif opc >= 0x4A and opc <= 0x4F:
             op = DOOperator
-        elif opc in [0x51,0x52,0x53,0x54,0x56,0x57,0x5E,0x5D,0x5B,0x5C,0x5F]:
+        elif opc in [0x50,
+                0x51,0x52,0x53,0x54,0x56,0x57,0x5E,0x5D,0x5B,0x5C,0x5F]:
             op = DOOperator
         elif opc == 0x5A:
             op = DOOperator
