@@ -78,7 +78,7 @@ class _PrintOuter(object):
             return atom.str_disassemble(il+1)
 
 def TypeFactory(script, src, library=None, organic_offset=None,
-        only_local=False): 
+        only_local=False, end_label_prefix=None): 
         rewind = src.tell()
         cntype = src.read_uint8()
         src.seek(rewind)
@@ -93,9 +93,12 @@ def TypeFactory(script, src, library=None, organic_offset=None,
             return src.read_cstring()
         if isinstance(obj,DispatchTable):
             obj.demarshal(script, src, len(src), 
-                 organic_offset=organic_offset,classtable=False)
+                 organic_offset=organic_offset,classtable=False,
+                 end_label_prefix=end_label_prefix)
         else:
-            obj.demarshal(script, src, len(src), organic_offset=organic_offset)
+            obj.demarshal(script, src, len(src), 
+                   organic_offset=organic_offset,
+                   end_label_prefix=end_label_prefix)
         if library: obj.load_from_library(library, only_local=only_local)
         return obj
 
@@ -106,8 +109,10 @@ class Array(list, _PrintOuter):
     def empty(self):
         self[:] = []
         self.references = {}
-    def demarshal(self, script, src, end=None, organic_offset=0):
+    def demarshal(self, script, src, end=None, organic_offset=0,
+                  end_label_prefix=None):
         self.empty()
+        self.end_label_prefix = end_label_prefix
         self.script = script
         typecode,count = src.read_fo16()
         assert typecode == 9
@@ -121,17 +126,16 @@ class Array(list, _PrintOuter):
         for a in self:
             dst.write_atom(a)
     def load_from_library(self, library, only_local=False):
-        print '-----------------', only_local, library
         if only_local: library = FauxLibrary(self.script.res)
         for n in xrange(len(self)):
-            print "--->", n, repr(self[n])
             self.references[n] = self[n]
             if isinstance(self[n], dref):
                 if only_local and self.script.res.resid != self[n].resid:
                     continue
                 self[n] = TypeFactory(self.script,
                     library.get_dref(self[n]), library, 
-                         organic_offset=self[n].offset)
+                         organic_offset=self[n].offset,
+                         end_label_prefix=self.end_label_prefix)
     def disassemble(self, out, indent):
         self.set_stream(out)
         if len(self) < 2:
@@ -178,6 +182,7 @@ class DCOperation(_PrintOuter):
             self.pn(indent, '%s: '%lab)
         else:
             self.pn(indent, '/* 0x%04X */'%self.true_offset)
+        return lab
 
 class DCBytes(DCOperation):
     def disassemble(self, out, indent):
@@ -703,8 +708,10 @@ class Code(list, _PrintOuter):
         return self.local_names[n]
     def get_arg_name(self,n):
         return self.arg_names[n]
-    def demarshal(self, script, src, end=None,organic_offset=0):
+    def demarshal(self, script, src, end=None,organic_offset=0,
+                  end_label_prefix=None):
         self.empty()
+        self.end_label_prefix = end_label_prefix
         self.script = script
         typecode = src.read_uint8()
         assert typecode == 0x81
@@ -726,7 +733,9 @@ class Code(list, _PrintOuter):
                 'with (%s) {'%(' '.join(self.local_names)))
         else: self.pn(indent, "{")
         for op in self:
-            op.dlabel(out,indent+1)
+            lab = op.dlabel(out,indent+1)
+            if self.end_label_prefix is not None and lab and lab.startswith(
+                 self.end_label_prefix): break
             op.disassemble(out, indent+1)
         self.pn(indent, "}")
     def __str__(self):
@@ -743,8 +752,10 @@ class DispatchTable(dict, _PrintOuter):
         self.references = {}
         self.item_labels = {}
         self.clear()
-    def demarshal(self, script, src, end,organic_offset=0,classtable=True):
+    def demarshal(self, script, src, end,organic_offset=0,classtable=True,
+            end_label_prefix=None):
         self.empty()
+        self.end_label_prefix=end_label_prefix
         typecode,count = src.read_fo16()
         self.script = script
         assert typecode == 0xA
@@ -756,7 +767,11 @@ class DispatchTable(dict, _PrintOuter):
             self[signal] = atom
             if isinstance(atom, util.dref):
                 offsets.append((atom.offset,atom))
-        if classtable: self.suggest_table_names()
+        if classtable: 
+            self.suggest_table_names()
+        else:
+            self.suggest_internal_names()
+       
         if not offsets: return
         if classtable:
             offsets.sort()
@@ -779,7 +794,8 @@ class DispatchTable(dict, _PrintOuter):
                 self[n] = TypeFactory(self.script,
                     library.get_dref(self[n]), 
                     library, 
-                    organic_offset=self[n].offset, only_local=only_local)
+                    organic_offset=self[n].offset, only_local=only_local,
+                    end_label_prefix=self.end_label_prefix)
                 if self.references[n].resid == self.script.res.resid:
                     self.item_labels[self.script.get_dref_label(
                         self.references[n])]=self[n]
@@ -788,7 +804,13 @@ class DispatchTable(dict, _PrintOuter):
             if key in self.references: value = self.references[key]
             if isinstance(value, dref):
                 self.script.get_dref_label(
-                        value, "signal_%04X"%key)
+                       value, "signal_%04X"%key)
+    def suggest_internal_names(self):
+        for key,value in self.items():
+            if key in self.references: value = self.references[key]
+            if isinstance(value, dref):
+                self.script.get_dref_label(
+                        value, "data_%04X_at_%04X"%(key,value.offset))
     def disassemble(self, out, indent):
         self.set_stream(out)
         self.pn(indent, "index [")
@@ -895,7 +917,7 @@ class Script(store.Store):
             elif cntype&0xF0 == 0xA0:
                 self.obj = DispatchTable()
                 self.obj.demarshal(self, self.src,len(self.src),
-                    organic_offset = 0)
+                    organic_offset = 0,classtable=False)
             else:
                 self.obj = self.src.read_atom()
     def load_from_library(self, library,only_local=False):
@@ -921,9 +943,23 @@ class Script(store.Store):
         except IndexError, e:
             print >> out, '\n', ' DISASSEMBLY ERROR '.center(78,'*')
             print >> out, repr(e)
-            
+        self.disassemble_symtable_data(out)
         if target is None: return out.getvalue()
         return "<ERROR>"
+    def disassemble_symtable_data(self, out):
+        for key,value in self.symbol_table.items():
+            if value.startswith('data_') and isinstance(key,dref):
+                 offset = int(value[13:],16)
+                 print >> out, "%s: /* 0x%04X, %s */"%(value, offset,key)
+                 ditem = TypeFactory(self,self.res.get_offset_file(offset), 
+                     self.library, offset, only_local=True, 
+                     end_label_prefix='signal_')
+                 if hasattr(ditem, 'disassemble'):
+                     print >> out, ditem.disassemble(out,1)
+                 else:
+                     print >> out, '   ',
+                     print >> out, self.str_disassemble_atom(ditem)
+                
     def str_disassemble_atom(self, atom):
         if atom is None:
             return "nil"
@@ -931,10 +967,10 @@ class Script(store.Store):
             return "%d"%atom
         elif isinstance(atom, dref):
             return "ref %s"%self.get_dref_label(atom)
-        elif isinstance(atom, str):
+        elif isinstance(atom, str) or isinstance(atom, bytearray):
             return rstr(atom)
         else:
-            return "<BAD ATOM>"
+            return "<BAD ATOM %s>"%repr(atom)
 
         
         

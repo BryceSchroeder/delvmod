@@ -167,6 +167,13 @@ class Resource(object):
         # Only needed for debugging and decryption.
         self.subindex = subindex
         self.n = n
+    def get_offset_file(self, offset, length=None):
+        if not self.loaded: self.load()
+        if length is None:
+            return ResourceFile(self, trans_offset=offset)
+        else:
+            return ResourceFile(self, trans_offset=offset,
+                length_limit=offset+length)
     def get_dref(self, mdref):
         if not self.loaded: self.load()
         if mdref.length is None:
