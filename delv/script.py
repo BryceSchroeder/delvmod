@@ -302,11 +302,11 @@ class DOPushWord(DCVariableFieldOperation):
     afterlength = 0
     def decode_length(self, data):
         if data[1] == 0x30: 
-             self.mnemonic = 'push.3?'
-             return 4
+             self.mnemonic = 'push'
+             return 5
         elif data[1] == 0x01:
-             self.mnemonic = 'push.2?'
-             return 3
+             self.mnemonic = 'push'
+             return 5
         else: return 5
     def get_fields(self):
         return '0x' + ''.join(['%02X'%x for x in self.data[1:]])
@@ -416,11 +416,11 @@ class DOOperator(DCFixedFieldOperation):
     mnemonics = {
         0x46: 'index',
         0x4A: 'add',   0x4C: 'mul',   0x4B: 'sub',  0x4D: 'div', 
-        0x4E: 'arithmetic?', 0x4F: 'mod_candidate?', 0x50: 'op_50?',
-        0x51: 'gt', 0x52: 'le?', 0x54: 'neq', #0x57: 'op57',
-        0x53: 'lt?',
-        0x5A: 'shl', 0x5B: 'bitwise?', 0x5E: 'not?', 0x5D: 'bitwise_not?',
-        0x5C: 'shr?', 0x5F: 'bitand?'
+        0x4E: 'mod', 0x4F: 'lt', 0x50: 'le',
+        0x51: 'gt', 0x52: 'ge', 0x54: 'eq', 0x53: 'ne', 0x55: 'neg',
+        0x56: 'andb', 0x57: 'orb', 0x58: 'xorb', 0x59: 'notb',
+        0x5A: 'lsh', 0x5B: 'rsh', 0x5E: 'not', 0x5D: 'or',
+        0x5C: 'and', 0x5F: 'op5f?'
     }
     def decode(self):
         self.mnemonic = self.mnemonics.get(self.data[0],
@@ -656,12 +656,7 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DOPushDeref
         elif opc&0xF0 == 0xA0:
             op = DOSeriesA
-        elif opc >= 0x4A and opc <= 0x4F:
-            op = DOOperator
-        elif opc in [0x50,
-                0x51,0x52,0x53,0x54,0x56,0x57,0x5E,0x5D,0x5B,0x5C,0x5F]:
-            op = DOOperator
-        elif opc == 0x5A:
+        elif opc >= 0x4A and opc <= 0x05F:
             op = DOOperator
         elif opc == 0x60:
             op = DON60
