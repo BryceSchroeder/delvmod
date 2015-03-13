@@ -463,6 +463,12 @@ class DCLocalAssignment(DCExpressionContainer):
         self.local_name = self.code_context.get_local_name(self.which)
     def get_mnemonic(self):
         return '%s %s'%(self.mnemonic,self.local_name)
+class DCLocalAssignmentWithIndex(DCExpressionContainer):
+    groups = 3
+    length = 1
+    mnemonic = 'ustatment_84'
+
+
 class DCAttrAssignment(DCExpressionContainer):
     groups = 2
     mnemonic = 'set'
@@ -575,6 +581,8 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DCStringConstant
         elif opc == 0x82:
             op = DCLocalAssignment
+        elif opc == 0x84:
+            op = DCLocalAssignmentWithIndex
         elif opc == 0x85:
             op = DCUnknown5
         elif opc == 0x86:

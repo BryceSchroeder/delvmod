@@ -25,7 +25,7 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 import cStringIO as StringIO, struct
-
+from sys import stderr
 class dref(object):
     def __init__(self,resid,offset,length=None):
         self.resid = resid
@@ -286,11 +286,14 @@ class BinaryHandler(object):
             return None
         elif ty == 0x00:
             return self.read_sint24()
+        elif ty & 0xF0 == 0x40:
+            return "<0x%02X:%06X>"%(ty, self.read_uint24())
         elif ty >= 0x80:
             resid = ((ty&~0x80)<<8)|self.read_uint8()
             offset = self.read_uint16()
             return dref(resid,offset)
         else:
+            print >> stderr, repr(self), "==0x%02X"%ty, repr(self.file)
             assert False
     def write_atom(self, v, offset=None):
         if offset is not None: self.seek(offset)
