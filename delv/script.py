@@ -57,6 +57,10 @@ class _PrintOuter(object):
     def disassemble_atom(self, il, atom):
         if atom is None:
             self.p(il, "nil")
+        elif atom is True:
+            self.p(il, "true")
+        elif atom is False:
+            self.p(il, "false")
         elif isinstance(atom, int):
             self.p(il, "%d"%atom)
         elif isinstance(atom, dref):
@@ -68,6 +72,10 @@ class _PrintOuter(object):
     def str_disassemble_atom(self, il, atom):
         if atom is None:
             return "nil"
+        elif atom is True:
+            return "true"
+        elif atom is False:
+            return "false"
         elif isinstance(atom, int):
             return "%d"%atom
         elif isinstance(atom, dref):
@@ -453,6 +461,11 @@ class DO92(DCExpressionContainer):
     def get_mnemonic(self):
         return '%s_%02X'%(self.mnemonic,self.data[1])
 
+class DO93(DCExpressionContainer):
+    mnemonic = 'do93'
+    length = 1
+    groups = 1
+
 class DCLocalAssignment(DCExpressionContainer):
     groups = 1
     mnemonic = 'set'
@@ -607,6 +620,8 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DCConversationPrompt  
         elif opc == 0x92:
             op = DO92  
+        elif opc == 0x93:
+            op = DO93
         elif opc == 0x9C:
             op = DCCallArray
         elif opc == 0x9D:
@@ -676,8 +691,12 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DONField
         elif opc == 0x63:
             op = DOCast    
+        elif opc == 0x93:
+            op = DO93
         elif opc == 0x9B:
             op = DC9B
+        elif opc == 0x9C:
+            op = DCCallArray
         elif opc == 0x9D:
             op = DC9D
         elif opc == 0x9F:

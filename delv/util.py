@@ -281,11 +281,12 @@ class BinaryHandler(object):
         if ty == 0x50:
             empty = self.read_uint8()
             assert not empty
-            empty = self.read_uint16()
-            assert empty == 0xFFFF
-            return None
-        elif ty == 0x00:
-            return self.read_sint24()
+            atom = self.read_uint16()
+            
+            return {0xFFFF:None, 0: False, 1: True}[atom]
+        elif ty&0x80 == 0x00:
+            v = self.read_uint24()|((ty&0x0F)<<24)
+            return v if not v&0x8000000 else (~v)+1
         elif ty & 0xF0 == 0x40:
             return "<0x%02X:%06X>"%(ty, self.read_uint24())
         elif ty >= 0x80:
