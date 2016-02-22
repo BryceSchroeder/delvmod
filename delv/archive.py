@@ -123,7 +123,7 @@ class ResourceFile(util.BinaryHandler):
             self.position = offset
         else:
             assert False, "Illegal seek whence: %d"%whence
-        if self.position >= self.length_limit:
+        if self.position > self.length_limit:
             raise IndexError, "Bad seek to 0x%08X, size 0x%08X"%(
                 offset, len(self))
     def eof(self):

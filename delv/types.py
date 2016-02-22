@@ -28,7 +28,13 @@ class ScriptObject(object):
     pass
 
 
-class Atom(ScriptObject):
+class SingletonObject(ScriptObject):
+    pass
+
+class Boolean(SingletonObject):
+    pass
+
+class None(SingletonObject):
     pass
 
 class NumericalScriptObject(ScriptObject):
@@ -44,6 +50,9 @@ class Pointer(NumericalScriptObject):
     pass
 
 class ResourceReference(ScriptObject):
+    pass
+
+class ResourceArrayReference(ScriptObject):
     pass
 
 class PropReference(ScriptObject):

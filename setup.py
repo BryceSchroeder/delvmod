@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2015 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
+# Copyright 2015-2016 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
 # Wiki: http://www.ferazelhosting.net/wiki/delv
 # 
 #    This program is free software: you can redistribute it and/or modify
@@ -22,11 +22,12 @@ from distutils.core import setup
 import setuptools
 
 setup(name='delv',
-      version='0.1.18',
+      version='0.1.19',
       description='Module for making tools interoperable with Delver',
       author='Bryce Schroeder',
       author_email='bryce.schroeder@gmail.com',
       license='GPL-3',
+      install_requires=['parsley'],
       url='http://www.ferazelhosting.net/wiki/delv',
 	classifiers=["Development Status :: 2 - Pre-Alpha",
                      "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",

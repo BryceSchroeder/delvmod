@@ -330,6 +330,7 @@ class BinaryHandler(object):
         return self.read_struct(self.S_uint32, offset)[0]
     def read_vm32(self, offset=None):
         "Read 24-bit signed integer and 8-bit flags. (Flags returned first.)"
+        #FIXME, now known to use a 28 bit integer
         return self.read_uint8(offset), self.read_sint24()
     def read_pstring(self, offset=None):
         "Read a Pascal String (Length byte followed by that many data bytes)"
