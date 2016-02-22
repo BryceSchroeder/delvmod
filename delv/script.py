@@ -399,6 +399,15 @@ class DC9D(DCExpressionContainer):
 class DC9B(DC9D):
     mnemonic='op9B_%02X'
 
+class DCSeriesB(DCExpressionContainer):
+    mnemonic = 'sysop0x%02X'
+    length = 1
+    def decode(self):
+        self.which = self.data[0]
+    def get_mnemonic(self):
+        return self.mnemonic%self.which
+   
+
 class DCStringConstant(DCVariableFieldOperation):
     mnemonic = ''
     def decode_length(self,data):
@@ -419,6 +428,7 @@ class DOSeriesA(DCExpressionContainer):
         self.which = self.data[0]&0x0F
     def get_mnemonic(self):
         return self.mnemonic%self.which
+
     
 class DOOperator(DCFixedFieldOperation):
     mnemonics = {
@@ -572,15 +582,13 @@ class DCSignal(DCExpressionContainer):
         self.argc = self.data[0]&0x0F
     def get_mnemonic(self):
         return self.mnemonic+'_%01X'%self.argc
-class DCSeriesE(DCSignal):
+class DOSeriesE(DCSignal):
     mnemonic = 'syse'
-class DCSeriesA(DCExpressionContainer):
-    mnemonic = 'sysa'
-class DCSeriesB(DCExpressionContainer):
+class DOSeriesB(DCExpressionContainer):
     mnemonic = 'sysb'
-class DCSeriesD(DCSignal):
+class DOSeriesD(DCSignal):
     mnemonic = 'sysd'
-class DCSeriesF(DCSignal):
+class DOSeriesF(DCSignal):
     mnemonic = 'sysf'
 
 def DCOperationFactory(data, i, code, script, mode = 'toplevel',
@@ -633,9 +641,9 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
         elif opc == 0x9F:
             op = DCCallRes
         elif opc&0xF0 == 0xA0:
-            op = DCSeriesA
+            op = DOSeriesA
         elif opc&0xF0 == 0xB0:
-            op = DCSeriesB
+            op = DOSeriesB
 
         elif opc == 0xCE:
             op = DCCE
@@ -643,9 +651,9 @@ def DCOperationFactory(data, i, code, script, mode = 'toplevel',
             op = DCSignal        
 
         elif opc&0xF0 == 0xD0:
-            op = DCSeriesD
+            op = DOSeriesD
         elif opc&0xF0 == 0xE0:
-            op = DCSeriesE
+            op = DOSeriesE
         
         elif opc == 0xF5:
             op = DCF5

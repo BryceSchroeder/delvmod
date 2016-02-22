@@ -1,0 +1,79 @@
+/*
+; Copyright 2016 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
+; Wiki: http://www.ferazelhosting.net/wiki/delv
+; 
+;    This program is free software: you can redistribute it and/or modify
+;    it under the terms of the GNU General Public License as published by
+;    the Free Software Foundation, either version 3 of the License, or
+;    (at your option) any later version.
+;
+;    This program is distributed in the hope that it will be useful,
+;    but WITHOUT ANY WARRANTY; without even the implied warranty of
+;    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;    GNU General Public License for more details.
+;
+;    You should have received a copy of the GNU General Public License
+;    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+; This header file defines data structures and constants used by 
+; Cythera 1.0.4. They are not expected to work with any other first-party
+; Delver scenario (or version), as constants and even opcodes could in
+; theory change under DelvEd. (ReDelv does not have this problem of 
+; gratuitous constant-reassignment, and new first-party anythings seem
+; extremely unlikely at this point.)
+;
+; Note that this file is GPL licensed; all scripts produced which include it
+; are also required to be GPL licensed - if you distribute their compiled 
+; form, you must also make the source code available. Of course, an 
+; interface is not copyrightable, or at least shouldn't be, so you can make
+; your own header file to do the same thing if you really want. */ 
+
+defines GUI (
+    Window       (0x04)
+    Text         (0x06)
+    Button       (0x08)
+    Instrument   (0x0F)
+    Spinner      (0x11)
+    TextBox      (0x14)
+)
+
+defines System (
+    //UnknownA0            (0xA0)
+    //UnknownA2            (0xA2)
+    Delete                 (0xA7)
+    Create                 (0xA8)
+    Random                 (0xAC)
+    New                    (0xAD)
+    GetWeight              (0xB8)
+    JoinParty              (0xB9)
+    ChangeZone             (0xBF)
+    SetFlag                (0xC1)
+    ClearFlag              (0xC2)
+    TestFlag               (0xC4)
+    EmitSignal             (0xC5)
+    PlayNote               (0xD2)
+    PlaySound              (0xD3)
+    PlaySound2             (0xD7)
+    SetAmbientLighting     (0xD8)
+    SetTitle               (0xDA)
+    HasWindow              (0xDB)
+    GetState               (0xDC)
+    SetState               (0xDD)
+    MagicAuraEffect        (0xE1)
+    ShootEffect            (0xE2)
+    AddQuest               (0xF2)
+    AddConversationKeyword (0xF4)
+    GetSkill               (0xF5)
+    
+)
+
+defines Globals (
+    CurrentHour          (0x00)
+    CurrentTime          (0x01)
+    PlayerCharacter      (0x02)
+    CurrentCharacter     (0x09)
+    ConversationResponse (0x0A)
+    Karma                (0x0C)
+    CurrentZone          (0x10)
+    //Registered (0x0D)  Let's make it at least a little hard, just in case.
+)

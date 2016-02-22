@@ -1,0 +1,218 @@
+/*
+; Copyright 2016 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
+; Wiki: http://www.ferazelhosting.net/wiki/delv
+; 
+;    This program is free software: you can redistribute it and/or modify
+;    it under the terms of the GNU General Public License as published by
+;    the Free Software Foundation, either version 3 of the License, or
+;    (at your option) any later version.
+;
+;    This program is distributed in the hope that it will be useful,
+;    but WITHOUT ANY WARRANTY; without even the implied warranty of
+;    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;    GNU General Public License for more details.
+;
+;    You should have received a copy of the GNU General Public License
+;    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+; This header file defines data structures and constants used by 
+; Cythera 1.0.4. They are not expected to work with any other first-party
+; Delver scenario (or version), as constants and even opcodes could in
+; theory change under DelvEd. (ReDelv does not have this problem of 
+; gratuitous constant-reassignment, and new first-party anythings seem
+; extremely unlikely at this point.)
+;
+; Note that this file is GPL licensed; all scripts produced which include it
+; are also required to be GPL licensed - if you distribute their compiled 
+; form, you must also make the source code available. Of course, an 
+; interface is not copyrightable, or at least shouldn't be, so you can make
+; your own header file to do the same thing if you really want. */ 
+
+/* Characters in the game. Most have the name you see in their conversation
+   modal dialog, though a few are renamed so as to make `use Characters` not
+   conflict with other possible use statements one might wish to make. (e.g.
+   the Degree Hall door character in Pnyx is named `Degree_Hall_Door` instead
+   of simply `Door` so that the name does not overlap with other things in
+   this header file that might be called `Door`. */
+defines Characters (
+    NoCharacter          (0)  /* x */
+    Hero                 (1)
+    Alaric               (2)
+    Magpie               (3)
+    Hadrian              (4)
+    Emesa                (5)
+    Hector               (6)
+    LKH_Guard            (7)
+    Cademia_Guard        (8)
+    Ruins_Guard          (9)
+    Myus                 (10)
+    Naxos                (11)
+    Darius               (12)
+    Pelagon              (13)
+    Deiphobus            (14)
+    Kosha_Guard          (15)
+    Atreus               (16)
+    Ennomus              (17)
+    Ariethous            (18)
+    Laodice              (19)
+    Thuria               (20)
+    Malis                (21)
+    Cybele               (22)
+    Amphidamas           (23)
+    Eurybates            (24)
+    Rhesus               (25)
+    Lycurgus             (26)
+    Erechtheus           (27)
+    Thamyris             (28)
+    Atymnius             (29)
+    Milcom               (30)
+    Sardis               (31)
+    Ake                  (32)
+    Neoptolemus          (33)
+    Meleager             (34)
+    Hebe                 (35)
+    Antenor              (36)
+    Alastor              (37)
+    Aeneas               (38)
+    Eioneus              (39)
+    Parium               (40)
+    Crito                (41)
+    Apis                 (42)
+    Dares                (45)
+    Diomede              (46)
+    Thetis               (48)
+    Bias                 (49)
+    Philinus             (50)
+    Opheltius            (51)
+    Ascalon              (52)
+    Ariadne              (53)
+    Odemia_Guard         (54)
+    Tlepolemus           (55)
+    Eteocles             (56)
+    Laomedon             (57)
+    Ilus                 (58)
+    Autonous             (59)
+    Propontis            (60)
+    Mantinea             (61)
+    Halos                (62)
+    Catamarca_Guard      (63)
+    Oeneus               (64)
+    Periphas             (65)
+    Theano               (66)
+    Hypsenor             (67)
+    Thoas                (68)
+    Dymas                (69)
+    Sacas                (70)
+    Metopes              (71)
+    Berossus             (72)
+    Itanos               (73)
+    Timon                (74)
+    Prusa                (75)
+    Bryaxis              (76)
+    Anisa                (77)
+    Pheres               (78)
+    Charax               (79)
+    Lindus               (80)
+    Selinus              (81)
+    Palaestra            (82)
+    Tros                 (83)
+    Pnyx_Guard           (84)
+    Alcestris            (85)
+    Asius                (86)
+    Paris                (87)
+    Helen                (88)
+    Niobe                (89)
+    Larisa               (90)
+    Joppa                (91)
+    Eudoxus              (92)
+    Eumelus              (93)
+    Antiphus             (94)
+    Polydamas            (95)
+    Peirithous           (96)
+    Aethon               (97)
+    Dryas                (98)
+    Gate_Guard           (100)
+    Thersites            (101)
+    Glaucus              (102)
+    Borus                (103)
+    Briseis              (104)
+    Pelops               (105)
+    Alcmena              (106)
+    Asteropaeus          (107)
+    Stentor              (108)
+    Demodocus            (109)
+    Thrasymedes          (110)
+    Protesilaus          (111)
+    Menelaus             (112)
+    Lycaon               (113)
+    Peleus               (114)
+    Peisander            (115)
+    Danae                (116)
+    Semele               (117)
+    Alcyone              (118)
+    Clytemnestra         (119)
+    Sabinate             (120)
+    Jhiaxus              (121)
+    Unhayt               (122)
+    Seqedher             (123)
+    Uset                 (124)
+    Ignae                (125)
+    Omen                 (126)
+    UrSylph              (127)
+    Wishing_Fountain     (189) /* Fountain */
+    Degree_Hall_Door     (190) /* Door */
+)
+
+// Spells in Cythera. ResID = N | 0x1A00
+define SpellBaseResID (0x1A00)
+defines Spells (
+    Directed_Nexus       (0x00)
+    Vision_of_the_Night  (0x01)
+    Minor_Embrightenment (0x02)
+    Detect_Concealment   (0x03)
+    Detect_Traps         (0x04)
+    Remote_Manipulation  (0x05)
+    Death_Strike         (0x06)
+    Acertainment         (0x07)
+    Alleviation          (0x08)
+    Lesser_Healing       (0x09)
+    Healing              (0x0A)
+    Greater_Healing      (0x0B)
+    Embrightenment       (0x0C)
+    Soporiferousness     (0x0D) // Best RPG spell name ever
+    Terrorisation        (0x0E)
+    Derangement          (0x0F)
+    Major_Embrightenment (0x10)
+    Nutrient             (0x11)
+    Mystic_Arrow         (0x12)
+    Awaken               (0x13)
+    Detect_Rune          (0x14)
+    Resist_Blows         (0x15)
+    Rune_of_Warding      (0x16)
+    Rune_of_Flame        (0x17)
+    Dispel_Rune          (0x18)
+    Rally                (0x19)
+    Rune_of_Blocking     (0x1A)
+    Mage_Lock            (0x1B)
+    Awaken_All           (0x1C)
+    Lightning            (0x1D)
+    Cure                 (0x1E)
+    Resist_Fire          (0x1F)
+    Open                 (0x20)
+    Rune_of_Pain         (0x21)
+    Fireball             (0x22)
+    Paralyze             (0x23)
+    Shake_Down           (0x24)
+    Daylight             (0x25)
+    Mass_Terrorisation   (0x26)
+    Charm                (0x27)
+    Fetch                (0x28) // Oh the memories
+    Mass_Cure            (0x29)
+    Farsight             (0x2A)
+    Replicate            (0x2B)
+    Mass_Confusion       (0x2C)
+    Tremor               (0x2D)
+    Restoration          (0x2E)
+    Resurrection         (0x2F)
+    Remove_Mage_Lock     (0x30)
+)

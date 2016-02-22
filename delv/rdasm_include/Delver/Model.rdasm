@@ -1,0 +1,135 @@
+/*
+; Copyright 2016 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
+; Wiki: http://www.ferazelhosting.net/wiki/delv
+; 
+;    This program is free software: you can redistribute it and/or modify
+;    it under the terms of the GNU General Public License as published by
+;    the Free Software Foundation, either version 3 of the License, or
+;    (at your option) any later version.
+;
+;    This program is distributed in the hope that it will be useful,
+;    but WITHOUT ANY WARRANTY; without even the implied warranty of
+;    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;    GNU General Public License for more details.
+;
+;    You should have received a copy of the GNU General Public License
+;    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+; This header file defines data structures and constants used by 
+; Cythera 1.0.4. They are not expected to work with any other first-party
+; Delver scenario (or version), as constants and even opcodes could in
+; theory change under DelvEd. (ReDelv does not have this problem of 
+; gratuitous constant-reassignment, and new first-party anythings seem
+; extremely unlikely at this point.)
+;
+; Note that this file is GPL licensed; all scripts produced which include it
+; are also required to be GPL licensed - if you distribute their compiled 
+; form, you must also make the source code available. Of course, an 
+; interface is not copyrightable, or at least shouldn't be, so you can make
+; your own header file to do the same thing if you really want. */ 
+
+defines Object (
+
+ /* Constructor (parameterless)
+    existence assumed per r0101. Its method ID may be 00 per r3000. */
+    __init__             (0x0000)
+
+ /* string Object.Look(self)
+    A method which returns a string containing a short description of the
+    object, i.e. what one would see when looking at it. This overrides the
+    default of the tile name when mousing over things in the game. */
+    Look                 (0x0002)
+
+ /*  Seen in object type 58 (room objects, 1Bxx) */
+    LookAtRoom           (0x0007)
+
+ /* void Object.Examine(self)
+    A method, which should print out a more detailed description of the
+    object. It returns nothing (n.b. unlike .Look which returns a string -
+    it is not unusual for Examine to call Look in the case of objects which
+    encompass many types of things, e.g. potions or scrolls.) */
+    Examine              (0x0008)
+
+ /* int Object.Use(self)
+    A method, triggered when the user attempts to use an object. For some
+    sorts of objects, e.g. a spell not requiring a target, the use method
+    effects the result of using the object. More commonly though, it prints
+    some explanatory prompt ("Pour water on what?"). In that case, a mask
+    value must be returned to identify what input Delver should get from the
+    user:
+      (Document Use return values here) TODO */
+
+    Use                  (0x0009)
+
+ /* void Object.UseOn(self, target)
+    A method, which should effect the use of this object on another. Note
+    that in the case of e.g. casting a spell or using a skill, "self" is the
+    skill object itself, not the caster/user. The object for the user is 
+    instead typically gotten from Globals.Current. The target is supplied
+    as a Prop, and must be casted to a Character to access Character fields
+    (e.g. magic points or nutrition). UseOn returns nothing. */
+    UseOn                (0x000A)
+
+ /* void Object.UseAt(self, x, y)
+    A method, which effects the use of this object at a location in the
+    current level. As with UseOn, self is the skill object, not the user.
+    UseAt returns nothing. */
+    UseAt                (0x000B)
+
+    
+    Talk                 (0x000C)
+
+    //Tenative
+    Wear                 (0x000D)
+    Unwear               (0x000E)
+
+    CanUnwear            (0x0010)
+    Beheld               (0x0014)
+
+ /* Seems to be called on e.g. goats and chickens, which do supplementary
+    things not covered by the AI scripts, e.g. making noises. (cluck-cluck!)
+    It is probably called every turn on the object's turn. An experiment is
+    needed to determine what kinds of objects receive this event -- if it is
+    called for non-character objects it would be a way to bypass the technical
+    difficulties in creating summoning spells under Delver. */
+    EveryTurn            (0x0020)
+
+ /* array Object.AskedAbout(self)
+    A field, containing a list of two items. The first item of the list is 
+    a string which contains what a character knowledgeable about the subject 
+    would say. The second item is a list of the NPCs who know about the item
+    when asked about it. E.g. a magic item would be something like:
+    ["This is infused with strange goat magics.", [People.Timon]] */
+    AskedAbout           (0x0033)
+
+    // Triggered when one digs on the object (using the shovel)
+    Dug                  (0x0039)
+)
+
+defines Classes (
+    Character            (0x40)
+    Monster              (0x48)
+)
+
+
+defines DObj (
+    flags (0)
+    x (1)
+    y (2)
+    aspect (3)
+    prop_type (4)
+
+    // this field &0x03FF is prop type, &0xFC00 is aspect. 
+    aspect_and_proptype (5)
+
+    d1 (6)
+    d2 (7)
+
+    // d3 = (d1 << 8) | d2
+    d3 (8)
+
+    unkn09 (9)
+
+    magic (0x1E)
+    nutrition (0x28)
+)
