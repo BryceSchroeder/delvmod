@@ -24,36 +24,8 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
+
 import graphics, sound, store, level, script
-ASM_GLOBAL_NAME_HINTS = {
-    0x00: "gHour$",
-    0x01: "gTimeString",
-    0x02: "gPlayerName$",
-    0x05: "gPlayerCharacter",
-    0x09: "gCurrentCharacter", 
-    0x0D: "gRegistered",
-}
-
-ASM_STRUCT_NAME_HINTS = {
-   0x00: "Prop",
-   0x10: "Unknown_10",
-   0x20: "Unknown_20",
-   0x40: "Character"
-}
-
-ASM_FIELD_HINTS = {
-   'DObj': {
-       'Look': 0x0002,
-       'Examine': 0x0008,
-       'Use': 0x0009,
-       'UseOn': 0x000A,
-       'UseAt': 0x000B,
-       'Method20': 0x0020,
-       'AskedAbout': 0x0033
-   }
-}
-
-
 GRAPHICS_LANDSCAPE = 131
 GRAPHICS_PORTRAIT = 135
 GRAPHICS_TILESHEET = 141

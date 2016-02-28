@@ -1,7 +1,203 @@
-                            
-                             Scripting using RDASM
+              
+
+              
+                     Scripting "Delver Engine" using RDASM
 
      by Bryce Schroeder (bryce.schroeder@gmail.com  http://www.bryce.pw )
 
 
 
+ "Cythera" and "Delver" are trademarks of either Glenn Andreas or Ambrosia 
+ Software, Inc. 
+
+
+ --- WHAT IS RDASM? ---
+
+    RDASM is a an assembly language targeting the Delver Engine's virtual
+machine, the key component of the scripting system in Cythera. It is an 
+invention of the redelv project; DelvEd used a superficially python-like
+high-level language to do scripting. (Known only from the "GainExp" fragment
+posted by Glenn Andreas.) Both of these languages produce the same sort of 
+output - compiled code for the virtual machine to execute. (In theory, one 
+might compile any language to run on this virtual machine.) The scripting 
+system is used throughout Cythera and defines almost all behaviors of things 
+in the game. RDASM can be used to modify the behaviors of exisiting objects 
+and even alter more fundamental aspects of the gameplay, such as game 
+mechanics.
+
+    RDASM is also paired with a disassembler, which allows the user to study
+how existing scripts in Cythera work. One can disassemble a script, modify it
+in symbolic form, and then reassemble the modified script - a much easier 
+alternative to editing the scripts in binary form with a hex editor.
+
+
+ --- CONCEPTS ---
+
+    If you are familiar with programming languages, and in particular with
+assembly language, you may wish to skip this section. That said, RDASM is
+somewhat unlike most assembly languages, because the Delver virtual machine
+is unlike most virtual machines.
+
+    An RDASM program is a text file containing, essentially, a list of 
+instructions for Delver to execute. In the simplest case, each line of the
+file represents one instruction, and each is executed one at a time, starting
+at the first line. Moving beyond that simple case, some instructions may
+alter the flow of the program - instructing the virtual machine to skip some
+instructions if certain conditions are present, to repeat previous lines
+several times (say, once for each character in the party), or to transfer 
+control to code that is located in another resource entirely. 
+
+    The Delver virtual machine is a so-called "stack machine", though an odd
+sort of one. This is contrasted to a "register machine." Most real computers,
+including those based on Intel x86, PowerPC or 68k processors, are register 
+machines. In contrast, most commonly used virtual machines, such as the Java
+virtual machine, are stack machines. Stack machines store data temporarily in
+a data structure called a stack, which is a first-in-first-out structure.
+
+    If you are not familiar with the concept of a "stack", you can think of 
+it as being like a stack of cards. You can remove a card from the top of the
+stack ("pop" it, in jargon) or put a card on top of the existing cards (i.e.
+"push" it), but you are not allowed to access cards other than the one at the
+top of the stack. This is why a stack is described as first-in-first-out: one
+has to pop the things one more recently pushed onto the stack first, before
+one can pop things that were pushed on earlier.
+
+    If you are familiar with assembly language for a stack-based virtual
+machine, or with stack-based programming languages like FORTH or PostScript,
+RDASM will be reasonably familiar, although it is rather weakly stack-based - 
+it doesn't use its stack as much as it might have. RDASM also uses braces {}, 
+brackets [], and parenthesis (), which are used to structure the code. The 
+usage of each is explained below.
+
+
+ --- STATEMENTS ---
+    A category of instructions termed 'statements' are characterized by the 
+fact that they can appear outside of parenthesis. For example, 'print' is a
+statement, and 'mul' is not. You can place print as the first instruction
+in the body of a procedure, but you can't place mul there. In fact, if RDASM
+didn't check for this error, placing mul outside a statement would have the
+curious effect of printing the letter 'J' to the Delver console when the 
+script was executed, because, coincidentally, the machine-language encoding 
+of 'mul' is 0x4A, which is the same as the encoding of the letter 'J' in 
+ASCII. Statements are encoded with instructions with first bytes greater 
+than or equal to 0x80, whereas those with first bytes less than 0x80 are not.
+For example, 0x880123 encodes an unconditional jump to the absolute address
+0x0123 in the same resource, a statement, whereas 0x420123 pushes the number
+0x0123 onto the stack - which is not a statement.
+
+    Although some statements, such as goto, encode all the information they 
+need to do whatever it is they are supposed to do in the instruction itself,
+others operate on operands pushed into a stack. (This is by far the more 
+versitile approach, since, for example, the place a goto instruction jumps
+to has to be decided on at the time the script is assembled from its source
+code. On the other hand, a print statement can print out anything that is
+pushed onto its stack - that could be known at assembly-time, but it might
+instead be the result of a computation.)
+
+    In RDASM, instructions that encode parameters in themselves (i.e. that
+take "immediate" values) are followed by numbers, or by symbolic names that
+represent numbers. For example:
+
+    goto 0x0123
+
+Or:
+    goto foo
+
+    Both of these instructions might be encoded in machine language as
+0x880123, and in the latter case, 'foo' represents the hexidecimal number
+0x0123. But by calling it 'foo' instead of manually specifying the number, 
+we are asking RDASM to keep track of where in the resource 'foo' is, and 
+figure out the number for us. ('foo' is a label, and somewhere else in the 
+source code, we will have the text 'foo:' to tell the assembler where we want 
+to start executing instructions when we tell it "goto foo".) Automating this 
+sort of  bookkeeping is really the main reason for having an assembler at 
+all.
+
+ --- PARENTHESIS ---
+
+    In contrast, other instructions may get their parameters from the stack.
+This is depicted in RDASM by the use of parenthesis. For example:
+
+    print (
+        pushc "Hello, Delver!"
+    )
+
+    The instruction pushc pushes a string (a null-terminated sequence of 
+characters) onto the stack. (You can abbreviate it to "push", and let RDASM
+figure out that you mean pushc from the context - i.e. from the fact that it
+is immediately followed by a null-terminated string constant.) The 
+instruction print, which has a stack (you can tell from the parentheses that
+follow it), runs the code in its paranthesis, and then prints out onto the
+the Delver console whatever thing is on the top of the stack.
+
+    Note that if you push more than one thing onto the stack of the print
+instruction, only the last thing you pushed onto the stack - that is, the 
+item on the top of the stack - will be popped off and printed. The rest are
+discarded. Each set of parenthesis represents a completely separate stack.
+
+    Some instructions have more than one set of parenthesis, each of which is
+a seperate stack. Other instructions use more than one item from a single
+stack, i.e. they pop off two or more items from the stack instead of just 
+one. This latter way is how instructions that call functions normally work.
+There are also instructions which have both immediate data and also have a
+stack, for example the 'goto ... if' statement:
+
+    goto foo if ( pusha arg0 )
+
+    'foo', the label to go to, is immediate, but the condition is a stack. In
+this example, if arg0 is true, then program execution will continue at the
+label 'foo', elsewhere in the program. If it is not true, the next 
+instruction immediately after the 'goto ... if' statement will be executed.
+
+    One instruction has the dubious distinction of combining all of these
+forms, 'callri' (call resource with index). The base index of the resource
+is given as immediate data, the index to add to that is provided by one
+stack of which only the top item is used,  and then another stack following
+it provides the arguments to the function called. This is seen, for example,
+in the potion object, excerpted below:
+
+    callri POTION_SCRIPTS
+        ( push item 
+          field Prop.aspect)
+        ( push character 
+          cast 0x40)
+        
+    The instructions are all documented on the redelv wiki, here:
+    http://www.ferazelhosting.net/wiki/rdasm
+
+    On a lower level, the individual operations are documented here:
+    http://www.ferazelhosting.net/wiki/Delver%20Script%20Opcodes
+
+
+ --- BRACES ---
+
+    Certain structures (classes and functions) use braces to delinate their
+scope. Unlike parenthesis, which can be mapped one-to-one to machine-language
+constructs (the opcode 0x40 corresponds to a close-parenthesis, basically), 
+braces are strictly something that is part of RDASM. The assember uses it to
+define the scope of symbolic names.
+    
+    There are four kinds of scope in RDASM: global, resource, class and
+method scope. The global scope is a special scope that is shared across,
+potentially, many files. In contrast, a symbol defined in the resource scope
+is limited to the current resource. A symbol defined in class scope is only
+meaningful between the opening brace { and closing brace } of a class 
+definition, and a symbol defined in function scope is only meaningful between
+the opening and closing braces of the function definition it is associated
+with. 
+
+    Only three instructions are currently associated with braces: 'class',
+'data' and 'function', for example:
+
+    class {
+        signal foo: function(self, arg1) {
+            'The name of arg1 is: '
+            print (  push arg1  push)
+            return ( push 0x00 )
+        }
+        signal bar: array [1 2 3]
+
+        signal zot: None
+    }
+
+These are explained in more detail elsewhere.

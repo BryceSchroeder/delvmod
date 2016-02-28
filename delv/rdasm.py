@@ -30,14 +30,11 @@
 All_Operations = {}
 Statement_Operations = {}
 RDASM_opcode_names = []
-# TODO 1. distinguish between statement-opcodes and expression-opcodes
-# 2. Add data-defining toplevel for classes. array Foo(1,2)?
-# 3. function code generation
-#    including local variables and labels...
-# 4. classes
+# TODO  
+# Documentation
 # 5. disassembler
 # 6. provisions for regression testing
-# 7. enter all this stuff into github and pip
+# 7.  pip
 # 8. redelv to use it, and upload that
 
 OpClasses = {}
@@ -85,6 +82,7 @@ class Opcode(object):
                              argname[-len(argclass):],argclass)])
         return p
     def finish(self, of, ctx, value):
+        #print "value", value, self
         of.write_uint16(value)
 
 ############################ OPCODE DEFINITIONS ###########################
@@ -112,23 +110,33 @@ class Op_load_byte(Opcode):
     mnemonic = 'byte'
     def generate(self, of, ctx, immediate=INT_SYM):
         of.write_uint8(0x41)
-        of.write_uint8(ctx.getlval(immediate, self, of.tell()))
+        if immediate < 0:
+            of.write_sint8(ctx.getlval(immediate, self, of.tell()))
+        else:
+            of.write_uint8(ctx.getlval(immediate&0xFF, self, of.tell()))
     def finish(self, of, ctx, value):
-        of.write_uint8(value)
+        of.write_sint8(value)
 
 class Op_load_short(Opcode):
     mnemonic = 'short'
     def generate(self, of, ctx, immediate=INT_SYM):
         of.write_uint8(0x42)
-        of.write_uint16(ctx.getlval(immediate, self, of.tell()))
+        if immediate >= 0:
+            of.write_uint16(ctx.getlval(immediate&0xFFFF, self, of.tell()))
+        else:
+            of.write_sint16(ctx.getlval(immediate, self, of.tell()))
 
 class Op_load_word(Opcode):
     mnemonic = 'word'
     def generate(self, of, ctx, immediate='(atom|symbol):%s'):
         of.write_uint8(0x43)
-        of.write_uint32(ctx.getlval(immediate, self, of.tell()))
+        of.write_uint32(self.encod(ctx.getlval(immediate, self, of.tell())))
     def finish(self, of, ctx, value):
-        of.write_uint32(value)
+        of.write_uint32(self.encod(value))
+    def encod(self, v):
+        if v < 0:
+            v = v&0x0FFFFFFF
+        return v
 
 class Op_load_cstring(Opcode):
     mnemonic = 'string'
@@ -302,6 +310,18 @@ class Op_set_local(Opcode):
         of.write_uint8(0x82)
         of.write_uint8(ctx.getfval(which, warn_new=False))
 
+# pseudo opcode to suppress used before assignment warnigns
+# that are spurious.
+class Op_var(Opcode):
+    mnemonic = 'var'
+    def generate(self, of, ctx, which='symbol:%s'):
+        ctx.getfval(which, warn_new=False)
+#class Op_class_field(Opcode):
+#    mnemonic = 'classfield'
+#    def generate(self, of, ctx, field=INT_SYM, value='(none|INT_SYM):%s'):
+#        ctx.class_field(ctx.getval(field), ctx.getval(value))
+
+
 class Op_write_near_word(Opcode):
     mnemonic = 'wnw'
     def generate(self,of,ctx, addr=INT_SYM):
@@ -388,7 +408,7 @@ class Op_conversation_response(Opcode):
 class Op_end_response(Opcode):
     mnemonic = 'endr'
     def generate(self, of,ctx):
-        p=ctx.finish_conversation_prompt(of.tell(x))
+        p=ctx.finish_conversation_prompt(of.tell())
         endpoint = of.tell()
         of.seek(p)
         of.write_uint16(endpoint)
@@ -403,6 +423,12 @@ class Op_gui_call(Opcode):
     def generate(self, of, ctx, which=INT_SYM):
         of.write_uint8(0x9B)
         of.write_uint8(ctx.getval(which))
+
+class Op_call_index(Opcode):
+    mnemonic = 'cidx'
+    def generate(self, of, ctx, baseres=INT_SYM):
+        of.write_uint8(0x9C)
+        of.write_uint16(ctx.getval(baseres))
 
 class Op_call_method(Opcode):
     mnemonic = 'method'
@@ -455,7 +481,9 @@ for item in globals():
 def dict_write_code(table, ofile, context):
     ofile.write_uint16(0xA000|len(table))
     callbacks = []
-    for k,v in table.items():
+    kvs = table.items()
+    kvs.sort(key=lambda x: (x[1],x[0]))
+    for k,v in kvs:
         k = context.getval(k)
         write_array_item(ofile, v, context,callbacks)
         ofile.write_uint16(k)
@@ -533,6 +561,8 @@ class Array(list):
             addrs.append((address,ofile.tell()))
             if isinstance(item,str) or isinstance(item,bytearray):
                 ofile.write(item)
+            elif isinstance(item,dict):
+                dict_write_code(item,ofile,context)
             else:
                 item.write_code(ofile,context)
         t = ofile.tell()
@@ -542,19 +572,29 @@ class Array(list):
         ofile.seek(t)  
 
 class Label(SymbolList): pass
-class ResRef(tuple):
-    def write_code(self,ofile,context):
-        ofile.write_uint16(0x8000|context.getval(self[0]))
-        ofile.write_uint16(context.getval(self[1]))
-class ArrayRef(tuple):
-    def write_code(self,ofile,context):
-        ofile.write_uint16(0x3000|context.getval(self[1]))
-        ofile.write_uint16(context.getval(self[0]))
-class ObjRef(tuple): 
-    def write_code(self,ofile,context):
-        ofile.write_uint8(0x40)
-        ofile.write_uint8(context.getval(self[0]))
-        ofile.write_uint16(context.getval(self[1]))
+#class ResRef(tuple):
+#    def write_code(self,ofile,context):
+#        ofile.write_uint16(0x8000|context.getval(self[0]))
+#        ofile.write_uint16(context.getval(self[1]))
+#class ArrayRef(tuple):
+#    def write_code(self,ofile,context):
+#        ofile.write_uint16(0x3000|context.getval(self[1]))
+#        ofile.write_uint16(context.getval(self[0]))
+#class ObjRef(tuple): 
+#    def write_code(self,ofile,context):
+#        ofile.write_uint8(0x40)
+#        ofile.write_uint8(context.getval(self[0]))
+#        ofile.write_uint16(context.getval(self[1]))
+def arrayref(r,i):
+    assert 0 <= i <= 0xFFF
+    return 0x30000000|(i<<16)|r
+def objref(c,o):
+    assert 0 <= c <= 0xFF
+    return 0x40000000|(c<<16)|o
+def resref(r,o):
+    assert 0 <= r <= 0x7FFF
+    return 0x80000000|(r<<16)|o
+
 class Empty(object):
     def write_code(self,ofile,context=None):
         ofile.write_uint32(0x5000FFFE)
@@ -565,9 +605,9 @@ class Function(object):
         self.args = args
         self.body = body
         self.local_vars = 0
+        self.conversation_prompts = []
     def write_code(self,ofile,context):
         if self.label: context.define_symbol(self.label, ofile.tell())
-
         ofile.write_uint8(0x81)
         ofile.write_uint8(len(self.args))
 
@@ -575,6 +615,8 @@ class Function(object):
         ofile.write_uint8(0xDE)
 
         callbacks = context.begin_function_context(self)
+        for n,arg in enumerate(self.args):
+            context.define_argument(arg, 0x30|n)
         for item in self.body:
             item.write_code(ofile,context)
 
@@ -600,7 +642,7 @@ class Function(object):
 
         return new_callbacks
 
-
+import struct
 class FItem(object):
     def __init__(self, lb, op):
         #print "FBODYITEM", lb, op
@@ -611,7 +653,11 @@ class FItem(object):
         if isinstance(self.op, bytearray):
             of.write(self.op)
         elif self.op:
-            self.op.generate(of, ctx, **self.op.kwargs)
+            #print ">>>>", self.op, self.op.kwargs
+            try:
+                self.op.generate(of, ctx, **self.op.kwargs)
+            except struct.error:
+                ctx.error("Bad struct format, op %s, args %s"%(self.op, self.op.kwargs))
 def get_op(sym):
     return "OP%s"%sym
 
@@ -640,7 +686,7 @@ integer = bin_int|hex_int|dec_int
 required_space = (comment|'\t'|' ')+ -> None
 bin_int = '0b' <bin_digit+>:x -> int(x,2)
 hex_int = '0x' <hex_digit+>:x -> int(x,16)
-dec_int = <sign? dec_digit+>:x -> int(x)
+dec_int = <sign? dec_digit+>:x -> delv.util.encode_int28(int(x))
 
 bin_digit = anything:x ?(x in "01") -> x
 dec_digit = anything:x ?(x in "0123456789") -> x
@@ -659,9 +705,10 @@ escaped  = '\\' (
                 |('"' -> '"')
                 |('\'' -> '\'')
                 |escaped_hex
+                |escaped_unicode
                 )
 escaped_hex = 'x' <hex_digit{2}>:hs -> chr(int(hs,16))
-
+escaped_unicode = 'u00' <hex_digit{2}>:hs -> chr(int(hs,16))
 #
 terminated_string = '"' (escaped| ~'"' anything)*:x '"' -> bytearray(''.join(x)+'\0')
 direct_string = '\'' (escaped| ~'\'' anything)*:x  '\'' -> bytearray(''.join(x))
@@ -676,9 +723,9 @@ simple_symbol = <symbol_ch0 symbol_chn*>:x -> SymbolList([x])
 symbol = chain_symbol | simple_symbol
 #
 word_literal = '<' ws <(hex_digit){8}>:x ws '>' -> int(x,16)
-res_arrayref = (integer|symbol):r ws '[' ws (integer|symbol):i ws ']' -> ArrayRef((r,i))
-resref = (integer|symbol):r ws ':' ws (integer|symbol):o ->ResRef((r,o))
-objref = (integer|symbol):o ws '@' ws (integer|symbol):c -> ObjRef((c,o))
+res_arrayref = (integer|symbol):r ws '[' ws (integer|symbol):i ws ']' -> arrayref(r,i)
+resref = (integer|symbol):r ws ':' ws (integer|symbol):o ->resref(r,o)
+objref = (integer|symbol):o ws '@' ws (integer|symbol):c -> objref(c,o)
 #
 true = ('True'|'true') -> 0x50000001
 false = ('False'|'false') -> 0x50000000
@@ -689,7 +736,7 @@ atom = resref|res_arrayref|objref|boolean|none|empty|integer|word_literal
 
 parameter = atom | symbol | terminated_string
 
-table_item = (integer|symbol):key ws ':' ws (array|table|terminated_string|none|empty|symbol):value ws ','? ws -> (key,value)
+table_item = (integer|symbol):key ws '=' ws (array|table|terminated_string|atom|symbol):value ws ','? ws -> (key,value)
 table_content = table_item*:t -> t
 table = ('table'|'tbl') ws '(' ws table_content:t ws ')' -> dict(t)
 
@@ -725,8 +772,9 @@ short_include = 'include' ws symbol:s -> asm.include(s)
 use = 'use' ws '(' ws symlistitem*:s ws ')' ws -> [asm.use(v) for v in s]
 short_use = 'use' ws symbol:s -> asm.use(s)
 resource = 'resource' ws av:v -> asm.set_context_resource(v)
+classfield = 'class_field' ws av:k ws av:v -> asm.class_field(k,v)
 label = simple_symbol:s ws ':' -> asm.toplevel_label(s)
-toplevel = define | function | array | table | class | direct | comment | include | use |short_use|short_include|resource | direct_hex | direct_string |label
+toplevel = define | function | array | table | classfield | class | direct | comment | include | use |short_use|short_include|resource | direct_hex | direct_string |label
 toplevelitem = (ws? toplevel:a ws?) -> a
 program = toplevelitem*:a -> a
 
@@ -745,6 +793,7 @@ class Assembler(object):
         self.path = path
         p = globals()
         self.toplabels = []
+        self.class_fields = []
         self.symtab = {}
         p['asm'] = self
         self.Parser = parsley.makeGrammar(RDASM_Opcodes+ '\n' +RDASM_Grammar_Preamble , p)
@@ -754,6 +803,8 @@ class Assembler(object):
         self.fieldnames = {}
         self.function_contexts = []
         self.output_file = None
+    def class_field(self,field,value):
+        self.class_fields.append((field,value))
     def begin_function_context(self, func):
         context = {sym:n for n,sym in enumerate(func.args)}
         callbacks = []
@@ -801,11 +852,13 @@ class Assembler(object):
     def register_conversation_prompt(self, loc):
         fn,fc,cb = self.get_function_context()
         fn.conversation_prompts.append(loc)
-    def finish_conversation_prompt(self):
+    def finish_conversation_prompt(self, offset):
         fn,fc,cb = self.get_function_context()
         p = fn.conversation_prompts.pop()
         return p
-        
+    def define_argument(self, argname, argop):
+        fn,fc,cb = self.get_function_context()
+        fc[SymbolList(argname)]=argop
     def getlval(self,thing, caller, loc, output=0xDEAD):
         if not isinstance(thing, SymbolList): return thing
         fn,fc,cb = self.get_function_context()
@@ -819,17 +872,25 @@ class Assembler(object):
         fc[label] = position
             
     def getfval(self,thing,warn_new=True):
+        #print "getfval", thing, warn_new
         if not isinstance(thing,SymbolList): return thing
         fn,fc,cb = self.get_function_context()
-        if thing in fc: return fc[thing]
-        if thing in self.symtab: return lookup_symbol(thing)
+        if thing in fc: 
+            #print "    Local -> ", fc[thing]
+            return fc[thing]
+        if thing in self.symtab: 
+            #print "    Global -> ", lookup_symbol[thing]
+            return lookup_symbol(thing)
         if warn_new is None:
+            #print "    Unbound -> None"
             return None
         if warn_new:
+            #print "    Unbound."
             self.error("Local variable %s used before assignment"%thing[0], warn=True)
         rv = fn.local_vars
         fc[thing] = rv
         fn.local_vars += 1
+        #print "    rv -> ", rv
         return rv
     def lookup_symbol(self, sym):
         try:
@@ -856,10 +917,15 @@ class Assembler(object):
     def write_class_table(self,of):
         fieldnames = self.fieldnames
         table = {}
+        
+        for k,v in self.class_fields:
+            table[k] = v
         for sym,field in self.fieldnames.items():
+            if table.has_key(field):
+                self.error("Redefinition of class field 0x%04X (%s)"%(field,sym),warn=True)
             if self.symtab.has_key(sym): table[field] = (
                 0x80000000|(self.context_resource<<16)|self.getval(sym))
-
+        
         dict_write_code(table, of, self)
          
     def assemble(self,source):

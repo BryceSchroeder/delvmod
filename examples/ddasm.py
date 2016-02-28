@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014-2015 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
+# Copyright 2016 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
 # Wiki: http://www.ferazelhosting.net/wiki/delv
 # 
 #    This program is free software: you can redistribute it and/or modify
@@ -22,7 +22,27 @@
 # /or Glenn Andreas, and publishing modified versions without their permission
 # would violate that copyright. 
 #
-# "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
+# "Cythera" and "Delver" are trademarks of either Glenn Andreas or 	
 # Ambrosia Software, Inc. 
-version = '0.2.0'
-import util
+
+import delv
+import delv.ddasm
+import sys
+from sys import argv
+
+if len (argv) < 2:
+    print >> sys.stderr, "Usage: ddasm.py binfile.out resid [output.rdasm]"
+    sys.exit(0)
+
+
+machinecode = open(argv[1],'rb')
+
+context_resid = int(argv[2].replace('0x',''),16)
+disassembler = delv.ddasm.Disassembler(context_resid)
+
+source = str(disassembler.disassemble(machinecode))
+
+output = open(argv[3] if len(argv) > 3 else 'dda.rdasm','wb')
+
+output.write(source)
+

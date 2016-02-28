@@ -1,1 +1,2 @@
-155
+resource 0x3039
+Jimbo: array (20, 10, "Squirrel", table(14:"Bob",17:"Sam"), array("Bork", "Zot"))

@@ -24,6 +24,10 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
+
+def encode_int28(i):
+    return i if i >= 0 else (0x0FFFFFFF+i+1)
+
 import cStringIO as StringIO, struct
 from sys import stderr
 class dref(object):
@@ -158,6 +162,7 @@ class BinaryHandler(object):
     S_uint32 = struct.Struct('>L')
     S_sint32 = struct.Struct('>l')
     S_uint8 = struct.Struct('B')
+    S_sint8 = struct.Struct('b')
     S_uint16 = struct.Struct('>H')
     S_sint16 = struct.Struct('>h')
 
@@ -168,6 +173,26 @@ class BinaryHandler(object):
         return rv is ''
     def seek(self, *vargs, **kwargs):
         self.file.seek(*vargs, **kwargs)
+    def cm_read(self,  *vargs, **kwargs):
+        p = self.tell()
+        rv = self.file.read(*vargs,**kwargs)
+        self.coverage_map[p:p+len(rv)] = [1]*len(rv)
+        return rv
+    def cm_all(self):
+        return not 0 in self.coverage_map
+    def cm_unseen(self):
+        unseen = []
+        start=0
+        i = 0
+        cm = self.coverage_map
+        while i < len(cm):
+            if not cm[i]:
+                start=i
+                while i < len(cm) and not cm[i]:
+                    i += 1
+                unseen.append((start,i-start))
+            i += 1
+        return unseen
     def read(self, *vargs, **kwargs):
         return self.file.read(*vargs, **kwargs)
     def readb(self, *vargs, **kwargs):
@@ -179,18 +204,22 @@ class BinaryHandler(object):
     def __len__(self):
         p = self.tell()
         self.seek(0)
-        # somewhere a Real Programmer is crying
-        length = len(self.read())
+        # somewhere a Real Programmer is crying and doesn't know why
+        length = len(self._read())
         self.seek(p)
         return length
     def truncate(self, *vargs, **kwargs):
         return self.file.truncate(*vargs,**kwargs)
 
-    def __init__(self, file):
+    def __init__(self, file, coverage_map=False):
         if hasattr(file, 'read') and hasattr(file, 'write'):
             self.file = file
         elif hasattr(file, '__getitem__'):
             self.file = StringIO.StringIO(file)
+        self._read = self.read
+        if coverage_map:
+            self.coverage_map = [0]*len(self)
+            self.read = self.cm_read
     def write_struct(self, s, v, offset=None):
         if offset is not None: self.seek(offset)
         if type(v) is int:
@@ -199,6 +228,8 @@ class BinaryHandler(object):
             self.write(s.pack(*v))
     def write_uint8(self, v, offset=None):
         self.write_struct(self.S_uint8, v, offset)
+    def write_sint8(self, v, offset=None): 
+        self.write_struct(self.S_sint8, v, offset)
     def write_uint16(self,v,offset=None):
         self.write_struct(self.S_uint16, v, offset)
     def write_uint6_uint10(self,v1,v2,offset=None):
@@ -209,6 +240,8 @@ class BinaryHandler(object):
         self.write_struct(self.S_sint16, v, offset)
     def write_uint32(self,v,offset=None):
         self.write_struct(self.S_uint32, v, offset)
+    def write_sint32(self,v,offset=None):
+        self.write_struct(self.S_sint32, v, offset)
     def write_offlen(self,offs,length,offset=None):
         self.write_struct(self.S_offlen, (offs,length), offset)
     
@@ -263,6 +296,8 @@ class BinaryHandler(object):
     def read_uint8(self, offset=None):
         "Read 8-bit unsigned integer"
         return self.read_struct(self.S_uint8, offset)[0]
+    def read_sint8(self, offset=None):
+        return self.read_struct(self.S_sint8, offset)[0]
     def read_uint16(self, offset=None):
         "Read 16-bit big endian unsigned integer."
         return self.read_struct(self.S_uint16, offset)[0]
@@ -272,6 +307,8 @@ class BinaryHandler(object):
     def read_sint16(self, offset=None):
         "Read 16-bit big endian signed integer."
         return self.read_struct(self.S_sint16, offset)[0]
+    def read_sint32(self, offset=None):
+        return self.read_struct(self.S_sint32, offset)[0]
     def read_uint24(self, offset=None):
         first_part  = self.read_uint8(offset)
         return (first_part<<16) | self.read_uint16()

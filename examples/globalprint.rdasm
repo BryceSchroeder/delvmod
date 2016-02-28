@@ -35,6 +35,7 @@ function Dug(self) (
         global globalToLookAt
     end
     '!\n'
+
     return
         byte 0
     end

@@ -20,7 +20,7 @@ import delv
 import delv.archive, delv.library
 import gobject
 
-version = '0.1.26'
+version = '0.1.27'
 PATCHINFO = """Created with redelv %s, based on the delv library."""%version
 MSG_NO_UNDERLAY = """Couldn't create library; if you are editing a saved game, 
 you need to underlay a scenario. Exception was: %s"""
