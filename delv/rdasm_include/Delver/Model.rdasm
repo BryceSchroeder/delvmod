@@ -86,6 +86,9 @@ defines Object (
     CanUnwear            (0x0010)
     Beheld               (0x0014)
 
+    // Learn a skill/spell
+    Learn                (0x001A)
+
  /* Seems to be called on e.g. goats and chickens, which do supplementary
     things not covered by the AI scripts, e.g. making noises. (cluck-cluck!)
     It is probably called every turn on the object's turn. An experiment is
@@ -93,6 +96,9 @@ defines Object (
     called for non-character objects it would be a way to bypass the technical
     difficulties in creating summoning spells under Delver. */
     EveryTurn            (0x0020)
+ 
+    // For things that can't be weighed on scales
+    Field24               (0x0024)
 
  /* array Object.AskedAbout(self)
     A field, containing a list of two items. The first item of the list is 
@@ -101,6 +107,10 @@ defines Object (
     when asked about it. E.g. a magic item would be something like:
     ["This is infused with strange goat magics.", [People.Timon]] */
     AskedAbout           (0x0033)
+
+    // Information for the AI, e.g spell categories so the AI knows how
+    // to use a spell
+    AIInformation        (0x0036)
 
     // Triggered when one digs on the object (using the shovel)
     Dug                  (0x0039)
@@ -112,6 +122,13 @@ defines Types (
     Monster              (0x48)
 )
 
+
+defines PropFlags (
+    OnMap            (0)
+    OnMapNotStealing (1)
+
+    InInventory      (9)
+)
 
 defines DObj (
     flags (0)
@@ -130,6 +147,9 @@ defines DObj (
     data3 (8)
 
     unkn09 (9)
+
+    container (0x0B)
+    
 
     magic (0x1E)
     talk_balloon (0x26)

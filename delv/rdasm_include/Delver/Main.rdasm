@@ -27,6 +27,18 @@
 ; form, you must also make the source code available. Of course, an 
 ; interface is not copyrightable, or at least shouldn't be, so you can make
 ; your own header file to do the same thing if you really want. */ 
+defines Resources (
+    Skills       (0x1A00)
+    Items        (0x1000)
+)
+
+// Return values of the method .Use of objects, to notify the interface
+// to ask for more data (e.g. a target object or location.)
+defines UseReturnCodes (
+    NothingRequired     (0)
+    TargetItemRequired  (1)
+)
+
 
 defines GUI (
     Window       (0x04)
@@ -35,6 +47,14 @@ defines GUI (
     Instrument   (0x0F)
     Spinner      (0x11)
     TextBox      (0x14)
+)
+
+defines RPGUtil (
+    // GainExp (Char, Amount)
+    GainExp                (0x0E8B)
+    
+    // CastSpell(Caster, SpellLevel, ManaCost)
+    CastSpell              (0x0EA1)
 )
 
 defines System (
@@ -61,6 +81,7 @@ defines System (
     SetState               (0xDD)
     MagicAuraEffect        (0xE1)
     ShootEffect            (0xE2)
+    RefreshView            (0xE6) // Circumstantial.
     AddQuest               (0xF2)
     AddConversationKeyword (0xF4)
     GetSkill               (0xF5)
@@ -74,6 +95,7 @@ defines Globals (
     CurrentCharacter     (0x09)
     ConversationResponse (0x0A)
     Karma                (0x0C)
-    CurrentZone          (0x10)
     Registered           (0x0D) 
+    CurrentZone          (0x10)
+    IsPlayerTurn         (0x13)
 )

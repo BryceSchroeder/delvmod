@@ -163,6 +163,18 @@ defines Characters (
     Degree_Hall_Door     (190) /* Door */
 )
 
+defines AISpellTypes (
+    DoNotUse             (0) // Manual use only
+    StatusEffect         (1)
+    Offensive            (2)
+    MassStatusEffect     (3)
+    Utility              (4) // AI doesn't seem to use these
+    MassCuring           (5)
+    
+    
+)
+
+
 // Spells in Cythera. ResID = N | 0x1A00
 define SpellBaseResID (0x1A00)
 defines Spells (
@@ -215,4 +227,21 @@ defines Spells (
     Restoration          (0x2E)
     Resurrection         (0x2F)
     Remove_Mage_Lock     (0x30)
+)
+
+define ColorOfMagic (240)
+
+defines Sounds (
+    Cluck    (0x05)
+    Explode  (0x27)
+    Arrow    (0x29)
+    Dice     (0x2A)
+    Gong     (0x2B)
+    Magic1   (0x2C)
+    Magic2   (0x2D)
+    Magic3   (0x2E)
+    Magic4   (0x2F)
+    Magic5   (0x30)
+    Quench   (0x31)
+    Forging  (0x32)
 )
