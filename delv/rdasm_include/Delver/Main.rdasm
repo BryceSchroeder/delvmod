@@ -75,5 +75,5 @@ defines Globals (
     ConversationResponse (0x0A)
     Karma                (0x0C)
     CurrentZone          (0x10)
-    //Registered (0x0D)  Let's make it at least a little hard, just in case.
+    Registered           (0x0D) 
 )

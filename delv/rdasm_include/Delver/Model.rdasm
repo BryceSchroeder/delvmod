@@ -106,7 +106,8 @@ defines Object (
     Dug                  (0x0039)
 )
 
-defines Classes (
+defines Types (
+    Prop                 (0x00) // Item?
     Character            (0x40)
     Monster              (0x48)
 )
@@ -122,15 +123,15 @@ defines DObj (
     // this field &0x03FF is prop type, &0xFC00 is aspect. 
     aspect_and_proptype (5)
 
-    d1 (6)
-    d2 (7)
+    data1 (6)
+    data2 (7)
 
     // d3 = (d1 << 8) | d2
-    d3 (8)
+    data3 (8)
 
     unkn09 (9)
 
     magic (0x1E)
-    text_balloon (0x26)
+    talk_balloon (0x26)
     nutrition (0x28)
 )

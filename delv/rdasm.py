@@ -337,7 +337,7 @@ class Op_write_far_word(Opcode):
     def generate(self,of,ctx, resid=INT_SYM, offset=INT_SYM):
         of.write_uint8(0x85)
         of.write_uint16(ctx.getval(resid))
-        of.write_uint16(ctx.getlval(addr, self, of.tell()))
+        of.write_uint16(ctx.getlval(offset, self, of.tell()))
 
 class Op_set_field(Opcode):
     mnemonic = 'setf'
@@ -463,11 +463,17 @@ class Op_system_call(Opcode):
 
 # I hope python purgatory isn't too bad
 item = None
+oplistlist = []# for syntax coloring
 for item in globals():
     if item.startswith("Op_"):
         OpClasses[globals()[item].mnemonic] = globals()[item]
         OpClasses[item.replace('Op_','')] = globals()[item]
         globals()[item].true_name = item
+        oplistlist.append(
+            "            <keyword>%s</keyword><keyword>%s</keyword>"%(
+                             globals()[item].mnemonic,
+                             globals()[item].true_name.replace('Op_','')))
+print '\n'.join(oplistlist)
 
 #def opcode(mnemonic, funclevel=True):
 #    def real_decorator(f):
@@ -478,13 +484,15 @@ for item in globals():
 #        return f
 #    return real_decorator
 
-def dict_write_code(table, ofile, context):
-    ofile.write_uint16(0xA000|len(table))
+def dict_write_code(table, ofile, context, force_order = None):
+    order = force_order or table.keys()
+    ofile.write_uint16(0xA000|len(order))
     callbacks = []
-    kvs = table.items()
-    kvs.sort(key=lambda x: (x[1],x[0]))
-    for k,v in kvs:
+    #kvs = table.items()
+    #kvs.sort(key=lambda x: (x[1],x[0]))
+    for k in order:
         k = context.getval(k)
+        v = table[k]
         write_array_item(ofile, v, context,callbacks)
         ofile.write_uint16(k)
     addrs = []
@@ -585,14 +593,20 @@ class Label(SymbolList): pass
 #        ofile.write_uint8(0x40)
 #        ofile.write_uint8(context.getval(self[0]))
 #        ofile.write_uint16(context.getval(self[1]))
-def arrayref(r,i):
+def arrayref(r,i,asm):
+    i = asm.getval(i)
+    r = asm.getval(r)
     assert 0 <= i <= 0xFFF
     return 0x30000000|(i<<16)|r
-def objref(c,o):
+def objref(c,o,asm):
+    c = asm.getval(c)
+    o = asm.getval(o)
     assert 0 <= c <= 0xFF
     return 0x40000000|(c<<16)|o
-def resref(r,o):
+def resref(r,o,asm):
     assert 0 <= r <= 0x7FFF
+    r = asm.getval(r)
+    o = asm.getval(o)
     return 0x80000000|(r<<16)|o
 
 class Empty(object):
@@ -690,7 +704,7 @@ dec_int = <sign? dec_digit+>:x -> delv.util.encode_int28(int(x))
 
 bin_digit = anything:x ?(x in "01") -> x
 dec_digit = anything:x ?(x in "0123456789") -> x
-hex_digit = anything:x ?(x in "0123456789abdefABCDEF") -> x
+hex_digit = anything:x ?(x in "0123456789abcdefABCDEF") -> x
 sign = anything:x ?(x in "-+") -> x
 
 
@@ -723,9 +737,9 @@ simple_symbol = <symbol_ch0 symbol_chn*>:x -> SymbolList([x])
 symbol = chain_symbol | simple_symbol
 #
 word_literal = '<' ws <(hex_digit){8}>:x ws '>' -> int(x,16)
-res_arrayref = (integer|symbol):r ws '[' ws (integer|symbol):i ws ']' -> arrayref(r,i)
-resref = (integer|symbol):r ws ':' ws (integer|symbol):o ->resref(r,o)
-objref = (integer|symbol):o ws '@' ws (integer|symbol):c -> objref(c,o)
+res_arrayref = (integer|symbol):r ws '[' ws (integer|symbol):i ws ']' -> arrayref(r,i,asm)
+resref = (integer|symbol):r ws ':' ws (integer|symbol):o ->resref(r,o,asm)
+objref = (integer|symbol):o ws '@' ws (integer|symbol):c -> objref(c,o,asm)
 #
 true = ('True'|'true') -> 0x50000001
 false = ('False'|'false') -> 0x50000000
@@ -764,7 +778,8 @@ sdef_block = ws symbol:k ws '(' ws define_expression:e ws ')' ws ','? ws -> (k,e
 defines = 'defines' ws symbol:k ws '(' ws sdef_block*:d ws ')' -> asm.define_symbols(k, d)
 
 define = simple_define | defines
-
+intlistitem = ws integer:i ws ','? ws -> i
+fieldorder = 'field_order' ws '(' ws intlistitem*:sl ws ')' ws -> asm.set_field_order(sl)
 
 symlistitem = symbol:s ws ','? ws -> s
 include = 'include' ws '(' ws symlistitem*:s ws ')' ws -> [asm.include(v) for v in s]
@@ -774,7 +789,7 @@ short_use = 'use' ws symbol:s -> asm.use(s)
 resource = 'resource' ws av:v -> asm.set_context_resource(v)
 classfield = 'class_field' ws av:k ws av:v -> asm.class_field(k,v)
 label = simple_symbol:s ws ':' -> asm.toplevel_label(s)
-toplevel = define | function | array | table | classfield | class | direct | comment | include | use |short_use|short_include|resource | direct_hex | direct_string |label
+toplevel = define | fieldorder | function | array | table | classfield | class | direct | comment | include | use |short_use|short_include|resource | direct_hex | direct_string |label
 toplevelitem = (ws? toplevel:a ws?) -> a
 program = toplevelitem*:a -> a
 
@@ -800,9 +815,12 @@ class Assembler(object):
         self.linenumber=0
         self.filename="<unknown>"
         self.mstream = message_stream
-        self.fieldnames = {}
+        self.fieldnames = {} 
+        self.field_order = []
         self.function_contexts = []
         self.output_file = None
+    def set_field_order(self, order): 
+        self.field_order = order
     def class_field(self,field,value):
         self.class_fields.append((field,value))
     def begin_function_context(self, func):
@@ -917,16 +935,26 @@ class Assembler(object):
     def write_class_table(self,of):
         fieldnames = self.fieldnames
         table = {}
+
+        
         
         for k,v in self.class_fields:
             table[k] = v
         for sym,field in self.fieldnames.items():
-            if table.has_key(field):
-                self.error("Redefinition of class field 0x%04X (%s)"%(field,sym),warn=True)
+            #if table.has_key(field):
+            #    self.error("Redefinition of class field 0x%04X (%s)"%(field,sym),warn=True)
             if self.symtab.has_key(sym): table[field] = (
                 0x80000000|(self.context_resource<<16)|self.getval(sym))
-        
-        dict_write_code(table, of, self)
+        order = self.field_order or self.table.keys()
+        #if len(order) != len(table):
+        #    self.error("Length of manually provided field order didn't match",warn=True)
+        # Pickup undefined fields -- This is a hack based on DDASM
+        if self.field_order:
+            for k in order:
+                if not k in table:
+                    #self.error("Class field not properly defined in Object: 0x%04X"%k,warn=True)
+                    table[k] = (0x80000000|(self.context_resource<<16)|self.symtab[SymbolList(['Field%04X'%k])])
+        dict_write_code(table, of, self, force_order=order)
          
     def assemble(self,source):
         source = source.strip()

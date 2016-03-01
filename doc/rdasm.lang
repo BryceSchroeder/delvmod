@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ GTKSourceView syntax coloring file for RDASM.
+ This file is part of delv, http://www.ferazelhosting.net/wiki/delv
+ Author: Bryce Schroeder <bryce.schroeder@gmail.com>
+ Based on the examples provided with gtksourceview, by e.g. 
+ Marco Barisione and Emanuele Aina.
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU General Public License as 
+ published by the Free Software Foundation; either version 3 of 
+ the License, or (at your option) any later version.
+
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
+
+ You should have received a copy of the GNU Library General Public
+ License along with this library; if not, write to the
+ Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ Boston, MA 02111-1307, USA.
+
+-->
+<language id="rdasm" _name="RDASM" version="2.0" _section="Sources">
+    <metadata>
+      <property name="mimetypes">text/x-rdasm;</property>
+      <property name="globs">*.rdasm</property>
+      <property name="line-comment-start">//</property>
+      <property name="block-comment-start">/*</property>
+      <property name="block-comment-end">*/</property>
+    </metadata>
+
+    <styles>
+        <style id="cstring"           _name="C String"            map-to="def:string"/>
+        <style id="directstring"      _name="Direct String"       map-to="def:character"/>
+        <style id="directdata"        _name="Direct Data"         map-to="def:character"/>
+        <style id="escaped-character" _name="Escaped Character"   map-to="def:special-char"/>
+        <style id="comment"           _name="Comment"             map-to="def:comment"/>
+        <style id="decimal"           _name="Decimal number"      map-to="def:decimal"/>
+        <style id="hexadecimal"       _name="Hexadecimal number"  map-to="def:base-n-integer"/>
+        <style id="binary"            _name="Binary number"       map-to="def:base-n-integer"/>
+        <style id="rawword"           _name="Raw Word"            map-to="def:base-n-integer"/>
+        <style id="specialword"       _name="Special word"        map-to="def:boolean"/> 
+        <style id="directive"         _name="Directive"           map-to="def:preprocessor"/> 
+        <style id="toptype"           _name="Top Type"            map-to="def:type"/> 
+        <style id="opcode"            _name="Opcode"              map-to="def:keyword"/>
+        <!-- <style id="error"             _name="Error"               map-to="def:error"/>
+        <style id="cstring"           _name="C String"            map-to="def:string"/>
+        <style id="preprocessor"      _name="Preprocessor"        map-to="def:preprocessor"/>
+        <style id="common-defines"    _name="Common Defines"      map-to="def:special-constant"/>
+        <style id="direct"            _name="Character"           map-to="def:character"/>
+        <style id="type"              _name="Data Type"           map-to="def:type"/>
+        <style id="escaped-character" _name="Escaped Character"   map-to="def:special-char"/> -->
+    </styles>
+
+    <definitions>
+        <define-regex id="escaped-character" extended="true">
+            \\(
+            [\\\"\'ntrfb]     |
+            x[0-9A-Fa-f]{2}   |
+            u00[0-9A-Fa-f]{2}
+            )
+        </define-regex>
+
+
+        <context id="rdasm"><include>
+
+          <context id="comment" style-ref="comment">
+            <start>\/\/</start> <end>$</end>
+          </context>
+
+          <context id="semicolon-comment" style-ref="comment">
+            <start>;</start> <end>$</end>
+          </context>
+
+          <context id="multiline-comment" style-ref="comment">
+            <start>\/\*</start> <end>\*\/</end>
+          </context>
+
+          <context id="cstring" style-ref="cstring">
+            <start>"</start>
+            <end>"</end>
+            <include><context id="escaped-character" style-ref="escaped-character">
+              <match>\%{escaped-character}</match>
+            </context></include>
+          </context>
+
+          <context id="directstring" style-ref="directstring">
+            <start>'</start>
+            <end>'</end>
+            <include><context id="descaped-character" style-ref="escaped-character">
+              <match>\%{escaped-character}</match>
+            </context></include>
+          </context>
+
+          <context id="directdata" style-ref="directdata">
+            <match>\{([0-9a-fA-F]{2}[ .]*)*\}</match>
+          </context>
+
+          <context id="decimal" style-ref="decimal">
+            <match extended="true">
+                (?&lt;![\w\.\&lt;])
+                -?[0-9]+
+                (?![\w\.])
+            </match>
+          </context>
+
+          <context id="hexadecimal" style-ref="hexadecimal">
+            <match extended="true">
+                (?&lt;![\w\.\&lt;])
+                0x[a-fA-F0-9]+
+                (?![\w\.])
+            </match>
+          </context>
+
+          <context id="binary" style-ref="binary">
+            <match extended="true">
+                (?&lt;![\w\.\&lt;])
+                0b[01]+
+                (?![\w\.])
+            </match>
+          </context>
+
+          <context id="rawword" style-ref="rawword">
+            <match extended="true">
+                (?&lt;![\w\.])
+                &lt;[0-9A-Fa-f ]{8}&gt;
+                (?![\w\.])
+            </match>
+          </context>
+
+          <context id="specialword" style-ref="specialword">
+                <keyword>None</keyword>
+                <keyword>none</keyword>
+                <keyword>Empty</keyword>
+                <keyword>empty</keyword>
+                <keyword>True</keyword>
+                <keyword>true</keyword>
+                <keyword>False</keyword>
+                <keyword>false</keyword>
+          </context>
+
+          <context id="directive" style-ref="directive">
+                <keyword>include</keyword>
+                <keyword>use</keyword>
+                <keyword>define</keyword>
+                <keyword>defines</keyword>
+                <keyword>class</keyword>
+                <keyword>resource</keyword>
+                <keyword>class_field</keyword>
+                <keyword>field_order</keyword>
+                <keyword>var</keyword>
+          </context>
+
+          <context id="toptype" style-ref="toptype">
+                <keyword>array</keyword>
+                <keyword>table</keyword>
+                <keyword>function</keyword>
+          </context>
+
+          <context id="opcode" style-ref="opcode">
+            <keyword>branch</keyword><keyword>unconditional_branch</keyword>
+            <keyword>ret</keyword><keyword>return</keyword>
+            <keyword>not</keyword><keyword>logical_not</keyword>
+            <keyword>lsh</keyword><keyword>left_shift</keyword>
+            <keyword>lt</keyword><keyword>less_than</keyword>
+            <keyword>glo</keyword><keyword>global</keyword>
+            <keyword>switch</keyword><keyword>switch</keyword>
+            <keyword>has</keyword><keyword>has_field</keyword>
+            <keyword>endr</keyword><keyword>end_response</keyword>
+            <keyword>orb</keyword><keyword>bitwise_or</keyword>
+            <keyword>then</keyword><keyword>then_go_to</keyword>
+            <keyword>word</keyword><keyword>load_word</keyword>
+            <keyword>seti</keyword><keyword>set_index</keyword>
+            <keyword>cvar</keyword><keyword>class_variable</keyword>
+            <keyword>div</keyword><keyword>divide</keyword>
+            <keyword>sys</keyword><keyword>system_call</keyword>
+            <keyword>wfw</keyword><keyword>write_far_word</keyword>
+            <keyword>setl</keyword><keyword>set_local</keyword>
+            <keyword>le</keyword><keyword>less_than_or_equal</keyword>
+            <keyword>print</keyword><keyword>print</keyword>
+            <keyword>csub</keyword><keyword>call_subroutine</keyword>
+            <keyword>near</keyword><keyword>load_near_word</keyword>
+            <keyword>notb</keyword><keyword>bitwise_not</keyword>
+            <keyword>cast</keyword><keyword>cast_to</keyword>
+            <keyword>loc</keyword><keyword>local</keyword>
+            <keyword>field</keyword><keyword>get_field</keyword>
+            <keyword>data</keyword><keyword>load_data</keyword>
+            <keyword>type</keyword><keyword>is_type</keyword>
+            <keyword>ne</keyword><keyword>not_equal</keyword>
+            <keyword>wnw</keyword><keyword>write_near_word</keyword>
+            <keyword>len</keyword><keyword>get_length</keyword>
+            <keyword>sub</keyword><keyword>subtract</keyword>
+            <keyword>string</keyword><keyword>load_cstring</keyword>
+            <keyword>rsh</keyword><keyword>right_shift</keyword>
+            <keyword>cidx</keyword><keyword>call_index</keyword>
+            <keyword>eq</keyword><keyword>equal</keyword>
+            <keyword>mod</keyword><keyword>modulus</keyword>
+            <keyword>or</keyword><keyword>logical_or</keyword>
+            <keyword>far</keyword><keyword>load_far_word</keyword>
+            <keyword>setg</keyword><keyword>set_global</keyword>
+            <keyword>add</keyword><keyword>add</keyword>
+            <keyword>method</keyword><keyword>call_method</keyword>
+            <keyword>if_not</keyword><keyword>branch_if_not</keyword>
+            <keyword>setf</keyword><keyword>set_field</keyword>
+            <keyword>arg</keyword><keyword>argument</keyword>
+            <keyword>end</keyword><keyword>end_expression</keyword>
+            <keyword>xor</keyword><keyword>bitwise_xor</keyword>
+            <keyword>gui</keyword><keyword>gui_call</keyword>
+            <keyword>andb</keyword><keyword>bitwise_and</keyword>
+            <keyword>not</keyword><keyword>negative</keyword>
+            <keyword>gclose</keyword><keyword>gui_close</keyword>
+            <keyword>mul</keyword><keyword>multiply</keyword>
+            <keyword>exit</keyword><keyword>exit_conversation</keyword>
+            <keyword>cres</keyword><keyword>call_resource</keyword>
+            <keyword>short</keyword><keyword>load_short</keyword>
+            <keyword>prompt</keyword><keyword>conversation_prompt</keyword>
+            <keyword>byte</keyword><keyword>load_byte</keyword>
+            <keyword>gt</keyword><keyword>greater_than</keyword>
+            <keyword>if</keyword><keyword>branch_if</keyword>
+            <keyword>and</keyword><keyword>logical_and</keyword>
+            <keyword>ge</keyword><keyword>greater_than_or_equal</keyword>
+            <keyword>idx</keyword><keyword>index</keyword>
+            <keyword>response</keyword><keyword>conversation_response</keyword>
+            <keyword>cases</keyword><keyword>cases</keyword>
+          </context>
+
+        </include></context>
+    </definitions>
+</language>
