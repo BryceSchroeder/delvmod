@@ -45,13 +45,6 @@
         <style id="directive"         _name="Directive"           map-to="def:preprocessor"/> 
         <style id="toptype"           _name="Top Type"            map-to="def:type"/> 
         <style id="opcode"            _name="Opcode"              map-to="def:keyword"/>
-        <!-- <style id="error"             _name="Error"               map-to="def:error"/>
-        <style id="cstring"           _name="C String"            map-to="def:string"/>
-        <style id="preprocessor"      _name="Preprocessor"        map-to="def:preprocessor"/>
-        <style id="common-defines"    _name="Common Defines"      map-to="def:special-constant"/>
-        <style id="direct"            _name="Character"           map-to="def:character"/>
-        <style id="type"              _name="Data Type"           map-to="def:type"/>
-        <style id="escaped-character" _name="Escaped Character"   map-to="def:special-char"/> -->
     </styles>
 
     <definitions>
