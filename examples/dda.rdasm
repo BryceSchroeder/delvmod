@@ -1,0 +1,102 @@
+// DDASM 0.2.0
+include Delver.Model
+include Delver.Main
+include Cythera
+use System
+resource 0x1A08
+
+field_order (0x07C3, 0x0008, 0x0002, 0x0036, 0x0009, 0x0036, 0x0000, 0x0001, 0x0008, 0x0009, 0x000A, 0x0082, 0x0033)
+// Standard Symbol  Key     Value or Offset
+// __init__         0x0000: 0x5000FFFF
+// ????             0x0001: 0x5000FFFF
+// Look             0x0002: 0x0008
+// ????             0x07C3: 0x5000FFFF
+// Examine          0x0008: 0x0028
+// Use              0x0009: 0x0056
+// UseOn            0x000A: 0x0090
+// ????             0x0082: 0x5000FFFF
+// AskedAbout       0x0033: 0x001E
+// ????             0x0036: 0x0002
+class Object
+
+array Field0036( 0 )
+function Look(Var30) (
+    // 0x000B
+    return 
+        string "Alleviation"
+    end 
+    return 
+        byte 0
+    end 
+)
+
+array AskedAbout( 3 212 )
+function Examine(Var30) (
+    // 0x002B
+    'This spell neutralizes various toxins.\n'
+    return 
+        byte 0
+    end 
+)
+
+function Use(Arg30) (
+    // 0x0059
+    if_not 
+        call_resource 0x0EA1
+            arg Arg30
+            get_field 0xB
+            byte 3
+            byte 6
+        end 
+    then Conditional008C
+    if_not 
+        global 0x13
+    then Conditional0085
+    // 0x006E
+    'Cast \''
+    print 
+        method 0x02
+            arg Arg30
+        end 
+    end 
+    // 0x007A
+    '\' on whom?\n'
+    Conditional0085:
+    return 
+        word 32772
+    end 
+    Conditional008C:
+    return 
+        byte 0
+    end 
+)
+
+function UseOn(Var30, Arg31) (
+    // 0x0093
+    sys MagicAuraEffect
+        global Globals.CurrentCharacter
+        word 240
+    end 
+    sys PlaySound
+        byte 46
+        global Globals.CurrentCharacter
+        get_field DObj.x
+        global Globals.CurrentCharacter
+        get_field DObj.y
+    end 
+    sys ClearFlag
+        arg Arg31
+        byte 9
+    end 
+    return 
+        byte 0
+    end 
+)
+
+class_field 0x0000 none
+
+class_field 0x0001 none
+
+class_field 0x0082 none
+
+class_field 0x07C3 none
