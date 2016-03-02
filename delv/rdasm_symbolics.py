@@ -41,13 +41,19 @@ DASM_GUI_NAME_HINTS['_name'] = 'GUI'
 DASM_GLOBAL_NAME_HINTS = {
     0x00: "CurrentHour",
     0x01: "CurrentTime",
-    0x02: "PlayerCharacter",
-#    0x05: "gPlayerCharacter",
+    0x02: "PlayerCharacterName",
+    0x05: "PlayerCharacter", # Seems to have to be cast to character
+    0x06: "CharactersInParty",
+    0x07: "CharactersInParty2",
     0x09: "CurrentCharacter", 
     0x0A: "ConversationResponse",
     0x0C: "Karma",
     0x0D: "Registered",
+    0x0E: "LanguagesKnown",
+    0x0F: "GameDay",
     0x10: "CurrentZone",
+    0x12: "StateTracker",
+    0x13: "IsPlayerTurn",
 }
 ASM_GLOBAL_NAME_HINTS = {v:k for k,v in DASM_GLOBAL_NAME_HINTS.items()}
 DASM_GLOBAL_NAME_HINTS['_size'] = 1
@@ -67,8 +73,10 @@ DASM_OBJ_NAME_HINTS['_name'] = 'Types'
 ASM_SYSCALL_NAMES = {
     'Delete':                 (0xA7),
     'Create':                 (0xA8),
+    'GetMapTile':             (0xA9),
     'Random':                 (0xAC),
     'New':                    (0xAD),
+    'PassTime':               (0xBD),
     'GetWeight':              (0xB8),
     'JoinParty':              (0xB9),
     'ChangeZone':             (0xBF),

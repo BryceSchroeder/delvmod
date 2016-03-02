@@ -35,8 +35,9 @@ defines Resources (
 // Return values of the method .Use of objects, to notify the interface
 // to ask for more data (e.g. a target object or location.)
 defines UseReturnCodes (
-    NothingRequired     (0)
-    TargetItemRequired  (1)
+    NothingRequired        (0)
+    TargetItemRequired     (1)
+    TargetLocationRequired (2)
 )
 
 
@@ -50,6 +51,9 @@ defines GUI (
 )
 
 defines RPGUtil (
+    CountMoneyInParty      (0x0D04)
+    
+
     // GainExp (Char, Amount)
     GainExp                (0x0E8B)
     
@@ -62,10 +66,12 @@ defines System (
     //UnknownA2            (0xA2)
     Delete                 (0xA7)
     Create                 (0xA8)
+    GetMapTile             (0xA9)
     Random                 (0xAC)
     New                    (0xAD)
     GetWeight              (0xB8)
     JoinParty              (0xB9)
+    PassTime               (0xBD)
     ChangeZone             (0xBF)
     SetFlag                (0xC1)
     ClearFlag              (0xC2)
@@ -91,11 +97,18 @@ defines System (
 defines Globals (
     CurrentHour          (0x00)
     CurrentTime          (0x01)
-    PlayerCharacter      (0x02)
+    PlayerCharacterName  (0x02)
+    // 0x03 seems to be unused
+    PlayerCharacter      (0x05)
+    CharactersInParty    (0x06)
+    CharactersInParty2   (0x07)
     CurrentCharacter     (0x09)
     ConversationResponse (0x0A)
     Karma                (0x0C)
-    Registered           (0x0D) 
+    Registered           (0x0D)
+    LanguagesKnown       (0x0E)
+    GameDay              (0x0F)
     CurrentZone          (0x10)
+    StateTracker         (0x12) 
     IsPlayerTurn         (0x13)
 )

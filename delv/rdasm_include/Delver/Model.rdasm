@@ -97,8 +97,8 @@ defines Object (
     difficulties in creating summoning spells under Delver. */
     EveryTurn            (0x0020)
  
-    // For things that can't be weighed on scales
-    Field24               (0x0024)
+    // For things that can be weighed on scales
+    Weight               (0x0024)
 
  /* array Object.AskedAbout(self)
     A field, containing a list of two items. The first item of the list is 
