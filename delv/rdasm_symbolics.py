@@ -71,6 +71,9 @@ DASM_OBJ_NAME_HINTS['_size'] = 1
 DASM_OBJ_NAME_HINTS['_name'] = 'Types'
 
 ASM_SYSCALL_NAMES = {
+    'RangeIterator':          (0xA0),
+    'ArrayIterator':          (0xA1),
+    'Delay':                  (0xA6),
     'Delete':                 (0xA7),
     'Create':                 (0xA8),
     'GetMapTile':             (0xA9),
@@ -84,6 +87,15 @@ ASM_SYSCALL_NAMES = {
     'ClearFlag':              (0xC2),
     'TestFlag':               (0xC4),
     'EmitSignal':             (0xC5),
+    'PropListIterator':       (0xC6),
+    'ContainerIterator':      (0xC8),
+    'RecursiveContainerIterator': (0xC9),
+    'PartyIterator':          (0xCA),
+    'LocationIterator':       (0xCB),
+    'EquipmentIterator':      (0xCC),
+    'EnemyIterator':          (0xCE),
+    'EffectIterator':         (0xCF),
+    'NearbyIterator':         (0xD1),
     'PlayNote':               (0xD2),
     'PlaySound':              (0xD3),
     'PlaySound2':             (0xD7),

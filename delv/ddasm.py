@@ -411,6 +411,8 @@ class OpWord(Opcode):
             self.immediate |= ~(-1&0x0FFFFFFF)
     def parameters(self):
         i=self.immediate
+        if 0x10000000 <= i <= 0x10000030:
+            return '&Local%02X'%((i&0xFF)-1)
         return word2str(i)
 class OpSetl(Opcode):
     mnemonic = 'set_local'
@@ -617,7 +619,7 @@ class DFunction(DVMObj):
         assert self.arg_count < 0x10
         self.local_count = ifile.read_uint8()
         assert self.local_count < 0x30
-        for n in xrange(self.local_count): self.get_local(n,hint="Loc")
+        for n in xrange(self.local_count): self.get_local(n,hint="Local")
         self.body = ifile.read() if length_hint is None else ifile.read(
             length_hint-3) 
         self.size = len(self.body)
@@ -628,7 +630,7 @@ class DFunction(DVMObj):
         print >> ost, i*INDENT+'function %s(%s) ('%(
              self.name, self.arglist())
         for n in xrange(self.local_count):
-            print >> ost, (1+i)*INDENT+'var Loc%02X'%n 
+            print >> ost, (1+i)*INDENT+'var Local%02X'%n 
             #print >> ost, (1+i)*INDENT+"// %d local vars"%self.local_count
         for il,line in zip(self.ilevel,self.code):
             if isinstance(line, tuple):

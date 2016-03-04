@@ -113,7 +113,7 @@ class Op_load_byte(Opcode):
         if immediate < 0:
             of.write_sint8(ctx.getlval(immediate, self, of.tell()))
         else:
-            of.write_uint8(ctx.getlval(immediate&0xFF, self, of.tell()))
+            of.write_uint8(ctx.getlval(immediate, self, of.tell())&0xFF)
     def finish(self, of, ctx, value):
         of.write_sint8(value)
 
@@ -122,7 +122,7 @@ class Op_load_short(Opcode):
     def generate(self, of, ctx, immediate=INT_SYM):
         of.write_uint8(0x42)
         if immediate >= 0:
-            of.write_uint16(ctx.getlval(immediate&0xFFFF, self, of.tell()))
+            of.write_uint16(ctx.getlval(immediate, self, of.tell())&0xFFFF)
         else:
             of.write_sint16(ctx.getlval(immediate, self, of.tell()))
 
@@ -229,7 +229,7 @@ class Op_equal(Opcode):
     encoding = 0x54
 
 class Op_negative(Opcode):
-    mnemonic = 'not'
+    mnemonic = 'neg'
     encoding = 0x55
 
 class Op_bitwise_and(Opcode):
@@ -320,7 +320,10 @@ class Op_var(Opcode):
 #    mnemonic = 'classfield'
 #    def generate(self, of, ctx, field=INT_SYM, value='(none|INT_SYM):%s'):
 #        ctx.class_field(ctx.getval(field), ctx.getval(value))
-
+class Op_loopvar(Opcode):
+    mnemonic = 'lvar'
+    def generate(self, of, ctx, which='symbol:%s'):
+        ctx.getfval(which, warn_new=False, loopvar=3)
 
 class Op_write_near_word(Opcode):
     mnemonic = 'wnw'
@@ -463,17 +466,17 @@ class Op_system_call(Opcode):
 
 # I hope python purgatory isn't too bad
 item = None
-oplistlist = []# for syntax coloring
+#oplistlist = []# for syntax coloring
 for item in globals():
     if item.startswith("Op_"):
         OpClasses[globals()[item].mnemonic] = globals()[item]
         OpClasses[item.replace('Op_','')] = globals()[item]
         globals()[item].true_name = item
-        oplistlist.append(
-            "            <keyword>%s</keyword><keyword>%s</keyword>"%(
-                             globals()[item].mnemonic,
-                             globals()[item].true_name.replace('Op_','')))
-print '\n'.join(oplistlist)
+#        oplistlist.append(
+#            "            <keyword>%s</keyword><keyword>%s</keyword>"%(
+#                             globals()[item].mnemonic,
+#                             globals()[item].true_name.replace('Op_','')))
+#print '\n'.join(oplistlist)
 
 #def opcode(mnemonic, funclevel=True):
 #    def real_decorator(f):
@@ -533,6 +536,11 @@ def write_array_item(ofile, item, context, callbacks):
          #print "***", item
          item.write_code(ofile,context)
 
+def varref(o, asm):
+    if isinstance(o, int):
+        return 0x10000000|o
+    else: return VarRef(o)
+
 
 def direct_hex_to_bytearray(text):
     f = []
@@ -544,6 +552,8 @@ def direct_hex_to_bytearray(text):
 class SymbolList(list): 
     def __hash__(self):
         return hash('.'.join(self))
+class VarRef(SymbolList):
+    pass
 
 class TLL(object):
     def __init__(self, sym):
@@ -740,13 +750,14 @@ word_literal = '<' ws <(hex_digit){8}>:x ws '>' -> int(x,16)
 res_arrayref = (integer|symbol):r ws '[' ws (integer|symbol):i ws ']' -> arrayref(r,i,asm)
 resref = (integer|symbol):r ws ':' ws (integer|symbol):o ->resref(r,o,asm)
 objref = (integer|symbol):o ws '@' ws (integer|symbol):c -> objref(c,o,asm)
+varref = '&' ws (integer|symbol):o -> varref(o, asm) 
 #
 true = ('True'|'true') -> 0x50000001
 false = ('False'|'false') -> 0x50000000
 none = ('None'|'none') -> 0x5000FFFF
 empty = ('empty'|'Empty') -> 0x5000FFFE
 boolean = true | false
-atom = resref|res_arrayref|objref|boolean|none|empty|integer|word_literal
+atom = resref|res_arrayref|objref|boolean|none|empty|integer|word_literal|varref
 
 parameter = atom | symbol | terminated_string
 
@@ -769,9 +780,9 @@ function = 'function' ws symbol?:lb ws '(' arg*:args ')' ws '(' ws function_item
 av = atom|(symbol:s -> asm.lookup_symbol(s))
 or_expression = av:a ws '|' ws av:b -> a|b
 add_expression = av:a ws '+' ws av:b -> a+b
-sub_expression = av:a ws '-' ws av:b -> a-b
-and_expression = av:a ws '&' ws av:b -> a&b
-define_expression =  sub_expression | and_expression | or_expression | add_expression | atom |  symbol:s -> asm.lookup_symbol(s) 
+#sub_expression = av:a ws '-' ws av:b -> a-b
+#and_expression = av:a ws '&' ws av:b -> a&b
+define_expression =  or_expression | add_expression | atom |  symbol:s -> asm.lookup_symbol(s) 
 
 simple_define = 'define' ws symbol:k ws '(' ws define_expression:e ws ')' -> asm.define_symbol(k, e) 
 sdef_block = ws symbol:k ws '(' ws define_expression:e ws ')' ws ','? ws -> (k,e)
@@ -789,7 +800,7 @@ short_use = 'use' ws symbol:s -> asm.use(s)
 resource = 'resource' ws av:v -> asm.set_context_resource(v)
 classfield = 'class_field' ws av:k ws av:v -> asm.class_field(k,v)
 label = simple_symbol:s ws ':' -> asm.toplevel_label(s)
-toplevel = define | fieldorder | function | array | table | classfield | class | direct | comment | include | use |short_use|short_include|resource | direct_hex | direct_string |label
+toplevel = define | fieldorder | function | array | table | classfield | class | direct | comment | include | use |short_use|short_include|resource | direct_hex | direct_string |label 
 toplevelitem = (ws? toplevel:a ws?) -> a
 program = toplevelitem*:a -> a
 
@@ -880,6 +891,8 @@ class Assembler(object):
     def getlval(self,thing, caller, loc, output=0xDEAD):
         if not isinstance(thing, SymbolList): return thing
         fn,fc,cb = self.get_function_context()
+        if isinstance(thing, VarRef):
+            return 0x10000000 | (fc[SymbolList(thing)] + 1)
         if thing in fc: return fc[thing]
         if thing in self.symtab: return self.symtab[thing]
         cb.append((caller, thing, loc))
@@ -889,7 +902,7 @@ class Assembler(object):
         if fn.label: self.define_symbol( SymbolList(fn.label + label), position)
         fc[label] = position
             
-    def getfval(self,thing,warn_new=True):
+    def getfval(self,thing,warn_new=True,loopvar=1):
         #print "getfval", thing, warn_new
         if not isinstance(thing,SymbolList): return thing
         fn,fc,cb = self.get_function_context()
@@ -906,10 +919,9 @@ class Assembler(object):
             #print "    Unbound."
             self.error("Local variable %s used before assignment"%thing[0], warn=True)
         rv = fn.local_vars
-        fc[thing] = rv
-        fn.local_vars += 1
-        #print "    rv -> ", rv
-        return rv
+        fc[thing] = rv 
+        fn.local_vars += loopvar
+        return fc[thing] + (loopvar-1)
     def lookup_symbol(self, sym):
         try:
             return self.symtab[sym]
@@ -945,7 +957,7 @@ class Assembler(object):
             #    self.error("Redefinition of class field 0x%04X (%s)"%(field,sym),warn=True)
             if self.symtab.has_key(sym): table[field] = (
                 0x80000000|(self.context_resource<<16)|self.getval(sym))
-        order = self.field_order or self.table.keys()
+        order = self.field_order or table.keys()
         #if len(order) != len(table):
         #    self.error("Length of manually provided field order didn't match",warn=True)
         # Pickup undefined fields -- This is a hack based on DDASM
