@@ -62,36 +62,68 @@ defines RPGUtil (
 )
 
 defines System (
-    //UnknownA0            (0xA0)
+    RangeIterator          (0xA0)
+    ArrayIterator          (0xA1)
     //UnknownA2            (0xA2)
+
+    Delay                  (0xA6)
     Delete                 (0xA7)
     Create                 (0xA8)
     GetMapTile             (0xA9)
+
     Random                 (0xAC)
     New                    (0xAD)
+
     GetWeight              (0xB8)
     JoinParty              (0xB9)
+
     PassTime               (0xBD)
+
     ChangeZone             (0xBF)
+
     SetFlag                (0xC1)
     ClearFlag              (0xC2)
     TestFlag               (0xC4)
     EmitSignal             (0xC5)
+
+    PropListIterator       (0xC7)
+    ContainerIterator      (0xC8)
+    RecursiveContainerIterator (0xC9)
+    PartyIterator          (0xCA)
+    LocationIterator       (0xCB)
+    EquipmentIterator      (0xCC)
+
+    EnemyIterator          (0xCE)
+    EffectIterator         (0xCF)
+
+    NearbyIterator         (0xD1)
     PlayNote               (0xD2)
     PlaySound              (0xD3)
+
     PlaySound2             (0xD7)
     SetAmbientLighting     (0xD8)
+
     SetTitle               (0xDA)
     HasWindow              (0xDB)
     GetState               (0xDC)
     SetState               (0xDD)
+
     MagicAuraEffect        (0xE1)
     ShootEffect            (0xE2)
+
     RefreshView            (0xE6) // Circumstantial.
+
     AddQuest               (0xF2)
+
     AddConversationKeyword (0xF4)
     GetSkill               (0xF5)
     
+)
+
+defines Iterator (
+    Begin       (0)
+    IsFinished  (1)
+    GetNextItem (2)
 )
 
 defines Globals (
