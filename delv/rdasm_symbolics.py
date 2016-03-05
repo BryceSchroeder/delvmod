@@ -64,7 +64,8 @@ DASM_OBJ_NAME_HINTS = {
 #   0x10: "Unknown_10",
 #   0x20: "Unknown_20",
    0x40: "Character",
-   0x48: "Monster"
+   0x48: "Monster",
+   0x50: "Skill",
 }
 ASM_OBJ_NAME_HINTS = {v:k for k,v in DASM_OBJ_NAME_HINTS.items()}
 DASM_OBJ_NAME_HINTS['_size'] = 1
@@ -73,16 +74,20 @@ DASM_OBJ_NAME_HINTS['_name'] = 'Types'
 ASM_SYSCALL_NAMES = {
     'RangeIterator':          (0xA0),
     'ArrayIterator':          (0xA1),
-    'Delay':                  (0xA6),
+    'Delay':                  (0xA6), # Probably frames.
     'Delete':                 (0xA7),
     'Create':                 (0xA8),
     'GetMapTile':             (0xA9),
     'Random':                 (0xAC),
     'New':                    (0xAD),
-    'PassTime':               (0xBD),
+    'WeightCapacity':         (0xB7), #returns number of grains remaining, >=0
     'GetWeight':              (0xB8),
     'JoinParty':              (0xB9),
+    'LeaveParty':             (0xBA),
+    'IsInParty':              (0xBC),
+    'PassTime':               (0xBD),
     'ChangeZone':             (0xBF),
+    'ShowMenu':               (0xC0),
     'SetFlag':                (0xC1),
     'ClearFlag':              (0xC2),
     'TestFlag':               (0xC4),
@@ -106,7 +111,12 @@ ASM_SYSCALL_NAMES = {
     'SetState':               (0xDD),
     'MagicAuraEffect':        (0xE1),
     'ShootEffect':            (0xE2),
-#    'UnknownE6':              (0xE6),
+    'RefreshView':            (0xE6),
+    'OpenConversation':       (0xE8),
+    'FinishConversation':     (0xE9),
+    'BeginCutscene':          (0xEA),
+    'EndCutscene':            (0xEB),
+    'AddTask':                (0xF0),
     'AddQuest':               (0xF2),
     'AddConversationKeyword': (0xF4),
     'GetSkill':               (0xF5),
@@ -120,7 +130,7 @@ ASM_STRUCT_HINTS = {
     'x': 1, 
     'y': 2, 
     'aspect': 3, 
-    'prop_type': 4, 
+    'obj_type': 4, 
     'aspect_and_proptype': 5,
     'data1': 6, 
     'data2': 7, 
@@ -146,14 +156,19 @@ ASM_OBJECT_HINTS = {
    'Talk':       0x000C,
    'Wear':       0x000D,
    'UnWear':     0x000E,
-   'CanUnwear':  0x0010,
+   'PutInside':  0x0010,
    'Beheld':     0x0014,
+   'GetMessage': 0x0015,
    'EveryTurn':  0x0020,
+   'Weight':     0x0024,
+   'AlchemicalProperties': 0x0030,
    'AskedAbout': 0x0033,
+   'AIInformation':0x0036,
    'Dug':        0x0039
 }
 DASM_OBJECT_HINTS = {v:k for k,v in ASM_OBJECT_HINTS.items()}
-
+DASM_OBJECT_HINTS['_size'] = 1
+DASM_OBJECT_HINTS['_name'] = 'Object'
 
 DASM_CYTHERA_CHARACTERS = {
     0x00: "NoCharacter",

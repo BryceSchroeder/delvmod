@@ -53,18 +53,22 @@ defines GUI (
 defines RPGUtil (
     CountMoneyInParty      (0x0D04)
     
-
+    PickLock               (0x0E43)
     // GainExp (Char, Amount)
     GainExp                (0x0E8B)
     
     // CastSpell(Caster, SpellLevel, ManaCost)
     CastSpell              (0x0EA1)
+
+    AskAbout               (0x0EB6)
 )
 
 defines System (
     RangeIterator          (0xA0)
     ArrayIterator          (0xA1)
     //UnknownA2            (0xA2)
+
+    TalkParticipant        (0xA4)
 
     Delay                  (0xA6)
     Delete                 (0xA7)
@@ -74,13 +78,17 @@ defines System (
     Random                 (0xAC)
     New                    (0xAD)
 
+    WeightCapacity         (0xB7)
     GetWeight              (0xB8)
     JoinParty              (0xB9)
+    LeaveParty             (0xBA)
 
+    IsInParty              (0xBC)
     PassTime               (0xBD)
 
     ChangeZone             (0xBF)
 
+    ShowMenu               (0xC0)
     SetFlag                (0xC1)
     ClearFlag              (0xC2)
     TestFlag               (0xC4)
@@ -112,6 +120,13 @@ defines System (
     ShootEffect            (0xE2)
 
     RefreshView            (0xE6) // Circumstantial.
+
+    OpenConversation       (0xE8)
+    FinishConversation     (0xE9)
+    BeginCutscene          (0xEA)
+    EndCutscene            (0xEB)
+    
+    AddTask                (0xF0)
 
     AddQuest               (0xF2)
 

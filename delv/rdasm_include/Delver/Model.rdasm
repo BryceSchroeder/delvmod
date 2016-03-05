@@ -83,8 +83,9 @@ defines Object (
     Wear                 (0x000D)
     Unwear               (0x000E)
 
-    CanUnwear            (0x0010)
+    PutInside            (0x0010)
     Beheld               (0x0014)
+    GetMessage           (0x0015)
 
     // Learn a skill/spell
     Learn                (0x001A)
@@ -99,6 +100,8 @@ defines Object (
  
     // For things that can be weighed on scales
     Weight               (0x0024)
+  
+    AlchemicalProperties (0x0030)
 
  /* array Object.AskedAbout(self)
     A field, containing a list of two items. The first item of the list is 
@@ -120,6 +123,7 @@ defines Types (
     Prop                 (0x00) // Item?
     Character            (0x40)
     Monster              (0x48)
+    Skill                (0x50)
 )
 
 
@@ -136,6 +140,7 @@ defines DObj (
     y (2)
     aspect (3)
     prop_type (4)
+    obj_type (4)
 
     // this field &0x03FF is prop type, &0xFC00 is aspect. 
     aspect_and_proptype (5)

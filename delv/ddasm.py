@@ -588,7 +588,7 @@ OpTable = {
     
     0x9B: Opcoder('gui',1,symbolics.DASM_GUI_NAME_HINTS),
     0x9C: Opcoder('call_index', 2, 2),
-    0x9D: Opcoder('method', 1, 1),
+    0x9D: Opcoder('method', 1, symbolics.DASM_OBJECT_HINTS),
     0x9E: Opcoder('call_subroutine', 1, 'Sub'),
     0x9F: Opcoder('call_resource', 1, 2)
 }

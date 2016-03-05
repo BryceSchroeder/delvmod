@@ -28,12 +28,22 @@
 ; interface is not copyrightable, or at least shouldn't be, so you can make
 ; your own header file to do the same thing if you really want. */ 
 
+defines Items (
+    Potion               (0x01F)
+    Crolna               (0x025)
+    Tome                 (0x105)
+    Strange_Device       (0x106)
+    Lockpick             (0x109)
+)
+
 /* Characters in the game. Most have the name you see in their conversation
    modal dialog, though a few are renamed so as to make `use Characters` not
    conflict with other possible use statements one might wish to make. (e.g.
    the Degree Hall door character in Pnyx is named `Degree_Hall_Door` instead
    of simply `Door` so that the name does not overlap with other things in
    this header file that might be called `Door`. */
+
+
 defines Characters (
     NoCharacter          (0)  /* x */
     Hero                 (1)
@@ -176,6 +186,7 @@ defines AISpellTypes (
 
 defines Skills (
     Fishing              (0xCE)
+    Lock_Picking         (0xD5)
 )
 
 defines Zones (
