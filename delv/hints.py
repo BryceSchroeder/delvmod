@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014-2015 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
+# Copyright 2014-2016 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
 # Wiki: http://www.ferazelhosting.net/wiki/delv
 # 
 #    This program is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 
-import graphics, sound, store, level, script
+import graphics, sound, store, level, script, dscript
 GRAPHICS_LANDSCAPE = 131
 GRAPHICS_PORTRAIT = 135
 GRAPHICS_TILESHEET = 141
@@ -38,17 +38,13 @@ _OBJECT_SI_HINTS = {
    141: graphics.TileSheet,
    142: graphics.General,
    144: sound.Asnd,
-   15: script.ClassContainer,
-   16: script.ClassContainer,
-   17: script.ClassContainer,
-   18: script.ClassContainer,
 }
-for n in xrange(15,30): 
+for n in xrange(0,15): 
     if not n in _OBJECT_SI_HINTS:
-        _OBJECT_SI_HINTS[n] = script.ClassContainer
-for n in xrange(0x7E): 
+        _OBJECT_SI_HINTS[n] = dscript.Direct
+for n in xrange(15,127): 
     if not n in _OBJECT_SI_HINTS:
-        _OBJECT_SI_HINTS[n] = script.Script
+        _OBJECT_SI_HINTS[n] = dscript.Class
 
 _OBJECT_SI_HINTS[n] = store.Store
 
@@ -62,6 +58,7 @@ _OBJECT_RESID_HINTS = {
   0xF013: store.TileCompositionList,
   0x0201: script.CharacterNames,
   0x8EFF: graphics.General,
+  0xC0D3: store.JSONDictionary
 }
 def class_by_resid(resid):
     """Try to get a class that can handle the resource provided,
@@ -115,6 +112,9 @@ _RES_HINTS = {
  0x0A05: "Clear Mind Potion",
  0x0A06: "Smith's Friend Potion",
  0x0A07: "Far Sight Potion",
+
+ 0xC0D3: "ReDelv Source Code Archive",
+
  0xF008: "Monster Statistics",
  0xF000: "Prop-Tile Associations",
  0xF004: "Tile Names",
@@ -135,12 +135,14 @@ _SCEN_HINTS = {
     15: "Object Scripts",17:"Object Scripts",18:"Object Scripts",
     20: "Composite Zone Scripts", 
     23: "Character Scripts", 25: "Skill and Action Scripts", 
-    26: "Area Scripts", 27: "Area Scripts", 47: "Default Method Implementations",
+    26: "Area Scripts", 27: "Area Scripts", 
+    47: "Default Method Implementations",
     127: "Maps", 128: "Prop Lists", 131: "Landscape Graphics", 
     135: "Character Portraits", 137: "Skill Icons", 141: "Tile Graphics",
     142: "General Graphics", 143: "Music", 144: "Sounds", 
     239: "Script Data", 254: "Patch Description",
     187: "Metadata from delv",
+    191: "Metadata from ReDelv",
     129: "Explored Area Bitmaps", 223: "Journal Entries"
 }
 

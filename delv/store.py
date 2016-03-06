@@ -37,21 +37,27 @@ import array, bisect
 import tile
 
 class Store(object):
-    def __init__(self, src):
+    def __init__(self, src): 
+        #print "new store", repr(src),self
         self.data = None
         self.checked_out = 0
         self.set_source(src)
     def set_source(self, src):
+        #print "setsource", repr(src)
         self.src = None
-        if src and issubclass(src.__class__, util.BinaryHandler):
+        if issubclass(src.__class__, util.BinaryHandler):
             self.src = src
             self.res = None
-        elif src and issubclass(src.__class__, archive.Resource):
+        elif issubclass(src.__class__, archive.Resource):
             self.src = src.as_file()
             self.res = src
         elif src:
             self.src = util.BinaryHandler(src)
             self.res = None
+        else:
+            print dir(src), hasattr(src, 'resid')
+            assert False, "Invalid source %s"%repr(src)
+        #print "final", repr(self.src), repr(self.res)
     def is_checked_out(self):
         return self.checked_out
     def check_out(self):
@@ -72,6 +78,34 @@ class Store(object):
             # I wonder why StringIO doesn't have a method that does this:
             self.data = bytearray(buf.getvalue())
         return self.data 
+import json
+class JSONDictionary(Store):
+    def purge(self, resid):
+        if not hasattr(self,'ds'): self.load_from_bfile()
+        del self.ds[str(resid)]
+    def save_source(self, resid, text):
+        #print "saving %d bytes of text for %04X"%(len(text),resid)
+        if not hasattr(self, 'ds'): self.load_from_bfile = {}
+        self.ds[str(resid)] = text
+        self.write_to_bfile()
+    def get(self, resid, defl=None):
+        if not hasattr(self,'ds'): self.load_from_bfile()
+        #print "getting", resid, self.ds.keys()
+        return self.ds.get(str(resid),defl)
+    def load_from_bfile(self):
+        #print "reading in jsondictionary"
+        data = self.src.read()
+        if not data:
+            self.ds = {} 
+            return
+        self.ds = json.loads(data)
+    def write_to_bfile(self, dest=None):
+        if not hasattr(self,'ds'): self.load_from_bfile()
+        if dest is None: dest = self.src
+        #print "writing out jsondictionary to",dest,self.src, repr(self.res)
+        dest.seek(0)
+        dest.write(json.dumps(self.ds))
+        dest.truncate()
 
 class SymbolList(Store):
     pass

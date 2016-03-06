@@ -134,6 +134,7 @@ class ResourceFile(util.BinaryHandler):
         self.resource.data = self.resource.data[:size]
         self.resource.dirty = True
     def readb(self, length=None):
+        if not self.length_limit: return bytearray([])
         if self.position >= self.length_limit: assert False
         if length is None:
             rv = self.resource.data[self.position:self.length_limit]
@@ -470,6 +471,7 @@ class Archive(object):
         if r is None and create_new:
             r = Resource(0,0,subindex,n,self)
             self.all_subindices[subindex][n] = r
+            print "creating new resource %04X"%idx,r
         return r
                 
 

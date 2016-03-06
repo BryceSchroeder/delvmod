@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2015 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
+# Copyright 2015-16 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
 # Wiki: http://www.ferazelhosting.net/wiki/delv
 # 
 #    This program is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import archive,hints,tile,prop,util
+import archive,hints,tile,prop,util,store
 import array
 class Library(object):
     """This class is a wrapper around one or more Delver archives, and 
@@ -50,7 +50,13 @@ class Library(object):
            0xFFFF, you will get the one from archive C."""
         self.cache = {}
         self.archives = filter(None,archives[::-1])
+        self.code_store = None
         self.load()
+    def get_code_store(self):
+        if not self.code_store:
+            res = self.archives[0].get(0xC0D3, create_new=True)
+            self.code_store = store.JSONDictionary(src=res)
+        return self.code_store
     def load(self):
         #self.load_tiles()
         #self.load_props()

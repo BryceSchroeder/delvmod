@@ -39,7 +39,7 @@ ABOUT_TEXT = """<span font_family="monospace">
     along with this program.  If not, see <a href="http://www.gnu.org/licenses/">the GNU website</a>.
 </span>
  <i>Cythera</i> and <i>Delver</i> are trademarks of either Glenn Andreas or Ambrosia Software, Inc. 
- redelv is copyright 2015 Bryce Schroeder, bryce.schroeder@gmail.com, <a href="http://www.bryce.pw/">bryce.pw</a>
+ redelv is copyright 2015-16 Bryce Schroeder, bryce.schroeder@gmail.com, <a href="http://www.bryce.pw/">bryce.pw</a>
  Based on the <a href="http://www.ferazelhosting.net/wiki/delv">delv</a> Python module. Repository: <a href="https://github.com/BryceSchroeder/delvmod/">GitHub</a> 
 delv version %s, redelv version %s
 """%(delv.version,version)
@@ -53,15 +53,23 @@ DEFAULT_PREFS = {# Command that will play sounds:
                    'play_sound_cmd': 'mplayer %s', 
                    # Enter the command for your hex editor here, e.g. ghex
                    'hex_editor_cmd': 'bless %s',
+                   'graphics_editor_cmd': 'gimp -n %s',
+                   'audio_editor_cmd': 'audacity %s',
+                   'assembly_editor_cmd': 'gedit --standalone %s',
+
                    # If True, when an external editor edits a file open in
                    # an active editor, propagate those changes immediately
                    # (this generally looks pretty cool, but it may hose your
                    #  unsaved changes if any.)
                    'instant_editor_propagation':True,
-                   'graphics_editor_cmd': 'gimp -n %s',
-                   'audio_editor_cmd': 'audacity %s',
-                   'assembly_editor_cmd': 'gedit --standalone %s',
-                   'default_patch_info':PATCHINFO,}
+
+                   # This is the info to add to patches produced.
+                   'default_patch_info':PATCHINFO,
+
+                   # URL form to retrieve human-checked source code from
+                   'source_archive':  
+                       'http://www.ferazelhosting.net/wiki/%04X?action=raw',
+                   }
 PREFS_PATH = os.path.expanduser('~/.redelv')
 
 class ReDelv(object):

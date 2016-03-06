@@ -639,8 +639,8 @@ class DFunction(DVMObj):
                 lb = self.dd.get_label(offs, False)
                 if lb: 
                     print >> ost, (il)*INDENT+lb+':'
-                else:
-                    print >> ost, (il)*INDENT+'// 0x%04X'%offs
+                #else:
+                #    print >> ost, (il)*INDENT+'// 0x%04X'%offs
                 if not dat: continue
                 ost.write((il)*INDENT+"'")
                 for cn, ch in enumerate(dat):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python2.7
-# Copyright 2015 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
+# Copyright 2015-16 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
 # 
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 import redelvlib
-print """redelv %s (C) 2015 Bryce Schroeder. Licensed under the GPL3."""%(
+print """redelv %s (C) 2016 Bryce Schroeder. Licensed under the GPL3."""%(
     redelvlib.version)
 
 r = redelvlib.ReDelv()
