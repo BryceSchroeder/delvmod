@@ -22,14 +22,15 @@ from distutils.core import setup
 import setuptools
 
 setup(name='delv',
-      version='0.1.19',
+      version='0.2.2',
       description='Module for making tools interoperable with Delver',
       author='Bryce Schroeder',
       author_email='bryce.schroeder@gmail.com',
       license='GPL-3',
       install_requires=['parsley'],
       url='http://www.ferazelhosting.net/wiki/delv',
-	classifiers=["Development Status :: 2 - Pre-Alpha",
+	classifiers=["Development Status :: 3 - Alpha",
                      "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
                      "Topic :: Games/Entertainment :: Role-Playing"],
-      packages=['delv'])
+      packages=['delv'],
+      package_data={'delv':['rdasm_include/*.rdasm', 'rdasm_include/Delver/*.rdasm']})

@@ -47,9 +47,9 @@ class RLCol(object):
         bool: (lambda b: bool(b))
     }
     _def_validator = {
-        int: (lambda _: return True),
-        str: (lambda _: return True),
-        bool: (lambda _: return True),
+        int: (lambda _:  True),
+        str: (lambda _:  True),
+        bool: (lambda _:  True),
     }
     def __init__(self, title, dtype=int, formatter=None,parser=None,
                  validator=None):

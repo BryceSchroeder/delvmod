@@ -90,6 +90,9 @@ defines Object (
     // Learn a skill/spell
     Learn                (0x001A)
 
+    // seen in 48/19xx monster classes
+    OnDeath              (0x001D)
+
  /* Seems to be called on e.g. goats and chickens, which do supplementary
     things not covered by the AI scripts, e.g. making noises. (cluck-cluck!)
     It is probably called every turn on the object's turn. An experiment is

@@ -34,7 +34,7 @@ class SingletonObject(ScriptObject):
 class Boolean(SingletonObject):
     pass
 
-class None(SingletonObject):
+class Nil(SingletonObject):
     pass
 
 class NumericalScriptObject(ScriptObject):

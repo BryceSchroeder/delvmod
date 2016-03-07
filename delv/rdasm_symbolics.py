@@ -159,6 +159,7 @@ ASM_OBJECT_HINTS = {
    'PutInside':  0x0010,
    'Beheld':     0x0014,
    'GetMessage': 0x0015,
+   'OnDeath':    0x001D,
    'EveryTurn':  0x0020,
    'Weight':     0x0024,
    'AlchemicalProperties': 0x0030,
