@@ -92,7 +92,7 @@ ASM_SYSCALL_NAMES = {
     'ClearFlag':              (0xC2),
     'TestFlag':               (0xC4),
     'EmitSignal':             (0xC5),
-    'PropListIterator':       (0xC6),
+    'PropListIterator':       (0xC7),
     'ContainerIterator':      (0xC8),
     'RecursiveContainerIterator': (0xC9),
     'PartyIterator':          (0xCA),

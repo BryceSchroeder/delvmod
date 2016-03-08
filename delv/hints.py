@@ -47,6 +47,7 @@ for n in xrange(15,127):
         _OBJECT_SI_HINTS[n] = dscript.Class
 
 _OBJECT_SI_HINTS[n] = store.Store
+_OBJECT_SI_HINTS[47] = dscript.Direct
 
 _OBJECT_RESID_HINTS = {
   0xF004: store.TileNameList,
@@ -78,10 +79,11 @@ _RES_HINTS = {
  0x10E4: "Chicken",
 
  0x8102: "Odemia",
+ 0x1402: "Odemia",
  0x8101: "Cythera",
-
  0x8002: "Odemia",
  0x8001: "Cythera",
+ 0x1401: "Cythera",
 
  0x0201: "Character Names",
  0x0203: "Character Class Names",
@@ -112,6 +114,10 @@ _RES_HINTS = {
  0x0A05: "Clear Mind Potion",
  0x0A06: "Smith's Friend Potion",
  0x0A07: "Far Sight Potion",
+
+ 0x1419: "Tyrant's Tomb",
+ 0x8019: "Tyrant's Tomb",
+ 0x8119: "Tyrant's Tomb",
 
  0xC0D3: "ReDelv Source Code Archive",
 

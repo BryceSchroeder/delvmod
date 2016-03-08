@@ -7,7 +7,7 @@
 ;    the Free Software Foundation, either version 3 of the License, or
 ;    (at your option) any later version.
 ;
-;    This program is distributed in the hope that it will be useful,
+;    This program is distributed in the hope that it will be usreturneful,
 ;    but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;    GNU General Public License for more details.
@@ -120,7 +120,7 @@ defines System (
     ShootEffect            (0xE2)
 
     RefreshView            (0xE6) // Circumstantial.
-
+    SpecialView            (0xE7) // 0 For earthquakes, 2 for far sight
     OpenConversation       (0xE8)
     FinishConversation     (0xE9)
     BeginCutscene          (0xEA)

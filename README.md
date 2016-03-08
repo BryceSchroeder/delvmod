@@ -142,12 +142,8 @@ that it can apply, but it can't create patches that can be applied by Magpie.)
 
 FUTURE DIRECTIONS
 
-As of the present, the scripting system's virtual machine has not been 
-successfully reverse engineered and documented by the Technical Documentation 
-Project. Therefore, the delv.script module remains unfinished and will likely 
-remain so for some time. 
+Resolve the remaining scripts that don't disassemble/assemble properly
 
-It would be nice if someone made a GUI patch manager (see the example mag.py
-for how to implement patches with delv; delv has all of the actual patching
-and even conflict-detection logic built in, it's just a matter of keeping
-track of what patches are applied, etc.) 
+Editors for various static data records
+
+A nice map/proplist integrated editor

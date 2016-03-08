@@ -832,7 +832,10 @@ class MapEditor(editors.Editor):
                 for p in invisible: 
                     x,y = p.get_loc()
                     proptype = self.library.get_prop(p.proptype)
-                    proptile = proptype.get_debug_tile(p.aspect)
+                    if p.flags == 0x42:
+                        proptile = proptype.get_debug_tile(p.aspect)
+                    else:
+                        proptile = 0x017F
                     self.draw_tile(x,y,proptile, 
                         offset=proptype.get_offset(p.aspect), as_prop=True,
                         rotated=p.rotated)
