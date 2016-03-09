@@ -25,7 +25,7 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 
-import graphics, sound, store, level, script, dscript
+import graphics, sound, store, level, script, dscript, schedule
 GRAPHICS_LANDSCAPE = 131
 GRAPHICS_PORTRAIT = 135
 GRAPHICS_TILESHEET = 141
@@ -52,6 +52,7 @@ _OBJECT_SI_HINTS[47] = dscript.Direct
 _OBJECT_RESID_HINTS = {
   0xF004: store.TileNameList,
   0xF000: store.PropTileList,
+  0xF00B: schedule.ScheduleList,
   0xF010: store.TileFauxPropsList,
   0xF011: store.ByteList,
   0xF012: store.ByteList,
@@ -67,7 +68,50 @@ def class_by_resid(resid):
     return _OBJECT_RESID_HINTS.get(resid,
            _OBJECT_SI_HINTS.get((resid >> 8) - 1, None))
     
-
+_ZONES = ["Nowhere", 
+    "World",
+    "Odemia",
+    "LandKing Hall",
+    "Abandoned Farmhouse",
+    "Farmhouse Cellar",
+    "Catamarca",
+    "Under Catamarca",
+    "Cademia", #8
+    "UrSylph's Prison",
+    "Headwater Ruins",
+    "Maayti Ruins",
+    "Pnyx",
+    "Kosha",
+    "Pnyx Upstairs",
+    "Iron Mine",
+    "Land's End Volcano",#0x10
+    "Charax's House",
+    "North Shore Vineyard",
+    "Hall of Truth",
+    "Southland Vineyard",
+    "Under Cademia",
+    "Goat Farm",
+    "Kosha Grotto",
+    "Mining camp", #0x18
+    "Tyrant's Tomb",
+    "Scylla Temple",
+    "Crab Cove", 
+    "Machaon's Workshop",
+    "Abydos",
+    "Under Abydos",
+    "Inner Brotherhood",
+    "Bandit Camp",
+    "Brotherhood Dungeon",
+    "Harpy Cave",
+    "Eioneus Cave",
+    "Tavara Fort",
+    "Tavara No Fort",
+    "Sitia Bridge",
+    "Tree of Life",
+    "Omen Test",
+    "Harpy Abyss"
+]
+_ZONES += ["???"]*(256-len(_ZONES))
 
 _RES_HINTS = {
  0x0101: "Global Symbol List",
@@ -126,11 +170,19 @@ _RES_HINTS = {
  0xF004: "Tile Names",
  0xF002: "Tile Attributes",
  0xF013: "Composed Tiles",
+ 0xF009: "Characters",
+ 0xF00B: "Schedules",
+ 0xF00C: "Zoneports",
  0xF010: "Faux Prop Information",
  0xF011: "Prop-aspect X offsets",
  0xF012: "Prop-aspect Y offsets",
  0xF015: "Peristence Store Symbols"
 }
+for n,name in enumerate(_ZONES):
+    _RES_HINTS[0x8000|n]=name
+    _RES_HINTS[0x8100|n]=name
+    _RES_HINTS[0x1400|n]=name
+
 _SCEN_HINTS = {
     1: "String Lists",2: "Static Data",3: "AI Scripts",4: "Script Data",
     7: "Shared Dialogue Scripts",
@@ -147,7 +199,7 @@ _SCEN_HINTS = {
     127: "Maps", 128: "Prop Lists", 131: "Landscape Graphics", 
     135: "Character Portraits", 137: "Skill Icons", 141: "Tile Graphics",
     142: "General Graphics", 143: "Music", 144: "Sounds", 
-    239: "Script Data", 254: "Patch Description",
+    239: "General Data", 254: "Patch Description",
     187: "Metadata from delv",
     191: "Metadata from ReDelv",
     129: "Explored Area Bitmaps", 223: "Journal Entries"

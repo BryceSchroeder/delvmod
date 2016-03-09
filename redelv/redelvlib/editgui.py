@@ -27,6 +27,7 @@ import level_editors
 import patch_editor
 import sound_editors
 import script_editor
+import schedule_editor
 
 # hokey
 _EDITORS_BY_NAME = {
@@ -37,6 +38,7 @@ _EDITORS_BY_NAME = {
     "Portrait": graphics_editors.PortraitEditor,
     "Icon": graphics_editors.IconEditor,
     "TileSheet": graphics_editors.TileSheetEditor, 
+    "ScheduleEditor": schedule_editor.ScheduleEditor,
     "Sized": graphics_editors.SizedEditor,
     "Sound": sound_editors.SoundEditor,
     "Patch": patch_editor.PatchEditor,
@@ -45,6 +47,7 @@ _EDITORS_BY_NAME = {
 }
 _EDITORS_FOR_RESOURCE = {
     0xF004: generic_editors.TileNameListEditor,
+    0xF00B: schedule_editor.ScheduleEditor,
     0x8EFF: graphics_editors.SizedEditor,
 }
 _EDITORS_FOR_SUBINDEX = {

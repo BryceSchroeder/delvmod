@@ -202,6 +202,8 @@ class ReDelv(object):
                  (lambda *argv: self.specific_ed("Patch")),0,None),
             ("/Tools/Use Specific Editor/F0 Data Editors/Tile Name List",None,
                  (lambda *argv: self.specific_ed("TileNameList")),0,None),
+            ("/Tools/Use Specific Editor/F0 Data Editors/Schedule",None,
+                 (lambda *argv: self.specific_ed("ScheduleEditor")),0,None),
             ("/Tools/sep6", None, None, 0, "<Separator>"),
             ("/Tools/_Image _Browser", None, self.menu_image_browser,0,None),
             ("/Tools/High Level Editors/_Monsters",None,None,0,None),
