@@ -24,6 +24,6 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-version = '0.2.2'
+version = '0.2.3'
 import util
 import rdasm
