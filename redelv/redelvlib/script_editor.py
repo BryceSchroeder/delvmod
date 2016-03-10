@@ -155,6 +155,7 @@ class ScriptEditor(editors.Editor):
     def _loadsource(self):
         code = self.redelv.get_library().get_code_store()
         src = code.get(self.res.resid)
+        self.cycle_check = True
         return src
     def purge(self, *argv):
         code = self.redelv.get_library().get_code_store()

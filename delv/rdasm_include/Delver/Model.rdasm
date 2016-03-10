@@ -93,6 +93,9 @@ defines Object (
     // seen in 48/19xx monster classes
     OnDeath              (0x001D)
 
+    // called for e.g. swamp, lava
+    StepOn               (0x001F)
+
  /* Seems to be called on e.g. goats and chickens, which do supplementary
     things not covered by the AI scripts, e.g. making noises. (cluck-cluck!)
     It is probably called every turn on the object's turn. An experiment is
@@ -157,9 +160,30 @@ defines DObj (
     unkn09 (9)
 
     container (0x0B)
-    
-
+    has_storage (0x11)
+    storage (0x12)
+    bit_flags (0x13)
+    bitflags (0x13)
+    status_flags (0x14)
+    behavior (0x15)
+    behavior2 (0x16)
+    body (0x17)
+    reflex (0x18)
+    mind (0x19)
+    exp (0x1A)
+    level (0x1B)
+    health (0x1C)
+    full_health (0x1D)
     magic (0x1E)
+    full_magic (0x1F)
+    dispatch_thing (0x20)
+    training (0x21)
+    target (0x22)
+    timing (0x23)
     talk_balloon (0x26)
     nutrition (0x28)
+)
+
+defines StatusFlags (
+    alive    (1)
 )

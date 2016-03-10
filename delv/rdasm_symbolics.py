@@ -126,20 +126,41 @@ DASM_SYSCALL_NAMES['_size'] = 0
 DASM_SYSCALL_NAMES['_name'] = 'System'
 
 ASM_STRUCT_HINTS = {
-    'flags': 0,
-    'x': 1, 
-    'y': 2, 
-    'aspect': 3, 
-    'obj_type': 4, 
-    'aspect_and_proptype': 5,
-    'data1': 6, 
-    'data2': 7, 
-    'data3': 8,
-    'unkn09': 9,
-
-    'magic': 0x1E, 
-    'talk_balloon': 0x26,
-    'nutrition': 0x28,
+    'flags':                0x00,
+    'x':                    0x01, 
+    'y':                    0x02, 
+    'aspect':               0x03, 
+    'obj_type':             0x04, 
+    'aspect_and_proptype':  0x05,
+    'data1':                0x06, 
+    'data2':                0x07, 
+    'data3':                0x08,
+    'unkn09':               0x09,
+    # 0x0A is unseen
+    'container':            0x0B,
+    # 0x0C-0x10 unseen
+    'has_storage':          0x11,
+    'storage':              0x12,
+    'bit_flags':            0x13,
+    'status_flags':         0x14,
+    'behavior':             0x15, # behavioral mode
+    # 16 appears to get the same value
+    'behavior2':            0x16,
+    'body':                 0x17, # characters only
+    'reflex':               0x18, # cast to Character
+    'mind':                 0x19, # before using.
+    'exp':                  0x1A, 
+    'level':                0x1B,
+    'health':               0x1C,
+    'full_health':          0x1D,
+    'magic':                0x1E,
+    'full_magic':           0x1F, 
+    'dispatch_thing':       0x20, # haven't been able to figure it out yet
+    'training':             0x21,
+    'target':               0x22,
+    'timing':               0x23, # semantics unsure
+    'talk_balloon':         0x26,
+    'nutrition':            0x28,
 }
 DASM_STRUCT_HINTS = {v:k for k,v in ASM_STRUCT_HINTS.items()}
 DASM_STRUCT_HINTS['_size'] = 1
@@ -160,6 +181,7 @@ ASM_OBJECT_HINTS = {
    'Beheld':     0x0014,
    'GetMessage': 0x0015,
    'OnDeath':    0x001D,
+   'StepOn':     0x001F,
    'EveryTurn':  0x0020,
    'Weight':     0x0024,
    'AlchemicalProperties': 0x0030,
