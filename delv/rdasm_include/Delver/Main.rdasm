@@ -114,6 +114,8 @@ defines System (
     PlayNote               (0xD2)
     PlaySound              (0xD3)
 
+    PlayMusic              (0xD6)
+    PlayAmbientSound       (0xD7)
     PlaySound2             (0xD7)
     SetAmbientLighting     (0xD8)
 

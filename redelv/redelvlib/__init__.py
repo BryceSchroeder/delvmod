@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2015 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
+# Copyright 2015-6 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
 # 
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -72,7 +72,31 @@ DEFAULT_PREFS = {# Command that will play sounds:
                    }
 PREFS_PATH = os.path.expanduser('~/.redelv')
 
+class AskNewResourceBox(gtk.Dialog):
+    def __init__(self,redelv,prompt="Create a new resource:"):
+        self.redelv=redelv
+        gtk.Dialog.__init__(self)
+        v = gtk.Label(prompt)
+        self.vbox.pack_start(v)
+        v.show()
+        self.e = gtk.Entry(max=6)
+        self.e.set_text("0x%04X"%self.redelv.get_new_resid(self.redelv.current_subindex_id))
+        self.vbox.pack_start(self.e)
+        self.e.show()
+        #self.resid = 
+        #self.name = 
+        self.add_buttons(gtk.STOCK_NEW, 1, gtk.STOCK_CANCEL, 0)
+
+        self.vbox.show()
+    def get_value(self):
+        return int(self.e.get_text().replace('0x',''),16)
+
 class ReDelv(object):
+    def get_new_resid(self, si):
+        if si == 0: return 0
+        for r in xrange(1,254): 
+            if not self.archive.get((si,r)): return ((si+1)<<8)|r
+        return ((si+1)<<8)
 
     def __init__(self):
         if os.path.exists(PREFS_PATH):
@@ -144,16 +168,17 @@ class ReDelv(object):
             ("/_Edit",          None,           None,           0,  "<Branch>"),
             ("/Edit/_Get _Info","<control>I",   self.menu_get_info,0,None),
             ("/Edit/_File _Metadata",None,   self.menu_file_metadata,0,None),
-            ("/Edit/_Create _Index",None,       self.menu_create_index,0,None),
+            #("/Edit/_Create _Index",None,       self.menu_create_index,0,None),
             ("/Edit/sep3",       None,          None,          0,"<Separator>"),
             ("/Edit/_Delete",   "<control>K",     self.menu_delete,0,None),
             ("/Edit/_Create _Resource",None,  self.menu_create_resource,0,None),
-            ("/Edit/_Export _Resource",None,  self.menu_export_resource,0,None),
-            ("/Edit/_Import _Resource",None,  self.menu_import_resource,0,None),
+            #("/Edit/_Export _Resource",None,  self.menu_export_resource,0,None),
+            #("/Edit/_Import _Resource",None,  self.menu_import_resource,0,None),
             ("/Edit/sep4",       None,          None,          0,"<Separator>"),
-            ("/Edit/_Cut",   "<control>X",           self.menu_cut,0,None),
-            ("/Edit/_Copy",  "<control>C",           self.menu_copy,0,None),
-            ("/Edit/_Paste", "<control>V",           self.menu_paste,0,None),
+            #("/Edit/_Cut",   "<control>X",           self.menu_cut,0,None),
+            #("/Edit/_Copy",  "<control>C",           self.menu_copy,0,None),
+            #("/Edit/_Paste", "<control>V",           self.menu_paste,0,None),
+            ("/Edit/_Duplicate","<control>D",  self.menu_duplicate,0,None),
 
             ("/_Patch",          None,          None,          0, "<Branch>"),
             ("/Patch/_Select _Base",None,       self.menu_select_base,0,None),
@@ -476,9 +501,39 @@ class ReDelv(object):
     def menu_delete(self, widget, data=None):
         print "Delete"
         return None
+    def menu_duplicate(self, widget, data=None):
+        if not self.current_resource_id: return
+        askbox = AskNewResourceBox(self, 
+            "Copy resource %04X to new ID:"%self.current_resource_id)
+        #self.window.emit("filechange")
+        choice = askbox.run() 
+        new_resid = askbox.get_value()
+        askbox.destroy()
+        if not choice: return None
+        data = self.archive.get(self.current_resource_id).get_data()
+
+        res = self.archive.get(new_resid, create_new=True)
+        res.set_data(data)
+        self.tree_data.clear()
+        self.archive.add_gui_tree()
+        self.set_unsaved()
+        
+
     def menu_create_resource(self, widget, data=None):
-        self.window.emit("filechange")
-        print "emitted signal"
+        askbox = AskNewResourceBox(self)
+        #self.window.emit("filechange")
+        choice = askbox.run() 
+        new_resid = askbox.get_value()
+        askbox.destroy()
+
+        if not choice: return None
+        
+        res = self.archive.get(new_resid, create_new=True)
+        res.set_data('\x00')
+        self.tree_data.clear()
+        self.archive.add_gui_tree()
+        print "New resource", choice, new_resid, res
+        self.set_unsaved()
         return None
     def menu_export_resource(self, widget, data=None):
         return None
