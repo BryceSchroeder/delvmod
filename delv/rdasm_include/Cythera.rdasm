@@ -36,6 +36,10 @@ defines Items (
     Lockpick             (0x109)
 )
 
+defines GameStateFlags (
+   MemberOfRatCatchersGuild   (0x04)
+)
+
 /* Characters in the game. Most have the name you see in their conversation
    modal dialog, though a few are renamed so as to make `use Characters` not
    conflict with other possible use statements one might wish to make. (e.g.

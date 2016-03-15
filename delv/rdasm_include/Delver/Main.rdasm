@@ -118,17 +118,20 @@ defines System (
     PlayAmbientSound       (0xD7)
     PlaySound2             (0xD7)
     SetAmbientLighting     (0xD8)
-
+    SetLandscapeImage      (0xD9)
     SetTitle               (0xDA)
     HasWindow              (0xDB)
     GetState               (0xDC)
     SetState               (0xDD)
+    GetStateFlag           (0xDE)
+    SetStateFlag           (0xDF)
 
     MagicAuraEffect        (0xE1)
     ShootEffect            (0xE2)
-
-    RefreshView            (0xE6) // Circumstantial.
-    SpecialView            (0xE7) // 0 For earthquakes, 2 for far sight
+    FlashTile              (0xE3)  
+    HitWithTile            (0xE4)
+    RefreshView            (0xE6) 
+    SpecialView            (0xE7) 
     OpenConversation       (0xE8)
     FinishConversation     (0xE9)
     BeginCutscene          (0xEA)

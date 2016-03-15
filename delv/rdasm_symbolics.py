@@ -106,13 +106,26 @@ ASM_SYSCALL_NAMES = {
     'PlayMusic':              (0xD6),
     'PlayAmbientSound':       (0xD7),
     'SetAmbientLighting':     (0xD8),
+    'SetLandscapeImage':      (0xD9), # negative for indoors/ no sky.
     'SetTitle':               (0xDA),
     'HasWindow':              (0xDB),
     'GetState':               (0xDC),
     'SetState':               (0xDD),
+    'GetStateFlag':           (0xDE), # the address space does not seem to be
+    'SetStateFlag':           (0xDF), # shated with DD/DE above.
+    #                         (0xE0), # unclear what this does, hapax in 180D
     'MagicAuraEffect':        (0xE1),
     'ShootEffect':            (0xE2),
+    'FlashTile':              (0xE3), # momentarily flash a tile
+    'HitWithTile':            (0xE4), # flash tile aligning it twixt two props
+    'GetNextProp':            (0xE5), # Gets the next prop on the proplist in a
+                                      # map or container. If you are calling it
+                                      # on a prop on the map, it will skip over
+                                      # props in containers. None returned if 
+                                      # called on the last prop in a container.
+                                      # this is used to implement bellows.
     'RefreshView':            (0xE6),
+    'SpecialView':            (0xE7), # 0 For earthquakes, 2 for far sight
     'OpenConversation':       (0xE8),
     'FinishConversation':     (0xE9),
     'BeginCutscene':          (0xEA),
@@ -179,7 +192,7 @@ ASM_OBJECT_HINTS = {
    'Wear':       0x000D,
    'UnWear':     0x000E,
    'PutInside':  0x0010,
-   'Beheld':     0x0014,
+   'Enter':     0x0014,
    'GetMessage': 0x0015,
    'OnDeath':    0x001D,
    'StepOn':     0x001F,

@@ -84,7 +84,7 @@ defines Object (
     Unwear               (0x000E)
 
     PutInside            (0x0010)
-    Beheld               (0x0014)
+    Enter                (0x0014)
     GetMessage           (0x0015)
 
     // Learn a skill/spell
