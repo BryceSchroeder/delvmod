@@ -74,15 +74,15 @@ DASM_OBJ_NAME_HINTS['_name'] = 'Types'
 ASM_SYSCALL_NAMES = {
     'RangeIterator':          (0xA0),
     'ArrayIterator':          (0xA1),
-    'GameOver':               (0xA2), 
-    #A3! A4! A5-
+    'GameOver':               (0xA2),
+    'UseTime':                (0xA3), # what is done by pass command
     'TalkParticipant':        (0xA4),
-
+    'UnseenA5':               (0xA5),
     'Delay':                  (0xA6), # Probably frames.
     'Delete':                 (0xA7),
     'Create':                 (0xA8),
     'GetMapTile':             (0xA9),
-    # AA- 
+    'UnseenAA':               (0xAA),
     'TakeItem':               (0xAB), #difference from B1?
     'Random':                 (0xAC),
     'New':                    (0xAD),
@@ -107,16 +107,17 @@ ASM_SYSCALL_NAMES = {
     'ShowMenu':               (0xC0),
     'SetFlag':                (0xC1),
     'ClearFlag':              (0xC2),
-    #C3! -- seems to set up temporary effects
+    'StatusEffect':           (0xC3),
     'TestFlag':               (0xC4),
     'EmitSignal':             (0xC5),
+    'UnseenC6':               (0xC6),
     'PropListIterator':       (0xC7),
     'ContainerIterator':      (0xC8),
     'RecursiveContainerIterator': (0xC9),
     'PartyIterator':          (0xCA),
     'LocationIterator':       (0xCB),
     'EquipmentIterator':      (0xCC),
-    # CD- unseen
+    'UnseenCD':               (0xCD),
     'EnemyIterator':          (0xCE),
     'EffectIterator':         (0xCF),
     'MonsterIterator':        (0xD0), # angers conspecific mons when 1 atkd
@@ -162,7 +163,7 @@ ASM_SYSCALL_NAMES = {
     'GetSkill':               (0xF5),
     'SetViewPosition':        (0xF6),
     'HasSightLine':           (0xF7),
-    'UnseenF8':               (0xF8),
+    'CDPlayerControl':        (0xF8), # takes a byte for the cmd. can ret vals.
     'UnseenF9':               (0xF9),
     'GetProp':                (0xFA), # get prop from the propref field in map
     'UnseenFB':               (0xFB),
