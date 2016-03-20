@@ -82,8 +82,8 @@ defines Object (
     //Tenative
     Wear                 (0x000D)
     Unwear               (0x000E)
-
     PutInside            (0x0010)
+    Relinquish           (0x0011)
     Enter                (0x0014)
     GetMessage           (0x0015)
 
@@ -106,7 +106,6 @@ defines Object (
  
     // For things that can be weighed on scales
     Weight               (0x0024)
-  
     AlchemicalProperties (0x0030)
 
  /* array Object.AskedAbout(self)
@@ -182,8 +181,16 @@ defines DObj (
     timing (0x23)
     talk_balloon (0x26)
     nutrition (0x28)
+
+    // seen in monster
+    monster_flags (0x32)
+    alignment (0x35)
 )
 
 defines StatusFlags (
     alive    (1)
+)
+
+defines MonsterFlags (
+    bleeds    (0x4000)
 )

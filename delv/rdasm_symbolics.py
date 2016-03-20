@@ -74,22 +74,40 @@ DASM_OBJ_NAME_HINTS['_name'] = 'Types'
 ASM_SYSCALL_NAMES = {
     'RangeIterator':          (0xA0),
     'ArrayIterator':          (0xA1),
+    'GameOver':               (0xA2), 
+    #A3! A4! A5-
+    'TalkParticipant':        (0xA4),
+
     'Delay':                  (0xA6), # Probably frames.
     'Delete':                 (0xA7),
     'Create':                 (0xA8),
     'GetMapTile':             (0xA9),
+    # AA- 
+    'TakeItem':               (0xAB), #difference from B1?
     'Random':                 (0xAC),
     'New':                    (0xAD),
+    'WhoHasItem':             (0xAE), # propaspect, data. returns char.
+    'UnseenAF':               (0xAF),
+    'UnseenB0':               (0xB0),
+    'RemoveItem':             (0xB1),
+    'UnseenB2':               (0xB2), 
+    'UnseenB3':               (0xB3), 
+    'ModalNumberInput':       (0xB4), # (str prompt, int min, int max (inclusive))
+    'UnseenB5':               (0xB5),
+    'UnseenB6':               (0xB6),
     'WeightCapacity':         (0xB7), #returns number of grains remaining, >=0
     'GetWeight':              (0xB8),
     'JoinParty':              (0xB9),
     'LeaveParty':             (0xBA),
+    'ModalPartySelector':     (0xBB),#BB doesn't quite work, might be dead code
     'IsInParty':              (0xBC),
     'PassTime':               (0xBD),
+    'UpdateLighting':         (0xBE),
     'ChangeZone':             (0xBF),
     'ShowMenu':               (0xC0),
     'SetFlag':                (0xC1),
     'ClearFlag':              (0xC2),
+    #C3! -- seems to set up temporary effects
     'TestFlag':               (0xC4),
     'EmitSignal':             (0xC5),
     'PropListIterator':       (0xC7),
@@ -98,8 +116,10 @@ ASM_SYSCALL_NAMES = {
     'PartyIterator':          (0xCA),
     'LocationIterator':       (0xCB),
     'EquipmentIterator':      (0xCC),
+    # CD- unseen
     'EnemyIterator':          (0xCE),
     'EffectIterator':         (0xCF),
+    'MonsterIterator':        (0xD0), # angers conspecific mons when 1 atkd
     'NearbyIterator':         (0xD1),
     'PlayNote':               (0xD2),
     'PlaySound':              (0xD3),
@@ -113,7 +133,7 @@ ASM_SYSCALL_NAMES = {
     'SetState':               (0xDD),
     'GetStateFlag':           (0xDE), # the address space does not seem to be
     'SetStateFlag':           (0xDF), # shated with DD/DE above.
-    #                         (0xE0), # unclear what this does, hapax in 180D
+    'UnknownE0':              (0xE0), # investigation has showed no function
     'MagicAuraEffect':        (0xE1),
     'ShootEffect':            (0xE2),
     'FlashTile':              (0xE3), # momentarily flash a tile
@@ -130,10 +150,26 @@ ASM_SYSCALL_NAMES = {
     'FinishConversation':     (0xE9),
     'BeginCutscene':          (0xEA),
     'EndCutscene':            (0xEB),
+    'BeginSlideshow':         (0xEC),
+    'EndSlideshow':           (0xED),
+    'Slideshow':              (0xEE), #pict resid, text as resref
+    'UnseenEF':               (0xEF),
     'AddTask':                (0xF0),
+    'FinishTasks':            (0xF1),
     'AddQuest':               (0xF2),
+    'CompleteQuest':          (0xF3),
     'AddConversationKeyword': (0xF4),
     'GetSkill':               (0xF5),
+    'SetViewPosition':        (0xF6),
+    'HasSightLine':           (0xF7),
+    'UnseenF8':               (0xF8),
+    'UnseenF9':               (0xF9),
+    'GetProp':                (0xFA), # get prop from the propref field in map
+    'UnseenFB':               (0xFB),
+    'SetAutomapping':         (0xFC),
+    'SetBackgroundColor':     (0xFD), # parameter is cythera clut color   
+    'UnseenFE':               (0xFE),
+    'UnseenFF':               (0xFF)
 }
 DASM_SYSCALL_NAMES = {v:k for k,v in ASM_SYSCALL_NAMES.items()}
 DASM_SYSCALL_NAMES['_size'] = 0
@@ -175,6 +211,9 @@ ASM_STRUCT_HINTS = {
     'timing':               0x23, # semantics unsure
     'talk_balloon':         0x26,
     'nutrition':            0x28,
+    #seen in monster.
+    'monster_flags':        0x32, # 0x4000: bleeds when hit
+    'alignment':            0x35,
 }
 DASM_STRUCT_HINTS = {v:k for k,v in ASM_STRUCT_HINTS.items()}
 DASM_STRUCT_HINTS['_size'] = 1
@@ -192,6 +231,7 @@ ASM_OBJECT_HINTS = {
    'Wear':       0x000D,
    'UnWear':     0x000E,
    'PutInside':  0x0010,
+   'Relinquish': 0x0011,
    'Enter':     0x0014,
    'GetMessage': 0x0015,
    'OnDeath':    0x001D,

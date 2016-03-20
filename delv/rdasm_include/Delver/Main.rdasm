@@ -51,6 +51,7 @@ defines GUI (
 )
 
 defines RPGUtil (
+    BlacksmithTasker       (0x0C86)
     CountMoneyInParty      (0x0D04)
     
     PickLock               (0x0E43)
@@ -72,7 +73,7 @@ defines CharacterFlags (
 defines System (
     RangeIterator          (0xA0)
     ArrayIterator          (0xA1)
-    //UnknownA2            (0xA2)
+    GameOver               (0xA2)
 
     TalkParticipant        (0xA4)
 
@@ -81,19 +82,27 @@ defines System (
     Create                 (0xA8)
     GetMapTile             (0xA9)
 
+    TakeItem               (0xAB)
     Random                 (0xAC)
     New                    (0xAD)
-
+    WhoHasItem             (0xAE)
+    UnseenAF               (0xAF)
+    UnseenB0               (0xB0)
+    RemoveItem             (0xB1)
+    UnseenB2               (0xB2)
+    UnseenB3               (0xB3)
+    ModalNumberInput       (0xB4)
+    UnseenB5               (0xB5)
+    UnseenB6               (0xB6)
     WeightCapacity         (0xB7)
     GetWeight              (0xB8)
     JoinParty              (0xB9)
     LeaveParty             (0xBA)
-
+    ModalPartySelector     (0xBB)
     IsInParty              (0xBC)
     PassTime               (0xBD)
-
+    UpdateLighting         (0xBE)
     ChangeZone             (0xBF)
-
     ShowMenu               (0xC0)
     SetFlag                (0xC1)
     ClearFlag              (0xC2)
@@ -109,7 +118,7 @@ defines System (
 
     EnemyIterator          (0xCE)
     EffectIterator         (0xCF)
-
+    MonsterIterator        (0xD0) 
     NearbyIterator         (0xD1)
     PlayNote               (0xD2)
     PlaySound              (0xD3)
@@ -125,7 +134,7 @@ defines System (
     SetState               (0xDD)
     GetStateFlag           (0xDE)
     SetStateFlag           (0xDF)
-
+    UnknownE0              (0xE0)
     MagicAuraEffect        (0xE1)
     ShootEffect            (0xE2)
     FlashTile              (0xE3)  
@@ -136,20 +145,38 @@ defines System (
     FinishConversation     (0xE9)
     BeginCutscene          (0xEA)
     EndCutscene            (0xEB)
-    
+    BeginSlideshow         (0xEC)
+    EndSlideshow           (0xED)
+    Slideshow              (0xEE)
+    UnseenEF               (0xEF)
     AddTask                (0xF0)
-
+    FinishTasks            (0xF1)
     AddQuest               (0xF2)
-
+    CompleteQuest          (0xF3)
     AddConversationKeyword (0xF4)
     GetSkill               (0xF5)
-    
+    SetViewPosition        (0xF6)
+    HasSightLine           (0xF7)
+    UnseenF8               (0xF8)
+    UnseenF9               (0xF9)
+    GetProp                (0xFA)
+    UnseenFB               (0xFB)
+    SetAutomapping         (0xFC)
+    SetBackgroundColor     (0xFD)
+    UnseenFE               (0xFE)
+    UnseenFF               (0xFF)
 )
 
 defines Iterator (
     Begin       (0)
     IsFinished  (1)
     GetNextItem (2)
+)
+
+defines SpecialViews (
+    EarthQuake  (0)
+    FarSight    (2)
+    FadeOut     (3)
 )
 
 defines Globals (

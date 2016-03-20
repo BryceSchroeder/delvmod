@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2014-2015 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
+# Copyright 2014-2016 Bryce Schroeder, www.bryce.pw, bryce.schroeder@gmail.com
 # Wiki: http://www.ferazelhosting.net/wiki/delv
 # 
 #    This program is free software: you can redistribute it and/or modify
@@ -146,8 +146,8 @@ class PropList(store.Store):
             dest.write_uint24(prop.raw_location)
             dest.write_uint6_uint10(prop.rotated|prop.aspect,prop.proptype)
             dest.write_uint16(prop.get_d3())
-            dest.write_uint32(prop.propref)
-            dest.write_uint16(prop.storeref)
+            dest.write_uint16(prop.propref)
+            dest.write_uint32(prop.storeref)
             dest.write_uint16(prop.u)
         dest.truncate()
     def load_from_bfile(self):
@@ -159,8 +159,8 @@ class PropList(store.Store):
             loc= self.src.read_xy24()
             aspect,proptype = self.src.read_uint6_uint10()
             d3 = self.src.read_uint16()
-            propref = self.src.read_uint32()
-            storeref = self.src.read_uint16()
+            propref = self.src.read_uint16()
+            storeref = self.src.read_uint32()
             u= self.src.read_uint16()
             nprop = PropListEntry(flags, loc,
                 aspect, proptype,d3, propref, storeref,u,index)

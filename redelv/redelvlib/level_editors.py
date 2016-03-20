@@ -370,7 +370,7 @@ class PropListEditor(editors.Editor):
                 prop.textual_location(),
                 prop.rotated, "%d"%prop.aspect, "%d"%prop.get_d1(),
                 "%d"%prop.get_d2(), "0x%04X"%prop.get_d3(),
-                "0x%08X"%prop.propref, "0x%04X"%prop.storeref, idx,
+                "0x%04X"%prop.propref, "0x%08X"%prop.storeref, idx,
                 prop.okay_to_take(),"0x%04X"%prop.u
                 ]) 
     def criterion_change(self, entry, accessor):
@@ -535,7 +535,7 @@ class PropListEditor(editors.Editor):
         if storeref < 0 or storeref > 0xFFFF: return
         itr = self.tree_data.get_iter(
             self.tree_filter.convert_path_to_child_path(path))
-        self.tree_data.set_value(itr, 10,"0x%04X"%storeref)
+        self.tree_data.set_value(itr, 10,"0x%08X"%storeref)
         self.set_unsaved()
     def editor_callback_propref(self,  renderer, path, new_text):
         try:
@@ -546,7 +546,7 @@ class PropListEditor(editors.Editor):
         itr = self.tree_data.get_iter(
             self.tree_filter.convert_path_to_child_path(path))
 
-        self.tree_data.set_value(itr, 9,"0x%08X"%propref)
+        self.tree_data.set_value(itr, 9,"0x%04X"%propref)
         self.set_unsaved()
 
     def editor_setup(self):
