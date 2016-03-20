@@ -583,7 +583,7 @@ OpTable = {
     0x8E: Opcoder('exit'),
     0x8F: Opcoder('conversation_prompt', 0, str),
     0x90: OpConversationResponse,
-    
+    0x92: Opcoder('ai_state', 1, 1),
     0x93: Opcoder('gui_close',1),
     
     0x9B: Opcoder('gui',1,symbolics.DASM_GUI_NAME_HINTS),

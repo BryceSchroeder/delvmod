@@ -417,6 +417,12 @@ class Op_end_response(Opcode):
         of.write_uint16(endpoint)
         of.seek(endpoint)
 
+class Op_reset_ai_state(Opcode):
+    mnemonic = 'ai_state'
+    def generate(self, of, ctx, which=INT_SYM):
+        of.write_uint8(0x92)
+        of.write_uint8(ctx.getval(which))
+
 class Op_gui_close(Opcode):
     mnemonic = 'gclose'
     encoding = 0x93
