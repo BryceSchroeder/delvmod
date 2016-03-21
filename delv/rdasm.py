@@ -971,7 +971,13 @@ class Assembler(object):
             for k in order:
                 if not k in table:
                     #self.error("Class field not properly defined in Object: 0x%04X"%k,warn=True)
-                    table[k] = (0x80000000|(self.context_resource<<16)|self.symtab[SymbolList(['Field%04X'%k])])
+                    try:
+                        table[k] = (0x80000000|(self.context_resource<<16)|self.symtab[SymbolList(['Field%04X'%k])])
+                    except KeyError:
+                        s= self.symtab.items()
+                        s.sort()
+                        for k,v in s: print k,':',v
+                        assert False
         dict_write_code(table, of, self, force_order=order)
          
     def assemble(self,source):

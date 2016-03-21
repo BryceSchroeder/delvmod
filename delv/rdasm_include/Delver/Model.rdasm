@@ -79,12 +79,14 @@ defines Object (
     
     Talk                 (0x000C)
 
-    //Tenative
     Wear                 (0x000D)
-    Unwear               (0x000E)
+    UnWear               (0x000E)
     PutInside            (0x0010)
     Relinquish           (0x0011)
+    
+    //Tenative
     Enter                (0x0014)
+    
     GetMessage           (0x0015)
 
     // Learn a skill/spell
