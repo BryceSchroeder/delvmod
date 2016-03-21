@@ -566,7 +566,13 @@ class TLL(object):
         self.sym = sym
     def write_code(self, ofile, context):
         context.define_symbol(self.sym, ofile.tell())
-
+class ClassData(object):
+    def __init__(self, atom, label='ErrorClassData'):
+        self.label=label
+        self.atom = atom
+    def write_code(self,ofile,context):
+        context.define_symbol(self.label, ofile.tell())
+        ofile.write_uint32(self.atom)
 class Array(list):
     def with_label(self, label=None):
         if label is not None:
@@ -775,6 +781,8 @@ array_item = (array|table|atom|terminated_string|symbol):value ws ','? ws -> val
 array_content = array_item*:a -> Array(a)
 array = ('array'|'ary') ws symbol?:lb ws '(' ws array_content:a ws ')' -> a.with_label(lb)
 
+classdata = 'class_data' ws symbol:lb ws '(' ws atom:a ws ')' -> ClassData(a,label=lb)
+
 class = 'class' required_space symbol:c -> asm.set_fieldnames(c)
 direct = direct_string | direct_hex
 
@@ -806,7 +814,7 @@ short_use = 'use' ws symbol:s -> asm.use(s)
 resource = 'resource' ws av:v -> asm.set_context_resource(v)
 classfield = 'class_field' ws av:k ws av:v -> asm.class_field(k,v)
 label = simple_symbol:s ws ':' -> asm.toplevel_label(s)
-toplevel = define | fieldorder | function | array | table | classfield | class | direct | comment | include | use |short_use|short_include|resource | direct_hex | direct_string |label 
+toplevel = define | fieldorder | function | array | table | classdata | classfield | class | direct | comment | include | use |short_use|short_include|resource | direct_hex | direct_string |label 
 toplevelitem = (ws? toplevel:a ws?) -> a
 program = toplevelitem*:a -> a
 
@@ -838,8 +846,11 @@ class Assembler(object):
         self.output_file = None
     def set_field_order(self, order): 
         self.field_order = order
-    def class_field(self,field,value):
-        self.class_fields.append((field,value))
+    def class_field(self,value,field):
+        #print "defining", SymbolList(["Field%04X"%field]), value
+        self.define_symbol(SymbolList(["Field%04X"%field]), value)
+        self.class_fields.append((value,field))
+        
     def begin_function_context(self, func):
         context = {sym:n for n,sym in enumerate(func.args)}
         callbacks = []
@@ -961,8 +972,13 @@ class Assembler(object):
         for sym,field in self.fieldnames.items():
             #if table.has_key(field):
             #    self.error("Redefinition of class field 0x%04X (%s)"%(field,sym),warn=True)
-            if self.symtab.has_key(sym): table[field] = (
-                0x80000000|(self.context_resource<<16)|self.getval(sym))
+            if self.symtab.has_key(sym): 
+                sv = self.getval(sym)
+                if sv < 0x10000:
+                    table[field] = (
+                        0x80000000|(self.context_resource<<16)|sv)
+                else:
+                    table[field] = sv
         order = self.field_order or table.keys()
         #if len(order) != len(table):
         #    self.error("Length of manually provided field order didn't match",warn=True)
@@ -972,11 +988,18 @@ class Assembler(object):
                 if not k in table:
                     #self.error("Class field not properly defined in Object: 0x%04X"%k,warn=True)
                     try:
-                        table[k] = (0x80000000|(self.context_resource<<16)|self.symtab[SymbolList(['Field%04X'%k])])
+                        sv = self.symtab[SymbolList(['Field%04X'%k])]
+                        if sv < 0x10000:
+                            table[k] = (0x80000000
+                                       |(self.context_resource<<16)
+                                       |sv)
+                        else:
+                            table[k] = sv
                     except KeyError:
                         s= self.symtab.items()
                         s.sort()
-                        for k,v in s: print k,':',v
+                        for l,v in s: print l,':',v
+                        print "---> Field%04X"%k
                         assert False
         dict_write_code(table, of, self, force_order=order)
          

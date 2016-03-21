@@ -37,6 +37,7 @@ use System
 class Disassembler(object):
     def __init__(self,context_resource=None):
         self.labels = {}
+        self.class_data_labels = {}
         self.pseudo_ops = {}
         self.context_resource=context_resource
     def disassemble(self, code, force_classmode=False, preamble=None):
@@ -57,7 +58,6 @@ class Disassembler(object):
         print >> of, INCLUDES
         us = self.infile.cm_unseen()
         content = self.content[0]
-            
         if us and not isinstance(self.content[0], DClass):
             print >> of, "// WARNING: Disassembly skipped %d area(s):"%len(us)
             print >> of, "//      Offset       Length"
@@ -76,9 +76,14 @@ class Disassembler(object):
             self.infile.seek(p)
         if self.context_resource:
             print >> of, 'resource 0x%04X\n'%self.context_resource
+        #print >> of, '// Class Data:'
+        #for k,v in self.class_data_labels.items():
+        #    print >> of, '// Class Data: ', k, v
         for content in self.content:
             content.show(0, of)
         return of.getvalue()
+    def register_class_data(self, label, field):
+        self.class_data_labels[label] = (field.offset, field)
     def get_label(self, position, hint=None, pseudo_op=None, unique=True):
         if not self.labels.has_key(position):
             if hint is False: return False
@@ -95,6 +100,21 @@ class DVMObj(object):
        equivalents (strings, integers, True, False, and None.)
        DVMObjs thus include arrays, tables, classes & functions."""
     pass
+class DData(DVMObj):
+    def __init__(self, ifile):
+        self.near = ifile
+        self.dd=None
+        self.offset = ifile.tell()
+        #size = ifile.read_uint16() & 0x0FFF
+        self.value = ifile.read_uint32()
+    def load(self, dd, anonymous=False):
+        self.dd = dd
+        if not anonymous: self.name = dd.get_label(self.offset, "ClassData")
+    def show(self, i, of):
+        name = None if not self.dd else self.dd.get_label(self.offset, False)
+        print >> of, INDENT*i+'class_data %s ( %s )'%(name if name else '', word2str(self.value))
+        # if you prefer this style...
+        # print >> of, INDENT*i+'%s: {%08X}'%(name, self.value)
 
 class DArray(list, DVMObj):
     def __init__(self, ifile):
@@ -177,6 +197,7 @@ class DClass(DTable):
         DTable.__init__(self, ifile)
     def register_sub(self, sub):
         self.subs.append((sub.offset, sub))
+    
     def load(self, dd, anonymous=False):
          self.dd =dd
          self.method_locs = {}
@@ -206,6 +227,10 @@ class DClass(DTable):
     def show(self, i, of):
         #for k, v in symbolics.ASM_OBJECT_HINTS.items():
         #    print >> of,k,v
+        showcd = self.dd.class_data_labels.items()
+        showcd = [(v[0], k, v[1]) for k,v in showcd]
+        showcd.sort()
+        print >> of, '//', showcd
 
         print >> of, 'field_order ('+', '.join(
             ['0x%04X'%x for x in self.field_ordering])+')'
@@ -223,12 +248,19 @@ class DClass(DTable):
                 if not item in self.content_order:
                     self.content_order.append(item)
                     self.order_offsets.append(0x10000)
-            
+       
+        for offset, name, dobj in showcd:
+            self.content_order.append(dobj)
+            self.order_offsets.append(offset)
+
         order = []
         if self.content_order:
             tmpor = []
             for ck,oo in zip(self.content_order, self.order_offsets):
-                tmpor.append((oo,self[ck],ck))
+                if isinstance(ck,DVMObj):
+                    tmpor.append((oo,ck,ck.name))
+                else:
+                    tmpor.append((oo,self[ck],ck))
             for subo, sub in self.subs:
                 tmpor.append((subo,sub,None))
             tmpor.sort()
@@ -238,6 +270,7 @@ class DClass(DTable):
                 order.append((cv, cf))
             for subo, sub in self.subs:
                 order.append((self.dd.labels[subo], sub))
+            
 
         for k,item in order:
                 
@@ -247,7 +280,9 @@ class DClass(DTable):
             if hasattr(item, 'show'):
                 item.show(0, of)
             else:
-                print >> of, 'class_field 0x%04X %s'%(k,word2str(item))
+                print >> of, 'class_field %s %s'%(word2str(k),
+                    symbolics.DASM_OBJECT_HINTS['_name']
+                    +'.'+symbolics.DASM_OBJECT_HINTS[item] if symbolics.DASM_OBJECT_HINTS.has_key(item) else word2str(item))
 
 import json
 class Opcode(object):
@@ -529,6 +564,23 @@ def Opcoder(themnemonic, theexpect=0, thefixed=None):
         fixed_field=thefixed
     return _Op
 
+class OpLoadNearWord(Opcode):
+    mnemonic = 'load_near_word'
+    expect=0
+    #fixed_field = 'ClassData'
+    def parse(self, bfile):            
+        self.field = bfile.read_uint16()
+        self.label = self.dd.get_label(self.field, 'ClassData')
+        t=bfile.tell()
+        bfile.seek(self.field)
+        d = DData(bfile)
+        d.load(self.dd)
+        self.dd.register_class_data(self.label, d)
+        bfile.seek(t)
+    def parameters(self):
+        return self.label
+        
+
 # TODO: deal with labels.
 OpTable = {
     0x41: OpByte,
@@ -537,7 +589,7 @@ OpTable = {
     0x44: Opcoder('string', 0, str),
     0x45: OpData,
     0x46: Opcoder('index'),
-    0x47: Opcoder('load_near_word', 0, 'ClassData'),
+    0x47: OpLoadNearWord,#Opcoder('load_near_word', 0, 'ClassData'),
     0x48: OpGlobal,
     0x49: OpReadFarWord,
     0x4A: Opcoder('add'),

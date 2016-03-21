@@ -1,102 +1,106 @@
-// DDASM 0.2.0
+// DDASM 0.2.3
 include Delver.Model
 include Delver.Main
 include Cythera
 use System
-resource 0x1A08
+resource 0x10C1
 
-field_order (0x07C3, 0x0008, 0x0002, 0x0036, 0x0009, 0x0036, 0x0000, 0x0001, 0x0008, 0x0009, 0x000A, 0x0082, 0x0033)
+// [(8, 'ClassData0008', <delv.ddasm.DData object at 0x7f1811859250>)]
+field_order (0x0027, 0x0009, 0x0023)
 // Standard Symbol  Key     Value or Offset
-// __init__         0x0000: 0x5000FFFF
-// ????             0x0001: 0x5000FFFF
-// Look             0x0002: 0x0008
-// ????             0x07C3: 0x5000FFFF
-// Examine          0x0008: 0x0028
-// Use              0x0009: 0x0056
-// UseOn            0x000A: 0x0090
-// ????             0x0082: 0x5000FFFF
-// AskedAbout       0x0033: 0x001E
-// ????             0x0036: 0x0002
+// Use              0x0009: 0x000C
+// ????             0x0023: 0x5000FFFF
+// ????             0x0027: 0x0002
 class Object
 
-array Field0036( 0 )
-function Look(Var30) (
-    // 0x000B
-    return 
-        string "Alleviation"
-    end 
-    return 
-        byte 0
-    end 
-)
-
-array AskedAbout( 3 212 )
-function Examine(Var30) (
-    // 0x002B
-    'This spell neutralizes various toxins.\n'
-    return 
-        byte 0
-    end 
-)
+array Field0027( 16 )
+ClassData0008: {00000000}
 
 function Use(Arg30) (
-    // 0x0059
-    if_not 
-        call_resource 0x0EA1
-            arg Arg30
-            get_field 0xB
-            byte 3
-            byte 6
-        end 
-    then Conditional008C
-    if_not 
-        global 0x13
-    then Conditional0085
-    // 0x006E
-    'Cast \''
-    print 
-        method 0x02
-            arg Arg30
-        end 
-    end 
-    // 0x007A
-    '\' on whom?\n'
-    Conditional0085:
-    return 
-        word 32772
-    end 
-    Conditional008C:
-    return 
-        byte 0
-    end 
-)
-
-function UseOn(Var30, Arg31) (
-    // 0x0093
-    sys MagicAuraEffect
-        global Globals.CurrentCharacter
-        word 240
-    end 
+    var Local00
+    var Local01
+    var Local02
     sys PlaySound
-        byte 46
-        global Globals.CurrentCharacter
+        byte 8
+        arg Arg30
         get_field DObj.x
-        global Globals.CurrentCharacter
+        arg Arg30
         get_field DObj.y
     end 
-    sys ClearFlag
-        arg Arg31
-        byte 9
+    set_local Local00
+        sys RangeIterator
+            word &Local00
+            byte 0
+            byte 0
+            byte 8
+        end 
     end 
+    Branch0029:
+    if 
+        sys RangeIterator
+            word &Local00
+            byte 1
+        end 
+    then Conditional004F
+    set_field DObj.aspect
+        arg Arg30
+    end 
+        loc Local00
+    end 
+    sys Delay
+        byte 2
+    end 
+    set_local Local00
+        sys RangeIterator
+            word &Local00
+            byte 2
+        end 
+    end 
+    branch Branch0029
+    Conditional004F:
+    set_field DObj.aspect
+        arg Arg30
+    end 
+        byte 0
+    end 
+    if_not 
+        arg Arg30
+        get_field DObj.data1
+        byte 0
+        gt 
+    then Conditional0099
+    write_near_word ClassData0008
+        load_near_word ClassData0008
+        byte 16
+        mul 
+        arg Arg30
+        get_field DObj.data1
+        add 
+        word 65535
+        bitwise_and 
+    end 
+    if_not 
+        load_near_word ClassData0008
+        word 12865
+        eq 
+    then Conditional0088
+    sys EmitSignal
+        byte 34
+    end 
+    branch Conditional0099
+    Conditional0088:
+    if_not 
+        load_near_word ClassData0008
+        word 4675
+        eq 
+    then Conditional0099
+    sys EmitSignal
+        byte 35
+    end 
+    Conditional0099:
     return 
         byte 0
     end 
 )
 
-class_field 0x0000 none
-
-class_field 0x0001 none
-
-class_field 0x0082 none
-
-class_field 0x07C3 none
+class_field 35 none

@@ -148,6 +148,7 @@
 
           <context id="toptype" style-ref="toptype">
                 <keyword>array</keyword>
+                <keyword>class_data</keyword>
                 <keyword>table</keyword>
                 <keyword>function</keyword>
           </context>
