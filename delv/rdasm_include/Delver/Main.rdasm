@@ -140,6 +140,7 @@ defines System (
     ShootEffect            (0xE2)
     FlashTile              (0xE3)  
     HitWithTile            (0xE4)
+    GetNextProp            (0xE5)
     RefreshView            (0xE6) 
     SpecialView            (0xE7) 
     OpenConversation       (0xE8)
