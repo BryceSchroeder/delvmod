@@ -402,11 +402,15 @@ class Op_conversation_prompt(Opcode):
 
 class Op_conversation_response(Opcode):
     mnemonic = 'response'
-    def generate(self,of,ctx, prompt=STR_SYM):
+    def generate(self,of,ctx, prompt=STR_SYM, label="(ws 'else' ws (integer|symbol))?:%s"):
         of.write_uint8(0x90)
         of.write(ctx.getval(prompt))
-        ctx.register_conversation_prompt(of.tell())
-        of.write_uint16(0xDEAD)
+        if label is None:
+            ctx.register_conversation_prompt(of.tell())
+            of.write_uint16(0xDEAD)
+        else:
+            of.write_uint16(ctx.getlval(label, self, of.tell()))
+
 
 class Op_end_response(Opcode):
     mnemonic = 'endr'
@@ -494,6 +498,10 @@ for item in globals():
 #    return real_decorator
 
 def dict_write_code(table, ofile, context, force_order = None):
+    if isinstance(table, DDict): 
+        table.write_code(ofile, context, force_order)
+        return
+
     order = force_order or table.keys()
     ofile.write_uint16(0xA000|len(order))
     callbacks = []
@@ -714,6 +722,35 @@ RDASM_Opcodes += "\noperation = " + ' | '.join(RDASM_opcode_names) + '\n'
 #RDASM_Opcodes += '\n'.join(RDAll)
 #print RDASM_Opcodes
 
+class DDict(dict):
+    def __init__(self, contents):
+        for k,v in contents: self[k]=v
+        self.contents = contents
+    def write_code(self, ofile, context, force_order=None):
+        assert force_order is None 
+        #order = force_order or [k for k,v in self.contents]
+        ofile.write_uint16(0xA000|len(self.contents))
+        callbacks = []
+        #kvs = table.items()
+        #kvs.sort(key=lambda x: (x[1],x[0]))
+        for k,v in self.contents:
+            k = context.getval(k)
+            #v = table[k]
+            write_array_item(ofile, v, context,callbacks)
+            ofile.write_uint16(k)
+        addrs = []
+        for address, item in callbacks:
+            addrs.append((address,ofile.tell()))
+            if isinstance(item,str) or isinstance(item,bytearray):
+                ofile.write(item)
+            else:
+                item.write_code(ofile,context)
+        t = ofile.tell()
+        for address,ptr in addrs:
+            ofile.seek(address)
+            ofile.write_uint16(ptr)
+        ofile.seek(t)  
+
 RDASM_Grammar_Preamble = r"""
 comment =  (('/*' (~'*/' anything)* '*/')|((';'|'//') (~'\n' anything)* '\n')) -> None
 ws = (comment|'\t'|' '|'\n'|'\r')* -> None
@@ -775,7 +812,7 @@ parameter = atom | symbol | terminated_string
 
 table_item = (integer|symbol):key ws '=' ws (array|table|terminated_string|atom|symbol):value ws ','? ws -> (key,value)
 table_content = table_item*:t -> t
-table = ('table'|'tbl') ws '(' ws table_content:t ws ')' -> dict(t)
+table = ('table'|'tbl') ws '(' ws table_content:t ws ')' -> DDict(t)
 
 array_item = (array|table|atom|terminated_string|symbol):value ws ','? ws -> value
 array_content = array_item*:a -> Array(a)

@@ -136,6 +136,7 @@ class DArray(list, DVMObj):
     def show(self, i, of):
         name = None if not self.dd else self.dd.get_label(self.offset, False)
         print >> of, INDENT*i+'array %s('%(name if name else ''),
+        if len(self)> 6: print >> of, '\n'+INDENT*(i+1),
         for item in self:
             if isinstance(item, str):
                 print >> of, json.dumps(item),
@@ -143,7 +144,9 @@ class DArray(list, DVMObj):
                 item.show(0, of)
             else:
                 print >> of, word2str(item),
+            if len(self) > 6: print >> of, '\n'+INDENT*(i+1),
         print >> of, ')',
+        if len(self)> 6: print >> of, ''
 
     
 
@@ -155,6 +158,7 @@ class DTable(dict, DVMObj):
         self.subvals = []
         self.offset = ifile.tell()
         self.dd=None
+        self.ovals = []
         size = ifile.read_uint16() & 0x0FFF
         for _ in xrange(size):
             value = ifile.read_uint32()
@@ -166,16 +170,23 @@ class DTable(dict, DVMObj):
     def load(self, dd, anonymous=False):
          self.dd = dd
          if not anonymous: self.name = dd.get_label(self.offset, "Table")
-         for k,v in self.items():
+         #for k,v in self.items():
+         for k,v in zip(self.field_ordering, self.subvals):
              if v & 0x80000000:
                  self.near.seek(v&0xFFFF)
                  self[k] = read_DVMObj(self.near)
                  if hasattr(self[k],'load'): self[k].load(dd,
                                                           anonymous=True)
+                 self.ovals.append(self[k])
+             else: 
+                 self.ovals.append(v)
     def show(self, i, of):
         name = None if not self.dd else self.dd.get_label(self.offset, False)
-        print >> of, INDENT*i+'table %s('%(name if name else ''),
-        for key,item in self.items():
+        print >> of, INDENT*i+'table (',#%s('%(name if name else ''),
+        if len(self)> 3: print >> of, '\n'+INDENT*(i+1),
+        
+        for key,item in zip(self.field_ordering, self.ovals):
+        #for key,item in self.items():
             print >> of, '0x%04X ='%key,
             if isinstance(item, str):
                 print >> of, json.dumps(item),
@@ -183,7 +194,10 @@ class DTable(dict, DVMObj):
                 item.show(0, of)
             else:
                 print >> of, word2str(item),
+            if len(self) > 3:
+                print >> of, '\n'+INDENT*(i+1),
         print >> of, ')',
+        if len(self)> 3: print >> of, ''
 
 class DClass(DTable):
     def __init__(self, ifile, class_name='Object'):
@@ -500,7 +514,7 @@ class OpReadFarWord(OpWriteFarWord):
     mnemonic = 'load_far_word'
     expect = 0
 class OpEndr(OpEnd):
-    mnemonic='endr'
+    mnemonic=''#endr'
     def parameters(self):
         return ''
 class OpConversationResponse(Opcode):
@@ -510,7 +524,7 @@ class OpConversationResponse(Opcode):
         self.nextblock = bfile.read_uint16()
         self.label = self.dd.get_label(self.nextblock, 'ConvNext', OpEndr)
     def parameters(self):
-        return json.dumps(self.response)
+        return "%s else %s "%(json.dumps(self.response),self.label)
 
 class OpSwitch(Opcode):
     mnemonic='switch'

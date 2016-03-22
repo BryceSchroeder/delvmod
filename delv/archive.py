@@ -251,7 +251,7 @@ class Resource(object):
            then this returns the original encryption state from that archive.
            (Recall that all resources are saved unencrypted when saving to
            a directory.)"""
-        hint = self.archive.canon_encryption_of(self.subindex)
+        hint = self.archive.canon_encryption_of(self.subindex, self.resid)
         if hint is not None:
             self.canon_encryption = hint
             return hint
@@ -284,7 +284,7 @@ class Resource(object):
         self.data = bytearray(src.read())
         self.loaded = True
         self.encrypted = False
-        self.canon_encryption = self.archive.canon_encryption_of(self.subindex)
+        self.canon_encryption = self.archive.canon_encryption_of(self.subindex,self.resid)
     def load(self):
         fpos = self.archive.arcfile.tell()
         self.archive.arcfile.seek(self.offset)
@@ -292,7 +292,7 @@ class Resource(object):
         self.loaded=True
         self.archive.arcfile.seek(fpos)
         if self.encrypted is None:
-            self.encrypted = self.archive.canon_encryption_of(self.subindex)
+            self.encrypted = self.archive.canon_encryption_of(self.subindex, self.resid)
             if self.canon_encryption is None: 
                 self.canon_encryption = self.encrypted
         if self.encrypted is None:
@@ -317,6 +317,7 @@ class Archive(object):
     """Class for representing Delver Archives. The implementation is 
        eager; the entire file is loaded into memory when it is opened."""
     known_encrypted = []
+    single_known = {}
     known_clear = []
     def __init__(self, src=None, archive_type='scenario', gui_treestore=None):
         """If src is None, then the constructor creates a new empty archive.
@@ -438,7 +439,8 @@ class Archive(object):
         for offset,length in self.master_index:
             dest.write_offlen(offset,length)
                 
-    def canon_encryption_of(self, subindex):
+    def canon_encryption_of(self, subindex, resid=None):
+        if resid and self.single_known.has_key(resid): return self.single_known[resid]
         return self.encryption_knowledge.get(subindex, None)
 
     def to_string(self):
@@ -624,6 +626,7 @@ class Scenario(Archive):
     """Class for manipulating Delver Scenario files."""
     known_encrypted = [1,2,4,7,8,9,10,11,12,13,14,15,16,
                        19,20,23,24,25,26,27,29,47]
+    single_known = {0x0210: False}
     known_clear = [0,3,127,128,131,135,137,141,142,143,
                    144,187,239,254]
 
