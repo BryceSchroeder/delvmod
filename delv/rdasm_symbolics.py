@@ -140,7 +140,9 @@ ASM_SYSCALL_NAMES = {
     'MonsterIterator':        (0xD0), # angers conspecific mons when 1 atkd
     'NearbyIterator':         (0xD1),
     'PlayNote':               (0xD2),
-    'PlaySound':              (0xD3),
+    'PlaySound':              (0xD3), 
+    'UnknownD4':              (0xD4),
+    'UnseenD5':               (0xD5),
     'PlayMusic':              (0xD6),
     'PlayAmbientSound':       (0xD7),
     'SetAmbientLighting':     (0xD8),
@@ -204,9 +206,12 @@ ASM_STRUCT_HINTS = {
     'data2':                0x07, 
     'data3':                0x08,
     'unkn09':               0x09,
-    # 0x0A is unseen
-    'container':            0x0B,
+    'tile':                 0x0A, # aspect lower 4 bits
+    'container':            0x0B, 
+    'erode_effect':         0x0C, # as polyps or slimes
+    'rotate':               0x0D,
     # 0x0C-0x10 unseen
+    #'unseen10':             0x10,
     'has_storage':          0x11,
     'storage':              0x12,
     'bit_flags':            0x13,
