@@ -37,6 +37,21 @@ DASM_GUI_NAME_HINTS['_size'] = 1
 DASM_GUI_NAME_HINTS['_name'] = 'GUI'
 
 
+DASM_RESOURCE_NAME_HINTS = {
+    '_size': 2,
+    '_name': 'Resources',
+    0x0816: 'GiveDirections',
+    0x0C86: 'BlacksmithTasker',
+    0x0D04: 'CountMoneyInParty', 
+#    0x0D07: 'TEST0D07',
+    0x0E43: 'PickLock',
+    0x0E86: 'AdjCharLevel',
+    0x0E8B: 'GainExp',
+    0x0EA1: 'CastSpell',
+    0x0EB6: 'AskAbout',
+    0x0F00: 'SetCharacterFlag'
+}
+
 
 DASM_GLOBAL_NAME_HINTS = {
     0x00: "CurrentHour",
@@ -62,10 +77,11 @@ DASM_GLOBAL_NAME_HINTS['_name'] = 'Globals'
 DASM_OBJ_NAME_HINTS = {
    0x00: "Prop",
 #   0x10: "Unknown_10",
-#   0x20: "Unknown_20",
+   0x20: "Zone",
    0x40: "Character",
    0x48: "Monster",
    0x50: "Skill",
+   0x58: "Room",
 }
 ASM_OBJ_NAME_HINTS = {v:k for k,v in DASM_OBJ_NAME_HINTS.items()}
 DASM_OBJ_NAME_HINTS['_size'] = 1

@@ -37,6 +37,7 @@ use System
 class Disassembler(object):
     def __init__(self,context_resource=None):
         self.labels = {}
+        self.inhibit_subs = []
         self.class_data_labels = {}
         self.pseudo_ops = {}
         self.context_resource=context_resource
@@ -52,12 +53,17 @@ class Disassembler(object):
             #    self.infile.seek(another)
             #    self.content.append(read_DVMObj(self.infile))
             #    another = self.content[-1].load(self)
-
+        postscript = []
         of = StringIO()
         print >> of, preamble if preamble else "// DDASM %s"%delv.version
         print >> of, INCLUDES
         us = self.infile.cm_unseen()
         content = self.content[0]
+        if len(us)==1 and not isinstance(self.content[0], DClass) and us[0][0]+us[0][1] == len(self.infile):
+            usof,usln = us[0]
+            self.infile.seek(usof)
+            c = self.infile.readb(usln)
+            postscript.append((usof, "{"+' '.join(['%02X'%x for x in c])+"}"))
         if us and not isinstance(self.content[0], DClass):
             print >> of, "// WARNING: Disassembly skipped %d area(s):"%len(us)
             print >> of, "//      Offset       Length"
@@ -79,8 +85,19 @@ class Disassembler(object):
         #print >> of, '// Class Data:'
         #for k,v in self.class_data_labels.items():
         #    print >> of, '// Class Data: ', k, v
+        postscript.sort(reverse=True)
+        skipped = None
         for content in self.content:
+            print >> of, '\n// 0x%04X:'%content.offset
+            skipped = postscript.pop() if (postscript and not skipped) else None
+            if skipped and content.offset > skipped[0]:
+                print >> of, '\n// Skipped region at 0x%04X'%skipped[0]
+                print >> of, skipped[1]
+                skipped = None
             content.show(0, of)
+        if skipped:
+            print >> of, '\n// Skipped ending at 0x%04X:'%skipped[0]
+            print >> of, skipped[1]
         return of.getvalue()
     def register_class_data(self, label, field):
         self.class_data_labels[label] = (field.offset, field)
@@ -112,7 +129,7 @@ class DData(DVMObj):
         if not anonymous: self.name = dd.get_label(self.offset, "ClassData")
     def show(self, i, of):
         name = None if not self.dd else self.dd.get_label(self.offset, False)
-        print >> of, INDENT*i+'class_data %s ( %s )'%(name if name else '', word2str(self.value))
+        print >> of, INDENT*i+'class_data %s ( %s )'%(name if name else '', word2str(self.value,self.dd))
         # if you prefer this style...
         # print >> of, INDENT*i+'%s: {%08X}'%(name, self.value)
 
@@ -126,10 +143,15 @@ class DArray(list, DVMObj):
             self.append(ifile.read_uint32())
     def load(self, dd, anonymous=False):
         self.dd = dd
+        #print ">>> Loading the array at 0x%04X"%self.offset
         if not anonymous: self.name = dd.get_label(self.offset, "Array")
         for i in xrange(len(self)):
             if self[i] & 0x80000000:
-                self.near.seek(self[i]&0xFFFF)
+                addr = self[i]&0xFFFF
+                self.near.seek(addr)
+                #print ">>> Preparing to load", i, '0x%04X'%(self[i]&0xFFFF), self[i]
+                if self.dd.get_label(addr,False):
+                    continue
                 self[i] = read_DVMObj(self.near)
                 if hasattr(self[i],'load'): self[i].load(dd, 
                                                          anonymous=True)
@@ -141,9 +163,9 @@ class DArray(list, DVMObj):
             if isinstance(item, str):
                 print >> of, json.dumps(item),
             elif hasattr(item, 'show'):
-                item.show(0, of)
+                item.show(i+1, of)
             else:
-                print >> of, word2str(item),
+                print >> of, word2str(item,self.dd),
             if len(self) > 6: print >> of, '\n'+INDENT*(i+1),
         print >> of, ')',
         if len(self)> 6: print >> of, ''
@@ -193,7 +215,7 @@ class DTable(dict, DVMObj):
             elif hasattr(item, 'show'):
                 item.show(0, of)
             else:
-                print >> of, word2str(item),
+                print >> of, word2str(item, self.dd),
             if len(self) > 3:
                 print >> of, '\n'+INDENT*(i+1),
         print >> of, ')',
@@ -218,7 +240,10 @@ class DClass(DTable):
          valids = []
          for k,v in self.items():
              if v & 0x80000000: 
+                 #print "CTXR", dd.context_resource, 
+                 if (v&0x7FFF0000)>>16 != dd.context_resource: continue
                  valids.append((v&0xFFFF,k))
+                 self.dd.inhibit_subs.append(v&0xFFFF)
          valids.sort()
 
          for (st,k),(en,_)in zip(valids,valids[1:]+[(self.table_offset,-1)]):
@@ -294,9 +319,10 @@ class DClass(DTable):
             if hasattr(item, 'show'):
                 item.show(0, of)
             else:
-                print >> of, 'class_field %s %s'%(word2str(k),
+                print >> of, 'class_field %s %s'%(
                     symbolics.DASM_OBJECT_HINTS['_name']
-                    +'.'+symbolics.DASM_OBJECT_HINTS[item] if symbolics.DASM_OBJECT_HINTS.has_key(item) else word2str(item))
+                    +'.'+symbolics.DASM_OBJECT_HINTS[k] if symbolics.DASM_OBJECT_HINTS.has_key(k) else word2str(k,self.dd),
+                     word2str(item,self.dd),)
 
 import json
 class Opcode(object):
@@ -304,7 +330,9 @@ class Opcode(object):
     expect = 0
     symbols = {}
     fixed_field = None
+    suppress_labels = False
     def __init__(self, opcode, bfile, func):
+        #print ">>> %02X"%opcode, bfile.tell()
         self.func = func
         self.dd = func.dd
         self.offset = bfile.tell()-1
@@ -347,7 +375,7 @@ class Opcode(object):
         pass
     def show(self, idnt, strm):
         d = self.dd.get_label(self.offset, False)
-        if d: print >> strm, (INDENT*idnt)+d+':'
+        if d and not self.suppress_labels: print >> strm, (INDENT*idnt)+d+':'
         print >> strm, (INDENT*idnt)+self.mnemonic + ' ' + self.parameters()
     def parameters(self):
         if isinstance(self.fixed_field, str):
@@ -392,7 +420,9 @@ class OpData(Opcode):
     def parse(self, bfile):
         self.size = bfile.read_uint16()
         self.startpos = bfile.tell()
+        #print "> Data opcode, offset 0x%04X"%self.offset, "size", self.size, "start 0x%04X"%self.startpos
         self.content = read_DVMObj(bfile, self.size)
+        #print ">> Loaded", ','.join(['%08X'%x for x in self.content])
         if hasattr(self.content,'load'):self.content.load(self.dd,
                                                           anonymous=True)
         bfile.seek(self.size+self.startpos)
@@ -414,7 +444,8 @@ class OpShort(Opcode):
     def parameters(self):
         return str(self.immediate)
 
-def word2str(i):
+def word2str(i,dd):
+        #if dd is None: dd = Disassembler.current_instance # doesn
         if i <= 0x07FFFFFF:
             return str(i)
         elif i <= 0x0FFFFFFF:
@@ -422,7 +453,13 @@ def word2str(i):
         elif i < 0x30000000:
             return '<%08X>'%i
         elif i < 0x40000000: 
-            return '0x%04X[%d]'%(i&0xFFFF, 0xFFF&(i>>16))
+            resid = i&0xFFFF
+            if symbolics.DASM_RESOURCE_NAME_HINTS.has_key(resid):
+                respart = (symbolics.DASM_RESOURCE_NAME_HINTS['_name']
+                          +'.'+symbolics.DASM_RESOURCE_NAME_HINTS[resid])
+            else:
+                respart = '0x%04X'%resid
+            return '%s[%d]'%(respart, 0xFFF&(i>>16))
         elif i < 0x50000000:
             assert i&0xFF000000 == 0x40000000
             classpart = (i & 0xFF0000)>>16
@@ -449,7 +486,18 @@ def word2str(i):
         elif 0x50000000 < i < 0x80000000:
             return '<%08X>'%i
         else:
-            return '0x%04X:0x%04X'%((i&0x7FFF0000)>>16, i&0xFFFF)
+            resid =(i&0x7FFF0000)>>16
+            offset = i&0xFFFF 
+            if resid == dd.context_resource:
+                respart = 'here'
+            elif symbolics.DASM_RESOURCE_NAME_HINTS.has_key(resid):
+                respart = (symbolics.DASM_RESOURCE_NAME_HINTS['_name']
+                          +'.'+symbolics.DASM_RESOURCE_NAME_HINTS[resid])
+            else:
+                respart = '0x%04X'%resid
+            offspart = dd.get_label(offset,False) or '0x%04X'%offset
+            
+            return respart+':'+offspart
 
 
 class OpWord(Opcode):
@@ -462,7 +510,7 @@ class OpWord(Opcode):
         i=self.immediate
         if 0x10000000 <= i <= 0x10000030:
             return '&Local%02X'%((i&0xFF)-1)
-        return word2str(i)
+        return word2str(i,self.dd)
 class OpSetl(Opcode):
     mnemonic = 'set_local'
     expect = 1
@@ -471,6 +519,16 @@ class OpSetl(Opcode):
         self.symbol = self.func.get_local(self.which, "Local")
     def parameters(self):
         return self.symbol
+
+class OpSubr(Opcode):
+    suppress_labels = True
+    mnemonic = 'subroutine'
+    def parse(self, bfile):
+        self.label = self.dd.get_label(bfile.tell()-1, 'InternalSub')
+        self.argcount = bfile.read_uint8()
+        self.loccount = bfile.read_uint8()
+    def parameters(self):
+        return '%d %d %s'%(self.argcount, self.loccount, self.label)
 
 class OpWriteNearWord(Opcode):
     expect = 1
@@ -633,7 +691,7 @@ OpTable = {
     0x62: Opcoder('get_field', 0, symbolics.DASM_STRUCT_HINTS),
     0x63: Opcoder('cast', 0, symbolics.DASM_OBJ_NAME_HINTS),
     0x64: Opcoder('is_type',0, symbolics.DASM_OBJ_NAME_HINTS),
-    
+    0x81: OpSubr,
     0x82: OpSetl,
     0x83: Opcoder('write_near_word', 1, 'ClassData'),
     0x84: OpSeti,
@@ -656,7 +714,7 @@ OpTable = {
     0x9C: Opcoder('call_index', 2, 2),
     0x9D: Opcoder('method', 1, symbolics.DASM_OBJECT_HINTS),
     0x9E: Opcoder('call_subroutine', 1, 'Sub'),
-    0x9F: Opcoder('call_resource', 1, 2)
+    0x9F: Opcoder('call_resource', 1, symbolics.DASM_RESOURCE_NAME_HINTS)
 }
 
 
@@ -667,6 +725,17 @@ SUBS_CHARS = {
   '\r': '\\r'
 }
 import sys
+class DDirect(DVMObj):
+    def __init__(self, ifile, length_hint=None):
+        self.offset = ifile.tell()
+        self.data = ifile.readb(length_hint) if length_hint else ifile.readb()
+    def load(self, dd, *argv):
+        self.dd = dd
+    def show(self,i=0, ost=sys.stdout):
+        print >> ost, i*INDENT+'{',
+        print >> ost, ' '.join(['%02X'%x for x in self.data]),
+        print >> ost, '}'
+
 class DFunction(DVMObj):
     def get_local(self, idx, hint=None):
         if not self.local.has_key(idx):
@@ -676,7 +745,8 @@ class DFunction(DVMObj):
         self.expect_close.append(cb)
     def iseg(self, n):
         self.indent_segments.append(n)
-    def __init__(self, ifile, length_hint=None):
+    def __init__(self, ifile, length_hint=None, bonus_indents=0):
+        self.bi = bonus_indents
         self.local = {}
         self.near = ifile
         self.offset = ifile.tell()
@@ -695,10 +765,13 @@ class DFunction(DVMObj):
     def show(self, i=0, ost=sys.stdout):
         print >> ost, i*INDENT+'function %s(%s) ('%(
              self.name, self.arglist())
+        #print "***",self.bi,self.name
+        i += self.bi
         for n in xrange(self.local_count):
             print >> ost, (1+i)*INDENT+'var Local%02X'%n 
             #print >> ost, (1+i)*INDENT+"// %d local vars"%self.local_count
         for il,line in zip(self.ilevel,self.code):
+            il += self.bi
             if isinstance(line, tuple):
                 dat, offs = line
                 if offs < 0: continue
@@ -711,6 +784,7 @@ class DFunction(DVMObj):
                 ost.write((il)*INDENT+"'")
                 for cn, ch in enumerate(dat):
                     lb = self.dd.get_label(offs+cn, False)
+                    
                     if cn and lb:
                         ost.write("'\n"+(il)*INDENT)
                         ost.write(lb+':\n')
@@ -759,21 +833,29 @@ class DFunction(DVMObj):
             if opcode == 0x81:  # oh joy a function within a function.
                 subroutinefound = self.near.tell()-1
                 print "Subroutine discovered at 0x%04X"%(subroutinefound)
+                if subroutinefound in dd.inhibit_subs:
+                    print "    Ah, it's actually a method. Nevermind."
+                    self.near.seek(t)
+                    return
                 # We're going to assume it's always preceeded by a branch
                 self.near.seek(self.near.tell()-4)
-                assert self.near.read_uint8() == 0x88
-                skipaddr = self.near.read_uint16()
-                print "    Goes from 0x%04X to 0x%04X (length 0x%04X)"%(
-                    subroutinefound, skipaddr, skipaddr-subroutinefound)
+                if self.near.read_uint8() == 0x88:
+                    skipaddr = self.near.read_uint16()
+                    print "    Goes from 0x%04X to 0x%04X (length 0x%04X)"%(
+                        subroutinefound, skipaddr, skipaddr-subroutinefound)
 
-                sub = DFunction(self.near,  
-                                length_hint=skipaddr-subroutinefound)
-                sub.load(self.dd, namehint = "Subroutine")
-                self.code.append(sub)
-                self.ilevel.append(len(self.indent_segments)+1)
-                print "    Right, then, moving along."
-                self.near.seek(skipaddr)
-                continue
+                    sub = DFunction(self.near,  
+                                    length_hint=skipaddr-subroutinefound, bonus_indents=1)
+                    sub.load(self.dd, namehint = "Subroutine")
+                    self.code.append(sub)
+                    self.ilevel.append(len(self.indent_segments)+1)
+                    print "    Right, then, moving along."
+                    self.near.seek(skipaddr)
+                    continue
+                else:
+                    print "    Couldn't identify the ending of the subroutine." 
+                    self.dd.get_label(subroutinefound, "Subroutine")
+                    self.near.seek(subroutinefound+1)
             if opcode < 0x80 and mode is 'direct':
                 #print "staying direct"
                 if not textbuf: lastoffset = self.near.tell()-1
@@ -837,6 +919,7 @@ def read_DVMObj(binfile, length_hint=None):
        use the appropriate DVMObj constructor."""
     t = binfile.tell()
     v = binfile.read_uint8()
+    v2 = binfile.read_uint8()
     binfile.seek(t)
     if v == 0x81:
         return DFunction(binfile, length_hint)
@@ -846,10 +929,12 @@ def read_DVMObj(binfile, length_hint=None):
         return DTable(binfile)
     elif v < 0x80 and t:
         return binfile.read_cstring()
-    elif not t:
+    elif not t and (v or v2):
         return DClass(binfile)
     else:
-        raise TypeError("Can't figure out what 0x%02X is. <%s>"%(v,binfile))
+        return DDirect(binfile, length_hint)
+    #else:
+    #    raise TypeError("Can't figure out what 0x%02X is. <%s>"%(v,binfile))
 
 
 

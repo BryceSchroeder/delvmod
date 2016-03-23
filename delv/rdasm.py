@@ -130,8 +130,16 @@ class Op_load_word(Opcode):
     mnemonic = 'word'
     def generate(self, of, ctx, immediate='(atom|symbol):%s'):
         of.write_uint8(0x43)
-        of.write_uint32(self.encod(ctx.getlval(immediate, self, of.tell())))
+        v = ctx.getlval(self.encod(immediate), self, of.tell())
+        #print "Got value", v
+        if isinstance(v, LateLabel):
+            v.form = (lambda x: 0x80000000|(ctx.context_resource<<16)|x)
+            ctx.final_label(v, of.tell())
+            of.write_uint32(0xBBBBBBBB)
+        else:
+            of.write_uint32(self.encod(v))
     def finish(self, of, ctx, value):
+        #print "Finishing", value
         of.write_uint32(self.encod(value))
     def encod(self, v):
         if v < 0:
@@ -347,6 +355,15 @@ class Op_set_field(Opcode):
     def generate(self,of,ctx, whichfield=INT_SYM):
         of.write_uint8(0x86)
         of.write_uint8(ctx.getval(whichfield))
+
+class Op_subroutine(Opcode):
+    mnemonic = 'subr'
+    def generate(self,of,ctx, argcount=INT_SYM, localsize=INT_SYM, position=INT_SYM):
+        self.position = position
+        ctx.define_symbol(position, of.tell())
+        of.write_uint8(0x81)
+        of.write_uint8(ctx.getval(argcount))
+        of.write_uint8(ctx.getval(localsize))
 
 class Op_set_global(Opcode):
     mnemonic = 'setg'
@@ -634,9 +651,13 @@ def objref(c,o,asm):
     assert 0 <= c <= 0xFF
     return 0x40000000|(c<<16)|o
 def resref(r,o,asm):
-    assert 0 <= r <= 0x7FFF
+    #print r,o#,"%04X"%r, "%04X"%o
     r = asm.getval(r)
-    o = asm.getval(o)
+    o = asm.getval_offs(o)
+    assert 0 <= r <= 0x7FFF
+    if isinstance(o, LateLabel):
+        o.form = (lambda x: 0x80000000|(r<<16)|x)
+        return o
     return 0x80000000|(r<<16)|o
 
 class Empty(object):
@@ -644,13 +665,15 @@ class Empty(object):
         ofile.write_uint32(0x5000FFFE)
 
 class Function(object): 
-    def __init__(self,label=None, args=None, body=None):
+    def __init__(self,label=None, args=None, body=None, ctx=None):
         self.label = label
         self.args = args
         self.body = body
         self.local_vars = 0
+        self.kwargs = {}
         self.conversation_prompts = []
-    def write_code(self,ofile,context):
+        self.generate = self.write_code # why didn't I call these the same...
+    def write_code(self,ofile,context, **kwargs):
         if self.label: context.define_symbol(self.label, ofile.tell())
         ofile.write_uint8(0x81)
         ofile.write_uint8(len(self.args))
@@ -810,7 +833,7 @@ atom = resref|res_arrayref|objref|boolean|none|empty|integer|word_literal|varref
 
 parameter = atom | symbol | terminated_string
 
-table_item = (integer|symbol):key ws '=' ws (array|table|terminated_string|atom|symbol):value ws ','? ws -> (key,value)
+table_item = (integer|symbol):key ws '=' ws (array|table|function|terminated_string|atom|symbol):value ws ','? ws -> (key,value)
 table_content = table_item*:t -> t
 table = ('table'|'tbl') ws '(' ws table_content:t ws ')' -> DDict(t)
 
@@ -825,8 +848,9 @@ direct = direct_string | direct_hex
 
 arg = ws simple_symbol:a ws ','? ws -> a
 expression_item = function_item # FIXME distinguish between appropriate opcodes for each.
-function_item = ws (symbol:lb ws ':')? ws (operation|direct)?:op space '\n' -> FItem(lb=locals().get('lb',None),op=locals().get('op',None))
-function = 'function' ws symbol?:lb ws '(' arg*:args ')' ws '(' ws function_item*:body ws ')' -> Function(lb, args, body)
+function_item = ws (symbol:lb ws ':')? ws (operation|direct|function)?:op space '\n' -> FItem(lb=locals().get('lb',None),op=locals().get('op',None))
+function = 'function' ws symbol?:lb ws '(' arg*:args ')' ws '(' ws (function_item)*:body ws ')' -> Function(lb, args, body, ctx=asm)
+
 
 av = atom|(symbol:s -> asm.lookup_symbol(s))
 or_expression = av:a ws '|' ws av:b -> a|b
@@ -856,9 +880,15 @@ toplevelitem = (ws? toplevel:a ws?) -> a
 program = toplevelitem*:a -> a
 
 """
-
-
-
+class LateLabel(object):
+    def __init__(self, label, asm):
+        self.label = label
+        self.asm = asm
+    def write_code(self,ofile,context, **kwargs):
+        lv = context.getlval(self.label, self, ofile.tell())
+        ofile.write_uint32(self.form(lv))
+    def finish(self,ofile, context, labval):
+        ofile.write_uint32(self.form(labval))
 
 import parsley
 import cStringIO
@@ -870,6 +900,7 @@ class Assembler(object):
         self.path = path
         p = globals()
         self.toplabels = []
+        self.final_labels = []
         self.class_fields = []
         self.symtab = {}
         p['asm'] = self
@@ -881,6 +912,8 @@ class Assembler(object):
         self.field_order = []
         self.function_contexts = []
         self.output_file = None
+    def final_label(self, latelabel, offset):
+        self.final_labels.append((latelabel,offset))
     def set_field_order(self, order): 
         self.field_order = order
     def class_field(self,value,field):
@@ -901,6 +934,8 @@ class Assembler(object):
         return TLL(s)
     def set_context_resource(self,v):
         self.context_resource = v
+        self.define_symbol(SymbolList(['Here']), v)
+        self.define_symbol(SymbolList(['here']), v)
     def include(self, ifil):
         pth = os.path.join(self.path, os.path.join(*ifil)+'.rdasm')
         f = self.assemble(open(pth).read())
@@ -932,6 +967,11 @@ class Assembler(object):
             return self.lookup_symbol(thing)
         else:
             return thing
+    def getval_offs(self,thing):
+        if isinstance(thing, SymbolList):
+            return LateLabel(thing,self)
+        else:
+            return thing
     def register_conversation_prompt(self, loc):
         fn,fc,cb = self.get_function_context()
         fn.conversation_prompts.append(loc)
@@ -943,12 +983,17 @@ class Assembler(object):
         fn,fc,cb = self.get_function_context()
         fc[SymbolList(argname)]=argop
     def getlval(self,thing, caller, loc, output=0xDEAD):
+        #print "LVAL", thing, caller, loc
         if not isinstance(thing, SymbolList): return thing
         fn,fc,cb = self.get_function_context()
+        #print "--> got fc"
         if isinstance(thing, VarRef):
             return 0x10000000 | (fc[SymbolList(thing)] + 1)
         if thing in fc: return fc[thing]
+        #print "--> not in fc"
+        #print self.symtab.get(thing, "NOT IN SYMTAB")
         if thing in self.symtab: return self.symtab[thing]
+        #print "-->", thing, "appended"
         cb.append((caller, thing, loc))
         return output
     def define_local_label(self, label, position):
@@ -1036,7 +1081,7 @@ class Assembler(object):
                         s= self.symtab.items()
                         s.sort()
                         for l,v in s: print l,':',v
-                        print "---> Field%04X"%k
+                        #print "---> Field%04X"%k
                         assert False
         dict_write_code(table, of, self, force_order=order)
          
@@ -1069,6 +1114,10 @@ class Assembler(object):
              self.write_class_table(binfile)
              binfile.seek(0)
              binfile.write_uint16(cstart)
+
+        for late, offset in self.final_labels:
+            binfile.seek(offset)
+            late.finish(binfile, self, self.symtab[late.label])
 
         return binfile.file.getvalue()
 

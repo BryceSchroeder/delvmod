@@ -49,6 +49,24 @@ defines GUI (
     Spinner      (0x11)
     TextBox      (0x14)
 )
+defines Resources (
+    GiveDirections         (0x0816)  
+    BlacksmithTasker       (0x0C86)
+    CountMoneyInParty      (0x0D04)
+    
+    PickLock               (0x0E43)
+    AdjCharLevel           (0x0E86)
+    // GainExp (Char, Amount)
+    GainExp                (0x0E8B)
+    
+    // CastSpell(Caster, SpellLevel, ManaCost)
+    CastSpell              (0x0EA1)
+
+    AskAbout               (0x0EB6)
+
+    SetCharacterFlag       (0x0F00)
+
+)
 
 defines RPGUtil (
     BlacksmithTasker       (0x0C86)

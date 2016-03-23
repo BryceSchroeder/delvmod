@@ -128,9 +128,11 @@ defines Object (
 
 defines Types (
     Prop                 (0x00) // Item?
+    Zone                 (0x20)
     Character            (0x40)
     Monster              (0x48)
     Skill                (0x50)
+    Room                 (0x58)
 )
 
 

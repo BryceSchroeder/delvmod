@@ -178,6 +178,8 @@ class BinaryHandler(object):
         rv = self.file.read(*vargs,**kwargs)
         self.coverage_map[p:p+len(rv)] = [1]*len(rv)
         return rv
+    def cm_readb(self, *vargs, **kwargs):
+        return bytearray(self.cm_read(*vargs, **kwargs))
     def cm_all(self):
         return not 0 in self.coverage_map
     def cm_unseen(self):
@@ -220,6 +222,7 @@ class BinaryHandler(object):
         if coverage_map:
             self.coverage_map = [0]*len(self)
             self.read = self.cm_read
+            self.readb = self.cm_readb
     def write_struct(self, s, v, offset=None):
         if offset is not None: self.seek(offset)
         if type(v) is int:

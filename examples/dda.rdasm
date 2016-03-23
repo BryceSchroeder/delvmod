@@ -3,104 +3,323 @@ include Delver.Model
 include Delver.Main
 include Cythera
 use System
-resource 0x10C1
+resource 0x184E
 
-// [(8, 'ClassData0008', <delv.ddasm.DData object at 0x7f1811859250>)]
-field_order (0x0027, 0x0009, 0x0023)
+
+// 0x0C86:
+// []
+field_order (0x000C, 0xFFFF, 0x0000, 0x4954, 0x0020, 0x0044, 0x49D8)
 // Standard Symbol  Key     Value or Offset
-// Use              0x0009: 0x000C
-// ????             0x0023: 0x5000FFFF
-// ????             0x0027: 0x0002
+// __init__         0x0000: 0x5000FFFF
+// EveryTurn        0x0020: 0x010C
+// ????             0x0044: 0x0002
+// Talk             0x000C: 0x0131
+// ????             0x4954: 0x5000FFFF
+// ????             0x49D8: 0x5000FFFF
+// ????             0xFFFF: 0x5000FFFF
 class Object
 
-array Field0027( 16 )
-ClassData0008: {00000000}
+array Field0044(     array ( 
+         20 
+         10 
+         10 
+         13 
+         20 
+         14 
+         10 
+         18 
+         20 
+         35 
+         20 
+         15 
+         ) 
+)
 
-function Use(Arg30) (
+function Function003A(Arg30) (
     var Local00
-    var Local01
-    var Local02
-    sys PlaySound
-        byte 8
-        arg Arg30
-        get_field DObj.x
-        arg Arg30
-        get_field DObj.y
-    end 
+    if_not 
+        sys Random
+            byte 0
+            byte 4
+        end 
+        byte 1
+        eq 
+    then Conditional0101
     set_local Local00
-        sys RangeIterator
-            word &Local00
-            byte 0
-            byte 0
-            byte 8
-        end 
+        data array ( "...align the humors..." "The body's ability..." "...repairing damage..." "...regeneration of the..." "...steady pressure..." "...a natural rythm..." )
     end 
-    Branch0029:
-    if 
-        sys RangeIterator
-            word &Local00
-            byte 1
-        end 
-    then Conditional004F
-    set_field DObj.aspect
+    set_field DObj.talk_balloon
         arg Arg30
     end 
         loc Local00
-    end 
-    sys Delay
-        byte 2
-    end 
-    set_local Local00
-        sys RangeIterator
-            word &Local00
-            byte 2
+        sys Random
+            byte 0
+            loc Local00
+            len 
         end 
+        index 
     end 
-    branch Branch0029
-    Conditional004F:
-    set_field DObj.aspect
-        arg Arg30
+    Conditional0101:
+    return 
+        word false
     end 
-        byte 0
-    end 
-    if_not 
-        arg Arg30
-        get_field DObj.data1
-        byte 0
-        gt 
-    then Conditional0099
-    write_near_word ClassData0008
-        load_near_word ClassData0008
-        byte 16
-        mul 
-        arg Arg30
-        get_field DObj.data1
-        add 
-        word 65535
-        bitwise_and 
-    end 
-    if_not 
-        load_near_word ClassData0008
-        word 12865
-        eq 
-    then Conditional0088
-    sys EmitSignal
-        byte 34
-    end 
-    branch Conditional0099
-    Conditional0088:
-    if_not 
-        load_near_word ClassData0008
-        word 4675
-        eq 
-    then Conditional0099
-    sys EmitSignal
-        byte 35
-    end 
-    Conditional0099:
     return 
         byte 0
     end 
 )
 
-class_field 35 none
+function EveryTurn(Arg30) (
+    return 
+        call_resource 0xC00
+            arg Arg30
+            data table ( 0x413F = none 0x4051 = none 0x008C = Here:Function003A)
+        end 
+    end 
+    return 
+        byte 0
+    end 
+)
+
+function Talk(Arg30) (
+    var Local00
+    'You peaceful looking man, with an inner glow.*'
+    if_not 
+        call_resource 0xF02
+            arg Arg30
+            byte 1
+        end 
+        call_resource 0xF02
+            arg Arg30
+            byte 2
+        end 
+        not 
+        and 
+        sys WhoHasItem
+            short 301
+            byte 0
+        end 
+        and 
+    then Conditional024C
+    if_not 
+        arg Arg30
+        get_field DObj.behavior
+        word 140
+        eq 
+    then Conditional01D8
+    '"...and so applying pressure, say, class, would you excuse me for a second?"*'
+    Conditional01D8:
+    '"Ah, execellent!  You\'ve found a harpy egg!  I thank you greatly for this..."*'
+    call_resource Resources.SetCharacterFlag
+        arg Arg30
+        byte 2
+    end 
+    sys RemoveItem
+        sys WhoHasItem
+            short 301
+            byte 0
+        end 
+        short 301
+        byte 0
+        byte 1
+    end 
+    call_resource Resources.GainExp
+        global Globals.PlayerCharacter
+        byte 20
+    end 
+    sys CompleteQuest
+        byte 29
+    end 
+    branch Branch02AC
+    Conditional024C:
+    if_not 
+        arg Arg30
+        get_field DObj.behavior
+        word 140
+        eq 
+    then Conditional0294
+    '"If you don\'t mind, I\'m in the middle of teaching."*'
+    return 
+        byte 0
+    end 
+    branch Branch02AC
+    Conditional0294:
+    '"What can I do for you?"'
+    Branch02AC:
+    exit 
+    conversation_response "name,pher" else ConvNext02F2 
+    '"I am Pheres, teacher of the @Healing Arts."'
+    call_resource Resources.SetCharacterFlag
+        short 78
+        byte 7
+    end 
+    branch Branch02AC
+     
+    ConvNext02F2:
+    conversation_response "job" else ConvNext0342 
+    '"I @train students in the @Healing Arts, and there is nothing nobler."'
+    branch Branch02AC
+     
+    ConvNext0342:
+    conversation_response "heal" else ConvNext037D 
+    '"Healing is about repairing damage to the body."'
+    branch Branch02AC
+     
+    ConvNext037D:
+    conversation_response "trai,teac" else ConvNext0755 
+    set_local Local00
+        sys GetSkill
+            global Globals.PlayerCharacter
+            short 194
+        end 
+    end 
+    if_not 
+        loc Local00
+        not 
+    then Conditional03D2
+    '"You lack the basic understanding of magic required."'
+    branch Branch0752
+    Conditional03D2:
+    if_not 
+        sys GetSkill
+            global Globals.PlayerCharacter
+            short 212
+        end 
+    then Conditional0430
+    '"You\'ve already got the basics down, I don\'t expect you\'d understand much more."'
+    branch Branch0752
+    Conditional0430:
+    if_not 
+        global Globals.Registered
+        word true
+        eq 
+    then Conditional072C
+    if_not 
+        call_resource 0xEAE
+            global Globals.PlayerCharacter
+            short 212
+        end 
+    then Conditional06E6
+    '"I can give the basics - enough to be of help.  You don\'t have the time for detailed study, my you."*"Healing Magic involves repairing damaged done to a living thing by reharmonizing effected area with the rest of the body."*"That\'s for simple cases of things such as simple wounds and the like.  More complex situations aren\'t as simple."*"A severe wound, for example, has too much damage to be able to reharmonize easily with the undamage body."*"Once could either take small step to repair the damage, in phases, or apply an external pattern of harmonization."*"Thus, a higher healing spell requires thorough understanding of a basic healing spell."'
+    call_resource 0xEAF
+        global Globals.PlayerCharacter
+        short 212
+        word false
+    end 
+    branch Branch0729
+    Conditional06E6:
+    '"You need some more experience before you can learn healing magic."'
+    Branch0729:
+    branch Branch0752
+    Conditional072C:
+    '"Sorry, but you must @register first."'
+    Branch0752:
+    branch Branch02AC
+     
+    ConvNext0755:
+    conversation_response "regi" else ConvNext07A8 
+    '"Yes, just run the \'Register Cythera\' program - it has all the details."'
+    branch Branch02AC
+     
+    ConvNext07A8:
+    conversation_response "bye" else ConvNext0A27 
+    if_not 
+        call_resource 0xF02
+            arg Arg30
+            byte 2
+        end 
+    then Conditional07D5
+    '"May you go in harmony."'
+    branch Branch0A20
+    Conditional07D5:
+    if_not 
+        call_resource 0xF02
+            arg Arg30
+            byte 1
+        end 
+    then Conditional0821
+    '"Don\'t forget, you promised to retrieve a harpy egg for me..."'
+    branch Branch0A20
+    Conditional0821:
+    '"I realize that you\'ve got work of your own, but if could you do a favor while exploring?"'
+    conversation_prompt "yn"
+    conversation_response "y" else ConvNext09D8 
+    '"Execellent.  Are you familiar with harpies?"'
+    conversation_prompt "yn"
+    conversation_response "y" else ConvNext08C8 
+    '"Execellent.  '
+     
+     
+    ConvNext08C8:
+    conversation_response "n" else ConvNext0923 
+    '"They are those strange flying creatures, not all that common, but quite dangerous."*"'
+    ConvNext0923:
+    'In my studies, I have need to examine, in detail, an egg of such a creature."*"If you come across one, could you please retreive it for me?  I\'d appreciate it..."'
+    call_resource Resources.SetCharacterFlag
+        arg Arg30
+        byte 1
+    end 
+    sys AddQuest
+        byte 29
+        word 0x021A[0]
+        byte 29
+        add 
+    end 
+     
+    ConvNext09D8:
+    conversation_response "n" else Branch0A20 
+    '"I understand, but if you change your mind, please get back to me."'
+     
+    Branch0A20:
+    return 
+        byte 0
+    end 
+    branch Branch02AC
+     
+    ConvNext0A27:
+    conversation_response "harp,egg" else ConvNext0B6E 
+    '"Well, rumor has it that harpy eggs can be stored for years, and then hatch into the vile creatures."*"It is as if harpy eggs can withstand the passage of time unnoticed."*"If some essense can be extracted, it might allow one to slow down the body, preventing the ravages of time."*"Its just a theory, mind you."'
+    branch Branch02AC
+     
+    ConvNext0B6E:
+    conversation_response "alar" else ConvNext0C30 
+    '"I am well aware of the state of Alaric, but his problems are far beyond my skills."*"He is beyond the reference harmony pattern of normal humans - I couldn\'t even begin to help him."'
+    branch Branch02AC
+     
+    ConvNext0C30:
+    conversation_response "*" else ConvNext0C7F 
+    if_not 
+        call_resource 0x808
+            arg Arg30
+        end 
+        not 
+    then Conditional0C7C
+    if_not 
+        call_resource 0x80C
+            arg Arg30
+        end 
+        not 
+    then Conditional0C7C
+    if_not 
+        call_resource 0x801
+            arg Arg30
+        end 
+        not 
+    then Conditional0C7C
+    '"I\'m sorry, but that is beyond my field."'
+    Conditional0C7C:
+    branch Branch02AC
+     
+    ConvNext0C7F:
+    branch Branch02AC
+    return 
+        byte 0
+    end 
+)
+
+class_field Object.__init__ none
+
+class_field 18772 none
+
+class_field 18904 none
+
+class_field 65535 none
