@@ -67,6 +67,7 @@ DASM_GLOBAL_NAME_HINTS = {
     0x0E: "LanguagesKnown",
     0x0F: "GameDay",
     0x10: "CurrentZone",
+    0x11: "DifficultyLevel",
     0x12: "StateTracker",
     0x13: "IsPlayerTurn",
 }

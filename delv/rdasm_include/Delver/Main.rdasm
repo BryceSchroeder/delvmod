@@ -214,6 +214,7 @@ defines Globals (
     LanguagesKnown       (0x0E)
     GameDay              (0x0F)
     CurrentZone          (0x10)
+    DifficultyLevel      (0x11)
     StateTracker         (0x12) 
     IsPlayerTurn         (0x13)
 )
