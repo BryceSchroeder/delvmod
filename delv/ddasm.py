@@ -561,12 +561,16 @@ class OpWriteFarWord(Opcode):
         return '0x%04X 0x%04X'%(self.resid, self.offset)
 
 class OpClassVariable(Opcode):
-    mnemonic = 'class_variable'
+    mnemonic = 'class_member'
     def parse(self, bfile):
         self.classfield=bfile.read_uint8()
         self.tidx = bfile.read_uint8()
     def parameters(self):
-        return '0x%02X %d'%(self.classfield, self.tidx)
+        if symbolics.DASM_OBJECT_HINTS.has_key(self.classfield):
+            return 'Object.%s %d'%(symbolics.DASM_OBJECT_HINTS[self.classfield],
+                           self.tidx)
+        else:
+            return '%s %d'%('0x%02X'%self.classfield, self.tidx)
 
 class OpReadFarWord(OpWriteFarWord):
     mnemonic = 'load_far_word'
@@ -686,7 +690,7 @@ OpTable = {
     0x5D: Opcoder('or'),
     0x5E: Opcoder('not'),
     0x5F: Opcoder('len'),
-    0x60: Opcoder('has_field', 0, symbolics.DASM_STRUCT_HINTS),
+    0x60: Opcoder('has_member', 0, symbolics.DASM_OBJECT_HINTS),
     0x61: OpClassVariable,
     0x62: Opcoder('get_field', 0, symbolics.DASM_STRUCT_HINTS),
     0x63: Opcoder('cast', 0, symbolics.DASM_OBJ_NAME_HINTS),

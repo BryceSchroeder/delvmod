@@ -204,6 +204,7 @@ defines Globals (
     CurrentTime          (0x01)
     PlayerCharacterName  (0x02)
     // 0x03 seems to be unused
+    CurrentTicks         (0x04)
     PlayerCharacter      (0x05)
     CharactersInParty    (0x06)
     CharactersInParty2   (0x07)
@@ -215,6 +216,6 @@ defines Globals (
     GameDay              (0x0F)
     CurrentZone          (0x10)
     DifficultyLevel      (0x11)
-    StateTracker         (0x12) 
+    CurrentRoom          (0x12) 
     IsPlayerTurn         (0x13)
 )

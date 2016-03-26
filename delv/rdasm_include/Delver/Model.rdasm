@@ -40,8 +40,11 @@ defines Object (
     default of the tile name when mousing over things in the game. */
     Look                 (0x0002)
 
- /*  Seen in object type 58 (room objects, 1Bxx) */
-    LookAtRoom           (0x0007)
+    HasSkill             (0x0004)
+
+ /*  Seen in object type 58 (room objects, 1Bxx), characters also have 
+     a default implementation. */
+    LookAt               (0x0007)
 
  /* void Object.Examine(self)
     A method, which should print out a more detailed description of the
@@ -81,22 +84,25 @@ defines Object (
 
     Wear                 (0x000D)
     UnWear               (0x000E)
+    Take                 (0x000F)
     PutInside            (0x0010)
     Relinquish           (0x0011)
-    
+    // no 12,13
     //Tenative
     Enter                (0x0014)
-    
     GetMessage           (0x0015)
-
-    // Learn a skill/spell
+    IsContainer          (0x0017)
+    // no 18,19
+    // Learn a skill/spell... different meaning in buttons/half disk
     Learn                (0x001A)
-
+    // 001B: coffer, half disk, button
+    // Nothing has 001C
     // seen in 48/19xx monster classes
     OnDeath              (0x001D)
-
+    
     // called for e.g. swamp, lava
     StepOn               (0x001F)
+    // Corpses and the talking doors in Pnyx have 001E
 
  /* Seems to be called on e.g. goats and chickens, which do supplementary
     things not covered by the AI scripts, e.g. making noises. (cluck-cluck!)
@@ -105,11 +111,31 @@ defines Object (
     called for non-character objects it would be a way to bypass the technical
     difficulties in creating summoning spells under Delver. */
     EveryTurn            (0x0020)
- 
+    // 21 not found
+    Chair                (0x0022)
+    Mirror               (0x0023)
     // For things that can be weighed on scales
     Weight               (0x0024)
-    AlchemicalProperties (0x0030)
+    //25 not found
+    // Which slot, etc.
+    Equipment            (0x0026)
+    ClassFlags           (0x0027)
+    Stacking             (0x0028)
+    // Array giving the object's aspect as a function of the current hour,
+    // useful for making sundials.
+    AspectByHour         (0x0029) 
+    MeleeWeapon          (0x002A)
+    ThrownWeapon         (0x002B)
+    ArmorValue           (0x002C)
+    Ammunition           (0x002D)
+    RangedWeapon         (0x002E)
+    Shield               (0x002F)
+    
 
+    AlchemicalReagent    (0x0030)
+    AlchemicalProperties (0x0030)
+    // no 31
+    LightSource          (0x0032)
  /* array Object.AskedAbout(self)
     A field, containing a list of two items. The first item of the list is 
     a string which contains what a character knowledgeable about the subject 
@@ -117,13 +143,36 @@ defines Object (
     when asked about it. E.g. a magic item would be something like:
     ["This is infused with strange goat magics.", [People.Timon]] */
     AskedAbout           (0x0033)
+    Lockable             (0x0034)
+    UseLock              (0x0035)
 
     // Information for the AI, e.g spell categories so the AI knows how
     // to use a spell
     AIInformation        (0x0036)
-
+    // 37 is some kind of possible character tile/animation related flags
+    // no 38
     // Triggered when one digs on the object (using the shovel)
     Dug                  (0x0039)
+    Portal               (0x003A)
+    SoundEffects         (0x003B)
+    MoneyValue           (0x003C)
+    // no 3d-3f
+    ResistDamage         (0x0040)
+    TakeDamage           (0x0041)
+
+    SpellsKnown          (0x0044)
+    NegotiationPoints    (0x0045)
+)
+
+defines ClassFlags (
+  CannotBeReplicated     (0x0000008)
+  ShattersWhenThrown     (0x0000010)
+  //                     (0x0000040) Chair has this 100C
+  //                     (0x0000080) doors, Curtains and passthroughs have it
+  //                     (0x0000100) Blood, stalagmites
+  //                     (0x0000200) Doors
+  HasTimedBehavior       (0x0000800) // Bombs, hourglasses
+  
 )
 
 defines Types (
@@ -155,6 +204,7 @@ defines DObj (
     data2                   (7)
     data3                   (8) // d3 = (d1 << 8) | d2
     unkn09                  (9)
+    quantity                (9)
     tile                    (0x0A)
     container               (0x0B)
     erode_effect            (0x0C)
@@ -180,11 +230,12 @@ defines DObj (
     training                (0x21)
     target                  (0x22)
     timing                  (0x23)
-
+    //24
+    //25
     talk_balloon            (0x26)
-
+    //27
     nutrition               (0x28)
-
+    room_occupied           (0x29)
     monster_flags           (0x32)    // seen in monster
 
     alignment               (0x35)

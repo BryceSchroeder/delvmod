@@ -280,14 +280,14 @@ class Op_get_length(Opcode):
     mnemonic = 'len'
     encoding = 0x5F
 
-class Op_has_field(Opcode):
+class Op_has_member(Opcode):
     mnemonic = 'has'
     def generate(self, of, ctx, field=INT_SYM):
         of.write_uint8(0x60)
         of.write_uint8(ctx.getval(field))
 
-class Op_class_variable(Opcode):
-    mnemonic = 'cvar'
+class Op_class_member(Opcode):
+    mnemonic = 'member'
     def generate(self, of, ctx, classfield=INT_SYM, tidx=INT_SYM):
         of.write_uint8(0x61)
         of.write_uint8(ctx.getval(classfield))
@@ -1081,7 +1081,7 @@ class Assembler(object):
                         s= self.symtab.items()
                         s.sort()
                         for l,v in s: print l,':',v
-                        #print "---> Field%04X"%k
+                        print "---> Field%04X"%k
                         assert False
         dict_write_code(table, of, self, force_order=order)
          

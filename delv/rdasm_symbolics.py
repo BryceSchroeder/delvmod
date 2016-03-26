@@ -68,7 +68,7 @@ DASM_GLOBAL_NAME_HINTS = {
     0x0F: "GameDay",
     0x10: "CurrentZone",
     0x11: "DifficultyLevel",
-    0x12: "StateTracker",
+    0x12: "CurrentRoom",
     0x13: "IsPlayerTurn",
 }
 ASM_GLOBAL_NAME_HINTS = {v:k for k,v in DASM_GLOBAL_NAME_HINTS.items()}
@@ -205,13 +205,12 @@ ASM_STRUCT_HINTS = {
     'data1':                0x06, 
     'data2':                0x07, 
     'data3':                0x08,
-    'unkn09':               0x09,
+    'quantity':             0x09,
     'tile':                 0x0A, # aspect lower 4 bits
     'container':            0x0B, 
     'erode_effect':         0x0C, # as polyps or slimes
     'rotate':               0x0D,
-    # 0x0C-0x10 unseen
-    #'unseen10':             0x10,
+    # 0x0E-0x10 unseen
     'has_storage':          0x11,
     'storage':              0x12,
     'bit_flags':            0x13,
@@ -232,8 +231,11 @@ ASM_STRUCT_HINTS = {
     'training':             0x21,
     'target':               0x22,
     'timing':               0x23, # semantics unsure
+    #24,25 - haven't been able to figure them out, something to do with
+    # storing the prop when the person sleeps?
     'talk_balloon':         0x26,
     'nutrition':            0x28,
+    'room_occupied':        0x29, # Seems to be this from context, doesn't work
     #seen in monster.
     'monster_flags':        0x32, # 0x4000: bleeds when hit
     'alignment':            0x35,
@@ -245,7 +247,8 @@ DASM_STRUCT_HINTS['_name'] = 'DObj'
 ASM_OBJECT_HINTS = {
    '__init__':   0x0000,
    'Look':       0x0002,
-   'LookAtRoom': 0x0007,
+   'HasSkill':   0x0004, # for special skills/menu items, 1AFx.
+   'LookAt':     0x0007,
    'Examine':    0x0008,
    'Use':        0x0009,
    'UseOn':      0x000A,
@@ -253,18 +256,42 @@ ASM_OBJECT_HINTS = {
    'Talk':       0x000C,
    'Wear':       0x000D,
    'UnWear':     0x000E,
+   'Take':       0x000F,
    'PutInside':  0x0010,
    'Relinquish': 0x0011,
-   'Enter':     0x0014,
+   'Enter':      0x0014,
    'GetMessage': 0x0015,
+   'IsContainer': 0x0017,
+   'Learn':      0x001A,
    'OnDeath':    0x001D,
    'StepOn':     0x001F,
    'EveryTurn':  0x0020,
+   'Chair':      0x0022,
+   'Mirror':     0x0023,
    'Weight':     0x0024,
-   'AlchemicalProperties': 0x0030,
+   'Equipment':  0x0026,
+   'ClassFlags': 0x0027,
+   'Stacking':   0x0028,
+   'MeleeWeapon': 0x002A,
+   'ThrownWeapon': 0x002B,
+   'ArmorValue': 0x002C,
+   'Ammunition': 0x002D,
+   'RangedWeapon': 0x002E,
+   'Shield': 0x002F,
+   'AlchemicalReagent': 0x0030,
+   'LightSource': 0x0032,
    'AskedAbout': 0x0033,
+   'Lockable': 0x0034,
+   'UseLock': 0x0035,
    'AIInformation':0x0036,
-   'Dug':        0x0039
+   'Dug':        0x0039,
+   'Portal':     0x003A,
+   'SoundEffects': 0x003B,
+   'MoneyValue': 0x003C, # how much is it worth (for money)
+   'ResistDamage': 0x0040,
+   'TakeDamage': 0x0041,
+   'SpellsKnown': 0x0044,
+   'NegotiationPoints': 0x0045
 }
 DASM_OBJECT_HINTS = {v:k for k,v in ASM_OBJECT_HINTS.items()}
 DASM_OBJECT_HINTS['_size'] = 1
