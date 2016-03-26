@@ -157,7 +157,6 @@
 
           <context id="opcode" style-ref="opcode">
             <keyword>else</keyword>
-            <keyword>subroutine</keyword><keyword>subr</keyword>
             <keyword>branch</keyword><keyword>unconditional_branch</keyword>
             <keyword>ret</keyword><keyword>return</keyword>
             <keyword>not</keyword><keyword>logical_not</keyword>
