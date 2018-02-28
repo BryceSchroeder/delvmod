@@ -30,6 +30,8 @@ from util import bitstruct_pack, bits_pack,bits_of
 import array
 import cStringIO as StringIO
 
+import pdb #TODO remove
+
 class SoundError(Exception): pass
 
 class Sound(store.Store):
@@ -241,6 +243,7 @@ class Music(Sound):
     TxCD = 0
     def __init__(self, src=None):
         self.parts = {}
+        self.channels = {}
         self.qtma_commands = []
         self.midi_commands = []
         self.flags = [0,1,1] # no idea what these do, if anything
@@ -269,9 +272,17 @@ class Music(Sound):
                 if event_length != event_length2:
                     raise MusicError, "Failed QTMA validity check."
                 #print "General", part, event_length, subtype
-                if subtype == MIDI_CHANNEL or subtype == USED_NOTES:
-                    continue # we don't care
-                elif subtype == NOTE_REQUEST:
+                if subtype == MIDI_CHANNEL: # Need to know if MIDI channel is 10 (percussion) since changes behavior
+                    next_op = self.src.tell()
+                    self.src.seek(data_offs)
+                    midi_channel = self.src.read_uint32()
+                    self.channels[part] = midi_channel
+                    self.src.seek(next_op)
+                elif subtype == PART_KEY: # Detect key changes
+                    continue # Not used in Cythera's case, but may be important in general QTMA to MIDI conversion
+                elif subtype == USED_NOTES: # Note used list is not necessary (probably used for QT pre-buffering)
+                    continue
+                elif subtype == NOTE_REQUEST: # Set instrument number
                     next_op = self.src.tell()
                     self.src.seek(data_offs)
                     nrflags = self.src.read_uint8()
@@ -298,6 +309,15 @@ class Music(Sound):
                 raise MusicError, "Unrecognized op, 0x%X@%d"%(
                     operation, self.src.tell()-4)
         self.src.seek(body_offset)
+        # Before handling QTMA events, must ensure coherence of tracks for MIDI formatting
+        # Find the max track value, and make sure there are at least empty tracks to avoid track count errors with MIDI
+        for i in range(max(list(self.parts))):
+            if i not in self.parts:
+                if i > 0:
+                    self.parts[i] = self.parts[i-1]
+                else:
+                    self.parts[i] = 1
+                self.channels[i] = 1
         self.load_qtma()
     def setup_pygame_midi_output(self, output):
         "Set up the MIDI output to play this music."
@@ -313,14 +333,18 @@ class Music(Sound):
                 pitch = bits_of(command, 6,8) + 32
                 velocity = bits_of(command, 7, 14)
                 duration = bits_of(command, 11,21)
-                print "note", part, pitch,velocity,duration
-            #elif bits_of(command, 4, 0) == 9: # extended note
-            #    tail = self.src.readb(4)
-            #    print "enote"
+                self.qtma_commands.append(["note",part,pitch,velocity,duration])
+            elif bits_of(command, 4, 0) == 9: # extended note
+               tail = self.src.readb(4)
+               part = bits_of(command, 12, 4)
+               pitch = bits_of(command, 15, 17)
+               velocity = bits_of(tail, 7, 3)
+               duration = bits_of(tail, 22, 10)
+               self.qtma_commands.append(["enote",part,pitch,velocity,duration])
             elif bits_of(command, 3, 0) == 0: # rest 
                 duration = bits_of(command, 24, 8)
-                print "rest", duration
-            elif bits_of(command, 4, 0) == 0xF: # general
+                self.qtma_commands.append(["rest",0,0,0,duration])
+            elif bits_of(command, 4, 0) == 15: # general
                 event_length = bits_of(command, 16, 16)
                 data_len = (event_length-2)*4
                 self.src.seek(data_len,1)
