@@ -30,8 +30,6 @@ from util import bitstruct_pack, bits_pack,bits_of
 import array
 import cStringIO as StringIO
 
-import pdb #TODO remove
-
 class SoundError(Exception): pass
 
 class Sound(store.Store):
