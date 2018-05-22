@@ -77,18 +77,6 @@ for com in musi.qtma_commands:
         midi.addNote(com[1],channel=musi.channels[com[1]]-1,pitch=com[2],time=time,duration=com[4]/300.0,volume=com[3])
 
 
-### Hack to Fix Program Changes!
-# midiutil has a bug with this format, sets directives to track 0, even though it's only the tempo track
-# must correct the -1 offset on all program changes to make sure the tracks are correct
-for i in xrange(len(midi.tracks)-1,0,-1): # Move program changes down until reach 0 and clear
-    if i > 1: # Go until moving from tempo track
-        event = 0
-    else:
-        event = 1 # Program change comes after tempo setting on track 0
-    midi.tracks[i].eventList.insert(0,midi.tracks[i-1].eventList[event]) # Move down track
-    del midi.tracks[i-1].eventList[event] # Remove program change for next loop
-
-
 # Write the resulting midi file
 with open(sys.argv[1]+'.midi','wb') as output_file:
     midi.writeFile(output_file)
