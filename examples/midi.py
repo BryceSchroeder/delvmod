@@ -26,14 +26,13 @@ import sys
 import midiutil
 
 USAGE = '''
-NOT FULLY IMPLEMENTED.
-
 Usage: ./midi.py archive resid 
 Or:    ./midi.py file 
 
-Converts a Delver music resource (QTMA) to standard MIDI (SMF)
+Converts a Delver music resource (90xx) from QuickTime Music
+Architecture (QTMA) format to Standard MIDI Format (SMF)
 
-Requires midiutil.
+Requires midiutil v1.2.1 or better for support of all events
 Using delv Version: %s
 '''%delv.version
 
@@ -43,7 +42,8 @@ if len(sys.argv)<2:
     print >> sys.stderr, USAGE
     sys.exit(-1)
 
-source = open(sys.argv[1],'rb')
+filename = sys.argv[1]
+source = open(filename,'rb')
 
 if len(sys.argv)<3: # individual file
     data = source.read()
@@ -61,7 +61,7 @@ midi = midiutil.MIDIFile(len(list(musi.instruments)), file_format=1) # tracks eq
 
 # Tempo
 tempo_track = 0 # Tempo track always added as extra track at 0 in this format; bug in midiutil fixed as of v1.2.1 , tempo track correct with no other directives
-midi.addTempo(tempo_track, 0, 120)
+midi.addTempo(tempo_track, 0, 120) # QT prefers 60 bpm, but SMF default is 120, which has much better support on most synths
 
 # Channels
 parts = list(musi.channels) # parts are 0-indexed, but with tempo track, must add offset
@@ -93,5 +93,6 @@ for com in musi.qtma_commands:
 
 
 # Write the resulting midi file
-with open(sys.argv[1]+'.midi','wb') as output_file:
+with open(filename+'.midi','wb') as output_file:
     midi.writeFile(output_file)
+
