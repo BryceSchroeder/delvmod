@@ -297,7 +297,7 @@ class Music(Sound):
                 subtype = bits_of(footer, 14, 2)
                 event_length2 = bits_of(footer, 16,16)
                 if event_length != event_length2:
-                    raise MusicError, "Failed QTMA validity check: General Event at ", self.src.tell()
+                    raise MusicError, "Failed QTMA validity check: General Event at ",self.src.tell()
                 # pass data length validity check, move cursor to read data
                 next_op = self.src.tell()
                 self.src.seek(data_offs)
@@ -336,7 +336,7 @@ class Music(Sound):
                 tail = self.src.readb(4)
                 part = bits_of(command, 12, 4)
                 if bits_of(tail, 2, 0) != 2:
-                    raise MusicError, "Failed QTMA validity check: Econtrol Event at", self.src.tell()
+                    raise MusicError, "Failed QTMA validity check: Econtrol Event at ", self.src.tell()
                 controller = bits_of(tail, 14, 2)
                 value = bits_of(tail, 16, 16)
                 # print "Extended Controller ", part, controller, value, self.src.tell()
@@ -345,7 +345,7 @@ class Music(Sound):
                 part = bits_of(command, 12, 4)
                 pitch = bits_of(command, 15, 17)
                 if bits_of(tail, 2, 0) != 2:
-                    raise MusicError, "Failed QTMA validity check: Enote Event at", self.src.tell()
+                    raise MusicError, "Failed QTMA validity check: Enote Event at ", self.src.tell()
                 velocity = bits_of(tail, 7, 3)
                 duration = bits_of(tail, 22, 10)
                 self.qtma_commands.append(["enote",part,pitch,velocity,duration])
@@ -416,7 +416,7 @@ class Music(Sound):
                 duration = bits_of(command, 24, 8)
                 self.qtma_commands.append(["rest",0,0,0,duration])
             else:
-                raise MusicError, "Unknown event ",("%02X "*4)%tuple(command), self.src.tell()
+                raise MusicError, "Unknown event %s at %d"%(binascii.hexlify(command),self.src.tell())
         # self.src.seek(body_offset)
         # Before handling QTMA events, must ensure coherence of tracks for MIDI formatting; MIDI count needs to be consecutive
         # Find the max track value, and make sure there are at least empty tracks to avoid track count errors with MIDI
