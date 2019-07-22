@@ -25,13 +25,15 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 	
 # Ambrosia Software, Inc. 
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import delv
 import delv.ddasm
 import sys
 from sys import argv
 
 if len (argv) < 2:
-    print >> sys.stderr, "Usage: ddasm.py binfile.out resid [output.rdasm]"
+    print("Usage: ddasm.py binfile.out resid [output.rdasm]", file=sys.stderr)
     sys.exit(0)
 
 
@@ -42,7 +44,7 @@ disassembler = delv.ddasm.Disassembler(context_resid)
 
 source = str(disassembler.disassemble(machinecode))
 
-output = open(argv[3] if len(argv) > 3 else 'dda.rdasm','wb')
+output = open(argv[3] if len(argv) > 3 else 'dda.rdasm','w')
 
 output.write(source)
 

@@ -25,11 +25,18 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 def encode_int28(i):
     return i if i >= 0 else (0x0FFFFFFF+i+1)
 
-import cStringIO as StringIO, struct
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import BytesIO as StringIO
+import struct
 from sys import stderr
+
 class dref(object):
     def __init__(self,resid,offset,length=None):
         self.resid = resid
@@ -48,7 +55,7 @@ class dref(object):
 def int_to_bits(value,size):
     result = bytearray(size)
     j =0 
-    for i in xrange(size-1,-1,-1):
+    for i in range(size-1,-1,-1):
         result[j] = (value >> i)&1
         j += 1
     return result
@@ -59,7 +66,7 @@ def bytes_to_bits(src):
     result = bytearray(len(src)*8)
     ri = 0
     for byte in src:
-        for bi in xrange(7,-1,-1): 
+        for bi in range(7,-1,-1): 
             result[ri] = (byte>>bi)&1
             ri += 1
     return result
@@ -78,11 +85,11 @@ def bitstruct_pack(target, pairs):
     b = bytes_to_bits(target)
     for value, fieldspec in pairs:
         for size, index in fieldspec[::-1]:
-            fieldbits = value & (0xFFFFFFFFFFFFFFFFL >> (64-size))
+            fieldbits = value & (0xFFFFFFFFFFFFFFFF >> (64-size))
             b[index:index+size] = int_to_bits(value,size)
             value >>= size
     t =  bits_to_bytes(b)
-    for x in xrange(len(t)): target[x]=t[x]
+    for x in range(len(t)): target[x]=t[x]
 
 
 def bits_pack(target, value, size, index,debug=False):
@@ -110,7 +117,7 @@ def ncbits_pack(target, value, *fields):
     # but why bother, it's only used compressing graphics, which is an
     # infrequent operation (whereas decompression happens a lot.)
     for size,index in fields[::-1]:
-        fieldbits = value & (0xFFFFFFFFFFFFFFFFL >> (64-size))
+        fieldbits = value & (0xFFFFFFFFFFFFFFFF >> (64-size))
         bits_pack(target, fieldbits, size, index)
         value >>= size
     
@@ -217,7 +224,7 @@ class BinaryHandler(object):
         if hasattr(file, 'read') and hasattr(file, 'write'):
             self.file = file
         elif hasattr(file, '__getitem__'):
-            self.file = StringIO.StringIO(file)
+            self.file = StringIO(file)
         self._read = self.read
         if coverage_map:
             self.coverage_map = [0]*len(self)
@@ -391,9 +398,9 @@ class BinaryHandler(object):
         buf = bytearray()
         while True:
             b = self.read(1)
-            if b == '\0' or not b: break
+            if b == b'\0' or not b: break
             buf += b
-        return str(buf)
+        return buf.decode("macroman")
 
 class UnimplementedFeature (Exception): pass
 

@@ -27,14 +27,18 @@
 # This file addresses sundry storage types used within Delver Archives,
 # and as such is mostly a helper for other parts of delv. 
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 # FIXME this file has gotten seriously out of hand with copy-pasted junk;
 # it needs a more object-oriented refactoring
 
 
-import util, archive
-import cStringIO as StringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import BytesIO as StringIO
 import array, bisect
-import tile
+from . import util
 
 class Store(object):
     def __init__(self, src): 
@@ -43,6 +47,7 @@ class Store(object):
         self.checked_out = 0
         self.set_source(src)
     def set_source(self, src):
+        from . import archive
         #print "setsource", repr(src)
         self.src = None
         if issubclass(src.__class__, util.BinaryHandler):
@@ -55,7 +60,7 @@ class Store(object):
             self.src = util.BinaryHandler(src)
             self.res = None
         else:
-            print dir(src), hasattr(src, 'resid')
+            print(dir(src), hasattr(src, 'resid'))
             assert False, "Invalid source %s"%repr(src)
         #print "final", repr(self.src), repr(self.res)
     def is_checked_out(self):
@@ -211,7 +216,7 @@ class TileCompositionList(Store):
     def load_from_bfile(self):
         while not self.src.eof():
             self.contents.append(self.parse([
-                self.src.read_uint16() for _ in xrange(0x10)]))
+                self.src.read_uint16() for _ in range(0x10)]))
     def parse(self, tw):
         return ((0x8E00|((t>>4)&0x00FF),t&0x000F,(t&0xF000)>>12) for t in tw)
 

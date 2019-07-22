@@ -24,9 +24,12 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import store
-import ddasm
-import rdasm
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+from . import store
+from . import ddasm
+from . import rdasm
 
 DSM_WARN = """
 ; Caution: this is automatically generated code that has not been manually 

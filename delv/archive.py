@@ -25,12 +25,19 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+import functools
 import os
-import util
 #import numpy as np
 import operator
-import json, string, cStringIO as StringIO
-from hints import _RES_HINTS, _SCEN_HINTS
+import json, string
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import BytesIO as StringIO
+from . import util
+from .hints import _RES_HINTS, _SCEN_HINTS
 
 def decrypt(data, prokey):
     """Decrypt the data provided with the given pro-key. The prokey is
@@ -41,7 +48,7 @@ def decrypt(data, prokey):
     m = ((prokey & 0x3f) <<2) + 1
     b = prokey >> 6
 
-    for i in xrange(len(data)):
+    for i in range(len(data)):
         key = (key*m + b) & 0xFFFF
         cleartext[i] = (data[i]^key)&0xFF
 
@@ -60,7 +67,7 @@ def entropy(data):
     # in exchange for a numpy dependency
     for c in data: counts[c] += 1
     base = len(data)/256.0
-    for i in xrange(256):
+    for i in range(256):
          counts[i] -= base
          counts[i] *= counts[i]
     #counts -= len(data)/256.0
@@ -124,8 +131,8 @@ class ResourceFile(util.BinaryHandler):
         else:
             assert False, "Illegal seek whence: %d"%whence
         if self.position > self.length_limit:
-            raise IndexError, "Bad seek to 0x%08X, size 0x%08X"%(
-                offset, len(self))
+            raise IndexError("Bad seek to 0x%08X, size 0x%08X"%(
+                offset, len(self)))
     def eof(self):
         return self.position >= self.length_limit
     def truncate(self, size=None):
@@ -159,7 +166,7 @@ class Resource(object):
         self.offset = offset # 0 if never been on disk
         self.data = bytearray(size) # Data in memory
         self.resid = resid(subindex,n)
-	self.loaded = not offset
+        self.loaded = not offset
         self.dirty = True
         self.encrypted = None if not self.loaded else False
         self.canon_encryption = self.encrypted
@@ -302,7 +309,7 @@ class Resource(object):
         
         
     def decrypt_if_required(self):
-        print "Decrypt if required", repr(self), self.archive
+        print("Decrypt if required", repr(self), self.archive)
         presumptive = decrypt(self.data, resid(self.subindex, self.n))
         if entropy(self.data) > entropy(presumptive):
             self.encrypted = True
@@ -372,7 +379,7 @@ class Archive(object):
         self.source_string = "Loaded from file object %s"%src
     def from_string(self, src):
         """Load a delver archive from an indexable object."""
-        self.from_file(cStringIO.StringIO(src))
+        self.from_file(StringIO(src))
         self.source_string = "Loaded from string"
     def from_path(self, path):
         """Load a Delver archive from a file system path."""
@@ -389,12 +396,12 @@ class Archive(object):
         assert os.path.isdir(path)
         metadata = {'source': self.source(), 
             'creator': 'delv (www.ferazelhosting.net/wiki/delv)',
-            'scenario_title': self.scenario_title,
-            'player_name': self.player_name}
+            'scenario_title': self.scenario_title.decode("macroman"),
+            'player_name': self.player_name.decode("macroman")}
         encrypt = {}
         for resource in self.resources():
             if not resource: continue # don't preserve empties
-            outf = open(os.path.join(path, "%04X.data"%resid(resource)), 'w')
+            outf = open(os.path.join(path, "%04X.data"%resid(resource)), 'wb')
             resource.save_to_file(outf)
             encrypt["%04X"%resid(resource)] = resource.get_metadata()
             outf.close()
@@ -405,7 +412,7 @@ class Archive(object):
     def to_file(self, dest):
         """Write a Delver archive to the destination file-like
            object (must be open for writing, obviously)"""
-        print "Writing out to", repr(dest)
+        print("Writing out to", repr(dest))
         dest = util.BinaryHandler(dest)
         self.save_header(dest)
         # Skip to just past the spot where we'll put the master index later
@@ -440,13 +447,13 @@ class Archive(object):
             dest.write_offlen(offset,length)
                 
     def canon_encryption_of(self, subindex, resid=None):
-        if resid and self.single_known.has_key(resid): return self.single_known[resid]
+        if resid and resid in self.single_known: return self.single_known[resid]
         return self.encryption_knowledge.get(subindex, None)
 
     def to_string(self):
         """Produces one (possibly very large) string with the 
            archive in it. Mainly here for front-end web stuff."""
-        stio = StringIO.StringIO()
+        stio = StringIO()
         self.to_file(stio)
         return stio.getvalue()
 
@@ -473,7 +480,7 @@ class Archive(object):
         if r is None and create_new:
             r = Resource(0,0,subindex,n,self)
             self.all_subindices[subindex][n] = r
-            print "creating new resource %04X"%idx,r
+            print("creating new resource %04X"%idx,r)
         return r
                 
 
@@ -516,11 +523,11 @@ class Archive(object):
             sx = self.all_subindices[subindex]
             return [resid(subindex,n) for n,r in enumerate(sx) if r]
         else:
-            return reduce(operator.add, 
+            return functools.reduce(operator.add, 
                 [self.resource_ids(si) for si in self.subindices()])
     def subindices(self):
         """Return a list of valid subindices for this archive."""
-        return [n for n in xrange(len(self.master_index)
+        return [n for n in range(len(self.master_index)
             ) if self.master_index[n]]
 
 
@@ -532,7 +539,7 @@ class Archive(object):
             sx = self.all_subindices[subindex]
             return [r for r in sx if r]
         else:
-            return reduce(operator.add, 
+            return functools.reduce(operator.add, 
                 [self.resources(si) for si in self.subindices()])
     def __iter__(self):
         """This iterator is over all extant resources in the archive. That
@@ -555,7 +562,7 @@ class Archive(object):
     def create_index(self, size=256):
         self.master_index = [None]*size
         self.all_subindices = []
-        for _ in xrange(size): self.all_subindices.append([])
+        for _ in range(size): self.all_subindices.append([])
         self.master_index_length = 8*size
     def load_header(self):
         self.scenario_title = self.arcfile.read_pstring(0)
@@ -576,7 +583,7 @@ class Archive(object):
     def load_index(self):
         self.arcfile.seek(self.master_index_offset+8)
         self.master_index = [None]*(self.master_index_length//8 - 1)
-        for n in xrange(len(self.master_index)):
+        for n in range(len(self.master_index)):
              self.master_index[n] = self.arcfile.read_offlen()
         self.all_subindices = []
         for subn,(offset, length) in enumerate(self.master_index):
@@ -586,9 +593,9 @@ class Archive(object):
                 continue
             subindex = []
             self.arcfile.seek(offset)
-            size = length / 8
+            size = length // 8
             rescount = 0
-            for n in xrange(size):
+            for n in range(size):
                 res_offset, res_length = self.arcfile.read_offlen()
                 if res_offset:
                     subindex.append(Resource(res_offset, res_length, 

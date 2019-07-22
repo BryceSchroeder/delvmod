@@ -24,12 +24,13 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import colormap
-import archive
-import util, store
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+from . import colormap, util, store
 
 # import the four horsemen of the bitpocalypse:
-from util import bits_pack, ncbits_pack, ncbits_of, bits_of, bitstruct_pack
+from .util import bits_pack, ncbits_pack, ncbits_of, bits_of, bitstruct_pack
 
 def DelvImageFactory(src, *args, **kwargs):
     """Return the appropriate kind of DelvImage subclass for the 
@@ -120,8 +121,8 @@ class DelvImage(store.Store):
         self.image = bytearray(self.logical_width * self.logical_height)
         try:
             if src: self.decompress(self.src.readb(), data_cursor)
-        except IndexError,e:
-            print "Cursor", self.cursor, repr(e)
+        except IndexError(e):
+            print("Cursor", self.cursor, repr(e))
         self.cached_visual = None
     def decompress(self, data, cursor):
         """Decompress the indexable-item data provided into this image.
@@ -247,7 +248,7 @@ class DelvImage(store.Store):
         """Get a section of the image, bounded by the rectangle (x,y,w,h).
            It is returned as a flat bytearray, size w*h."""
         gf = bytearray()
-        for yr in xrange(y,y+h):
+        for yr in range(y,y+h):
             gf += self.image[yr*self.logical_width+x:yr*self.logical_width+x+w]
         return gf
     def get_image(self):
@@ -259,7 +260,7 @@ class DelvImage(store.Store):
         if self.cached_visual: return self.cached_visual
         self.cached_visual = bytearray(self.width*self.height)
         v_cursor = 0
-        for x in xrange(self.height):
+        for x in range(self.height):
             self.cached_visual[v_cursor:v_cursor+self.width] = (
                 self.image[x*self.logical_width:x*self.logical_width+self.width
                 ])
@@ -284,7 +285,7 @@ class DelvImage(store.Store):
         self.src = None
         if not self.image: 
              self.image = bytearray(self.logical_width*self.logical_height)
-        for yr in xrange(y,y+h): 
+        for yr in range(y,y+h): 
              self.image[yr*self.logical_width+x:yr*self.logical_width+x+w] = (
                  src[(yr-y)*w:(yr-y)*w + w])
     def draw_into_tile(self,src,n):
@@ -331,7 +332,7 @@ class DelvImage(store.Store):
     def copy(self, length, origin):
         abs_origin = self.cursor + origin
         copy_width = -origin
-        for n in xrange(length):
+        for n in range(length):
             self.image[self.cursor] = self.image[abs_origin + n%copy_width]
             self.cursor += 1
     def cdata(self, pixels):
@@ -350,7 +351,7 @@ class DelvImage(store.Store):
         code = bytearray(1+datalen)
         bits_pack(code, 0xD,          4, 0)
         bits_pack(code, datalen,      2, 6)
-        for n,m in zip(xrange(i,i+datalen),xrange(1,datalen+1)):
+        for n,m in zip(range(i,i+datalen),range(1,datalen+1)):
             code[m]=d[n]
         return datalen/(datalen+1.0),end,code
     def en_long_data(self,i,d):

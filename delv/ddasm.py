@@ -23,10 +23,15 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 	
 # Ambrosia Software, Inc. 
-from cStringIO import StringIO
-import delv
-import delv.util
-import delv.rdasm_symbolics as symbolics
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
+from . import util, version
+from . import rdasm_symbolics as symbolics
 INDENT = '    '
 INCLUDES = """
 include Delver.Model
@@ -42,7 +47,7 @@ class Disassembler(object):
         self.pseudo_ops = {}
         self.context_resource=context_resource
     def disassemble(self, code, force_classmode=False, preamble=None):
-        self.infile = delv.util.BinaryHandler(code, coverage_map=True)
+        self.infile = util.BinaryHandler(code, coverage_map=True)
         if force_classmode:
             self.content = [DClass(self.infile)]
         else:
@@ -55,8 +60,8 @@ class Disassembler(object):
             #    another = self.content[-1].load(self)
         postscript = []
         of = StringIO()
-        print >> of, preamble if preamble else "// DDASM %s"%delv.version
-        print >> of, INCLUDES
+        print(preamble if preamble else "// DDASM %s"%version, file=of)
+        print(INCLUDES, file=of)
         us = self.infile.cm_unseen()
         content = self.content[0]
         if len(us)==1 and not isinstance(self.content[0], DClass) and us[0][0]+us[0][1] == len(self.infile):
@@ -65,10 +70,10 @@ class Disassembler(object):
             c = self.infile.readb(usln)
             postscript.append((usof, "{"+' '.join(['%02X'%x for x in c])+"}"))
         if us and not isinstance(self.content[0], DClass):
-            print >> of, "// WARNING: Disassembly skipped %d area(s):"%len(us)
-            print >> of, "//      Offset       Length"
+            print("// WARNING: Disassembly skipped %d area(s):"%len(us), file=of)
+            print("//      Offset       Length", file=of)
             for usof,usln in us:
-                print >> of, "//      0x%04X       %d"%(usof,usln)
+                print("//      0x%04X       %d"%(usof,usln), file=of)
         else:
             p = self.infile.tell()
             for usof, usln in us:
@@ -81,28 +86,28 @@ class Disassembler(object):
                     obj.load(self) 
             self.infile.seek(p)
         if self.context_resource:
-            print >> of, 'resource 0x%04X\n'%self.context_resource
-        #print >> of, '// Class Data:'
+            print('resource 0x%04X\n'%self.context_resource, file=of)
+        #print('// Class Data:', file=of)
         #for k,v in self.class_data_labels.items():
-        #    print >> of, '// Class Data: ', k, v
+        #    print('// Class Data: ', k, v, file=of)
         postscript.sort(reverse=True)
         skipped = None
         for content in self.content:
-            print >> of, '\n// 0x%04X:'%content.offset
+            print('\n// 0x%04X:'%content.offset, file=of)
             skipped = postscript.pop() if (postscript and not skipped) else None
             if skipped and content.offset > skipped[0]:
-                print >> of, '\n// Skipped region at 0x%04X'%skipped[0]
-                print >> of, skipped[1]
+                print('\n// Skipped region at 0x%04X'%skipped[0], file=of)
+                print(skipped[1], file=of)
                 skipped = None
             content.show(0, of)
         if skipped:
-            print >> of, '\n// Skipped ending at 0x%04X:'%skipped[0]
-            print >> of, skipped[1]
+            print('\n// Skipped ending at 0x%04X:'%skipped[0], file=of)
+            print(skipped[1], file=of)
         return of.getvalue()
     def register_class_data(self, label, field):
         self.class_data_labels[label] = (field.offset, field)
     def get_label(self, position, hint=None, pseudo_op=None, unique=True):
-        if not self.labels.has_key(position):
+        if position not in self.labels:
             if hint is False: return False
             self.labels[position]=(hint if hint else 'Label')+(
                 "%04X"%position if unique else '')
@@ -129,9 +134,9 @@ class DData(DVMObj):
         if not anonymous: self.name = dd.get_label(self.offset, "ClassData")
     def show(self, i, of):
         name = None if not self.dd else self.dd.get_label(self.offset, False)
-        print >> of, INDENT*i+'class_data %s ( %s )'%(name if name else '', word2str(self.value,self.dd))
+        print(INDENT*i+'class_data %s ( %s )'%(name if name else '', word2str(self.value,self.dd)), file=of)
         # if you prefer this style...
-        # print >> of, INDENT*i+'%s: {%08X}'%(name, self.value)
+        # print(INDENT*i+'%s: {%08X}'%(name, self.value), file=of)
 
 class DArray(list, DVMObj):
     def __init__(self, ifile):
@@ -139,13 +144,13 @@ class DArray(list, DVMObj):
         self.dd=None
         self.offset = ifile.tell()
         size = ifile.read_uint16() & 0x0FFF
-        for _ in xrange(size):
+        for _ in range(size):
             self.append(ifile.read_uint32())
     def load(self, dd, anonymous=False):
         self.dd = dd
         #print ">>> Loading the array at 0x%04X"%self.offset
         if not anonymous: self.name = dd.get_label(self.offset, "Array")
-        for i in xrange(len(self)):
+        for i in range(len(self)):
             if self[i] & 0x80000000:
                 addr = self[i]&0xFFFF
                 self.near.seek(addr)
@@ -157,18 +162,18 @@ class DArray(list, DVMObj):
                                                          anonymous=True)
     def show(self, i, of):
         name = None if not self.dd else self.dd.get_label(self.offset, False)
-        print >> of, INDENT*i+'array %s('%(name if name else ''),
-        if len(self)> 6: print >> of, '\n'+INDENT*(i+1),
+        print(INDENT*i+'array %s('%(name if name else ''), end=' ', file=of)
+        if len(self)> 6: print('\n'+INDENT*(i+1), end=' ', file=of)
         for item in self:
             if isinstance(item, str):
-                print >> of, json.dumps(item),
+                print(json.dumps(item), end=' ', file=of)
             elif hasattr(item, 'show'):
                 item.show(i+1, of)
             else:
-                print >> of, word2str(item,self.dd),
-            if len(self) > 6: print >> of, '\n'+INDENT*(i+1),
-        print >> of, ')',
-        if len(self)> 6: print >> of, ''
+                print(word2str(item,self.dd), end=' ', file=of)
+            if len(self) > 6: print('\n'+INDENT*(i+1), end=' ', file=of)
+        print(')', end='', file=of)
+        if len(self)> 6: print('', file=of)
 
     
 
@@ -182,12 +187,12 @@ class DTable(dict, DVMObj):
         self.dd=None
         self.ovals = []
         size = ifile.read_uint16() & 0x0FFF
-        for _ in xrange(size):
+        for _ in range(size):
             value = ifile.read_uint32()
             key = ifile.read_uint16()
             self.field_ordering.append(key)
             self.subvals.append(value)
-            if not self.has_key(key) or value != 0x5000FFFF:
+            if key not in self or value != 0x5000FFFF:
                 self[key] = value
     def load(self, dd, anonymous=False):
          self.dd = dd
@@ -204,22 +209,22 @@ class DTable(dict, DVMObj):
                  self.ovals.append(v)
     def show(self, i, of):
         name = None if not self.dd else self.dd.get_label(self.offset, False)
-        print >> of, INDENT*i+'table (',#%s('%(name if name else ''),
-        if len(self)> 3: print >> of, '\n'+INDENT*(i+1),
+        print(INDENT*i+'table (', end=' ', file=of) #%s('%(name if name else ''),
+        if len(self)> 3: print('\n'+INDENT*(i+1), end=' ', file=of)
         
         for key,item in zip(self.field_ordering, self.ovals):
         #for key,item in self.items():
-            print >> of, '0x%04X ='%key,
+            print('0x%04X ='%key, end=' ', file=of)
             if isinstance(item, str):
-                print >> of, json.dumps(item),
+                print(json.dumps(item), end=' ', file=of)
             elif hasattr(item, 'show'):
                 item.show(0, of)
             else:
-                print >> of, word2str(item, self.dd),
+                print(word2str(item, self.dd), end=' ', file=of)
             if len(self) > 3:
-                print >> of, '\n'+INDENT*(i+1),
-        print >> of, ')',
-        if len(self)> 3: print >> of, ''
+                print('\n'+INDENT*(i+1), end=' ', file=of)
+        print(')', end=' ', file=of)
+        if len(self)> 3: print('', file=of)
 
 class DClass(DTable):
     def __init__(self, ifile, class_name='Object'):
@@ -240,7 +245,7 @@ class DClass(DTable):
          valids = []
          for k,v in self.items():
              if v & 0x80000000: 
-                 #print "CTXR", dd.context_resource, 
+                 #print("CTXR", dd.context_resource)
                  if (v&0x7FFF0000)>>16 != dd.context_resource: continue
                  valids.append((v&0xFFFF,k))
                  self.dd.inhibit_subs.append(v&0xFFFF)
@@ -250,8 +255,8 @@ class DClass(DTable):
              self.content_order.append(k)
              self.order_offsets.append(st)
              self.near.seek(st)
-             #print "%20s (0x%04X): 0x%04X-0x%04X"%(
-             #    symbolics.DASM_OBJECT_HINTS.get(k,'????'),k,st,en)
+             #print("%20s (0x%04X): 0x%04X-0x%04X"%(
+             #    symbolics.DASM_OBJECT_HINTS.get(k,'????'),k,st,en))
              self.dd.get_label(st, 
                  hint=symbolics.DASM_OBJECT_HINTS.get(k,"Field%04X"%k),
                  unique=False)
@@ -260,28 +265,28 @@ class DClass(DTable):
              self.near.seek(st)
              self[k] = read_DVMObj(self.near, en-st)
              if hasattr(self[k],'load'): 
-                 #print '%x'%st, en-st, k, self[k]
+                 #print('%x'%st, en-st, k, self[k])
                  self[k].load(dd)
              self.near.seek(p)
     def show(self, i, of):
         #for k, v in symbolics.ASM_OBJECT_HINTS.items():
-        #    print >> of,k,v
+        #    print(k,v, file=of)
         showcd = self.dd.class_data_labels.items()
         showcd = [(v[0], k, v[1]) for k,v in showcd]
         showcd.sort()
-        print >> of, '//', showcd
+        print('//', showcd, file=of)
 
-        print >> of, 'field_order ('+', '.join(
-            ['0x%04X'%x for x in self.field_ordering])+')'
-        print >> of, "// Standard Symbol  Key     Value or Offset"
-        for k, v in self.items():
-            print >> of, '// %-16s 0x%04X:'%(
-                    symbolics.DASM_OBJECT_HINTS.get(k,'????'), k),
+        print('field_order ('+', '.join(
+            ['0x%04X'%x for x in self.field_ordering])+')', file=of)
+        print("// Standard Symbol  Key     Value or Offset", file=of)
+        for k, v in sorted(self.items()):
+            print('// %-16s 0x%04X:'%(
+                    symbolics.DASM_OBJECT_HINTS.get(k,'????'), k), end=' ', file=of)
             if not isinstance(v,int):
-                print >> of, '0x%04X'%self.method_locs[k]
+                print('0x%04X'%self.method_locs[k], file=of)
             else:
-                print >> of, '0x%08X'%(v)
-        print >> of, (INDENT*i)+'class', self.class_name 
+                print('0x%08X'%(v), file=of)
+        print((INDENT*i)+'class', self.class_name , file=of)
         if self.content_order:
             for item in self:
                 if not item in self.content_order:
@@ -314,15 +319,15 @@ class DClass(DTable):
         for k,item in order:
                 
             #item = self[k]
-            print >> of
-            #if k: print >> of, (' Field 0x%04X '%k).center(78,'/')
+            print(file=of)
+            #if k: print((' Field 0x%04X '%k).center(78,'/'), file=of)
             if hasattr(item, 'show'):
                 item.show(0, of)
             else:
-                print >> of, 'class_field %s %s'%(
+                print('class_field %s %s'%(
                     symbolics.DASM_OBJECT_HINTS['_name']
-                    +'.'+symbolics.DASM_OBJECT_HINTS[k] if symbolics.DASM_OBJECT_HINTS.has_key(k) else word2str(k,self.dd),
-                     word2str(item,self.dd),)
+                    +'.'+symbolics.DASM_OBJECT_HINTS[k] if k in symbolics.DASM_OBJECT_HINTS else word2str(k,self.dd),
+                     word2str(item,self.dd)), file=of)
 
 import json
 class Opcode(object):
@@ -332,7 +337,7 @@ class Opcode(object):
     fixed_field = None
     suppress_labels = False
     def __init__(self, opcode, bfile, func):
-        #print ">>> %02X"%opcode, bfile.tell()
+        #print(">>> %02X"%opcode, bfile.tell())
         self.func = func
         self.dd = func.dd
         self.offset = bfile.tell()-1
@@ -365,7 +370,7 @@ class Opcode(object):
                  self.field = bfile.read_uint16()
         self.expectation()
     def expectation(self):
-        for n in xrange(self.expect):
+        for n in range(self.expect):
             self.func.expectation(self.expect_cb)
         if self.expect: self.func.iseg(self.expect)
     def expect_cb(self, op, bfile):
@@ -375,15 +380,15 @@ class Opcode(object):
         pass
     def show(self, idnt, strm):
         d = self.dd.get_label(self.offset, False)
-        if d and not self.suppress_labels: print >> strm, (INDENT*idnt)+d+':'
-        print >> strm, (INDENT*idnt)+self.mnemonic + ' ' + self.parameters()
+        if d and not self.suppress_labels: print((INDENT*idnt)+d+':', file=strm)
+        print((INDENT*idnt)+self.mnemonic + ' ' + self.parameters(), file=strm)
     def parameters(self):
         if isinstance(self.fixed_field, str):
             return self.label
         if self.fixed_field is str:
             return json.dumps(self.field)
         if isinstance(self.fixed_field,dict):
-            if self.fixed_field.has_key(self.field):
+            if self.field in self.fixed_field:
                 return self.prefix+self.fixed_field[self.field]
             else:
                 return "0x%X"%self.field
@@ -407,8 +412,8 @@ class OpArg(OpLocal):
 class OpEnd(Opcode):
     mnemonic = 'end'
     def show(self, idnt, strm):
-        print >> strm, (INDENT*(idnt-1)
-            ) + self.mnemonic + ' ' + self.parameters()
+        print((INDENT*(idnt-1)
+            ) + self.mnemonic + ' ' + self.parameters(), file=strm)
 class OpSeti(Opcode):
     mnemonic = 'set_index'
     expect = 3
@@ -420,9 +425,9 @@ class OpData(Opcode):
     def parse(self, bfile):
         self.size = bfile.read_uint16()
         self.startpos = bfile.tell()
-        #print "> Data opcode, offset 0x%04X"%self.offset, "size", self.size, "start 0x%04X"%self.startpos
+        #print("> Data opcode, offset 0x%04X"%self.offset, "size", self.size, "start 0x%04X"%self.startpos)
         self.content = read_DVMObj(bfile, self.size)
-        #print ">> Loaded", ','.join(['%08X'%x for x in self.content])
+        #print(">> Loaded", ','.join(['%08X'%x for x in self.content]))
         if hasattr(self.content,'load'):self.content.load(self.dd,
                                                           anonymous=True)
         bfile.seek(self.size+self.startpos)
@@ -454,7 +459,7 @@ def word2str(i,dd):
             return '<%08X>'%i
         elif i < 0x40000000: 
             resid = i&0xFFFF
-            if symbolics.DASM_RESOURCE_NAME_HINTS.has_key(resid):
+            if resid in symbolics.DASM_RESOURCE_NAME_HINTS:
                 respart = (symbolics.DASM_RESOURCE_NAME_HINTS['_name']
                           +'.'+symbolics.DASM_RESOURCE_NAME_HINTS[resid])
             else:
@@ -464,11 +469,11 @@ def word2str(i,dd):
             assert i&0xFF000000 == 0x40000000
             classpart = (i & 0xFF0000)>>16
             whichpart = i& 0xFFFF
-            if classpart == 0x40 and symbolics.DASM_CYTHERA_CHARACTERS.has_key(whichpart):
+            if classpart == 0x40 and whichpart in symbolics.DASM_CYTHERA_CHARACTERS:
                 whichpart = 'Characters.'+symbolics.DASM_CYTHERA_CHARACTERS[whichpart]
             else:
                 whichpart = '0x%04X'%whichpart
-            if symbolics.DASM_OBJ_NAME_HINTS.has_key(classpart):
+            if classpart in symbolics.DASM_OBJ_NAME_HINTS:
                 classpart = (symbolics.DASM_OBJ_NAME_HINTS['_name']+'.'
                      +symbolics.DASM_OBJ_NAME_HINTS[classpart])
             else:
@@ -490,7 +495,7 @@ def word2str(i,dd):
             offset = i&0xFFFF 
             if resid == dd.context_resource:
                 respart = 'here'
-            elif symbolics.DASM_RESOURCE_NAME_HINTS.has_key(resid):
+            elif resid in symbolics.DASM_RESOURCE_NAME_HINTS:
                 respart = (symbolics.DASM_RESOURCE_NAME_HINTS['_name']
                           +'.'+symbolics.DASM_RESOURCE_NAME_HINTS[resid])
             else:
@@ -566,7 +571,7 @@ class OpClassVariable(Opcode):
         self.classfield=bfile.read_uint8()
         self.tidx = bfile.read_uint8()
     def parameters(self):
-        if symbolics.DASM_OBJECT_HINTS.has_key(self.classfield):
+        if self.classfield in symbolics.DASM_OBJECT_HINTS:
             return 'Object.%s %d'%(symbolics.DASM_OBJECT_HINTS[self.classfield],
                            self.tidx)
         else:
@@ -596,7 +601,7 @@ class OpSwitch(Opcode):
         n = bfile.read_uint16()
         f = OpCases(op, bfile, self.func)
         f.labels = [
-            self.dd.get_label(bfile.read_uint16(),'Case') for _ in xrange(n)
+            self.dd.get_label(bfile.read_uint16(),'Case') for _ in range(n)
             ]
         return f
 class OpCases(OpEnd):
@@ -736,13 +741,13 @@ class DDirect(DVMObj):
     def load(self, dd, *argv):
         self.dd = dd
     def show(self,i=0, ost=sys.stdout):
-        print >> ost, i*INDENT+'{',
-        print >> ost, ' '.join(['%02X'%x for x in self.data]),
-        print >> ost, '}'
+        print(i*INDENT+'{', end=' ', file=ost)
+        print(' '.join(['%02X'%x for x in self.data]), end=' ', file=ost)
+        print('}', file=ost)
 
 class DFunction(DVMObj):
     def get_local(self, idx, hint=None):
-        if not self.local.has_key(idx):
+        if idx not in self.local:
             self.local[idx] = (hint if hint else 'Var')+"%02X"%idx
         return self.local[idx]
     def expectation(self, cb):
@@ -759,21 +764,21 @@ class DFunction(DVMObj):
         assert self.arg_count < 0x10
         self.local_count = ifile.read_uint8()
         assert self.local_count < 0x30
-        for n in xrange(self.local_count): self.get_local(n,hint="Local")
+        for n in range(self.local_count): self.get_local(n,hint="Local")
         self.body = ifile.read() if length_hint is None else ifile.read(
             length_hint-3) 
         self.size = len(self.body)
     def arglist(self):
-        return ', '.join([self.get_local(x|0x30) for x in xrange(
+        return ', '.join([self.get_local(x|0x30) for x in range(
             self.arg_count)])
     def show(self, i=0, ost=sys.stdout):
-        print >> ost, i*INDENT+'function %s(%s) ('%(
-             self.name, self.arglist())
+        print(i*INDENT+'function %s(%s) ('%(
+             self.name, self.arglist()), file=ost)
         #print "***",self.bi,self.name
         i += self.bi
-        for n in xrange(self.local_count):
-            print >> ost, (1+i)*INDENT+'var Local%02X'%n 
-            #print >> ost, (1+i)*INDENT+"// %d local vars"%self.local_count
+        for n in range(self.local_count):
+            print((1+i)*INDENT+'var Local%02X'%n , file=ost)
+            #print((1+i)*INDENT+"// %d local vars"%self.local_count, file=ost)
         for il,line in zip(self.ilevel,self.code):
             il += self.bi
             if isinstance(line, tuple):
@@ -781,9 +786,9 @@ class DFunction(DVMObj):
                 if offs < 0: continue
                 lb = self.dd.get_label(offs, False)
                 if lb: 
-                    print >> ost, (il)*INDENT+lb+':'
+                    print((il)*INDENT+lb+':', file=ost)
                 #else:
-                #    print >> ost, (il)*INDENT+'// 0x%04X'%offs
+                #    print((il)*INDENT+'// 0x%04X'%offs, file=ost)
                 if not dat: continue
                 ost.write((il)*INDENT+"'")
                 for cn, ch in enumerate(dat):
@@ -800,10 +805,10 @@ class DFunction(DVMObj):
                 ost.write("'\n")
                     
                          
-                #print >> ost, (il)*INDENT+"'"+repr(dat+'"')[1:-2]+"'"
+                #print((il)*INDENT+"'"+repr(dat+'"')[1:-2]+"'", file=ost)
             else:
                 line.show(il, ost)
-        print >> ost, i*INDENT+')'
+        print(i*INDENT+')', file=ost)
     def load(self, dd, anonymous=False, namehint="Function"):
         self.dd = dd
         self.name = dd.get_label(self.offset, namehint)
@@ -836,47 +841,47 @@ class DFunction(DVMObj):
             #print "%02X"%opcode, len(self.expect_close)
             if opcode == 0x81:  # oh joy a function within a function.
                 subroutinefound = self.near.tell()-1
-                print "Subroutine discovered at 0x%04X"%(subroutinefound)
+                print("Subroutine discovered at 0x%04X"%(subroutinefound))
                 if subroutinefound in dd.inhibit_subs:
-                    print "    Ah, it's actually a method. Nevermind."
+                    print("    Ah, it's actually a method. Nevermind.")
                     self.near.seek(t)
                     return
                 # We're going to assume it's always preceeded by a branch
                 self.near.seek(self.near.tell()-4)
                 if self.near.read_uint8() == 0x88:
                     skipaddr = self.near.read_uint16()
-                    print "    Goes from 0x%04X to 0x%04X (length 0x%04X)"%(
-                        subroutinefound, skipaddr, skipaddr-subroutinefound)
+                    print("    Goes from 0x%04X to 0x%04X (length 0x%04X)"%(
+                        subroutinefound, skipaddr, skipaddr-subroutinefound))
 
                     sub = DFunction(self.near,  
                                     length_hint=skipaddr-subroutinefound, bonus_indents=1)
                     sub.load(self.dd, namehint = "Subroutine")
                     self.code.append(sub)
                     self.ilevel.append(len(self.indent_segments)+1)
-                    print "    Right, then, moving along."
+                    print("    Right, then, moving along.")
                     self.near.seek(skipaddr)
                     continue
                 else:
-                    print "    Couldn't identify the ending of the subroutine." 
+                    print("    Couldn't identify the ending of the subroutine." )
                     self.dd.get_label(subroutinefound, "Subroutine")
                     self.near.seek(subroutinefound+1)
             if opcode < 0x80 and mode is 'direct':
-                #print "staying direct"
+                #print("staying direct")
                 if not textbuf: lastoffset = self.near.tell()-1
                 textbuf.append(opcode)
             elif opcode >= 0x80 and mode is 'direct':
-                #print "changing to code",
-                #print "ADDR", self.near.tell()-1
+                #print("changing to code",)
+                #print("ADDR", self.near.tell()-1)
                 mode = 'code'
                 self.code.append((''.join(map(chr,textbuf)),lastoffset))
                 self.ilevel.append(len(self.indent_segments)+1)
                 textbuf = []; lastoffset=-1
             if mode is 'code':
-                #print "code mode"
+                #print("code mode")
                 self.ilevel.append(len(self.indent_segments)+1)
                 if opcode < 0x80 and not self.expect_close: 
                     mode = 'direct'
-                    #print "Abandoning code mode", self.indent_segments
+                    #print("Abandoning code mode", self.indent_segments)
                     lastoffset = self.near.tell()-1
                     textbuf =[opcode]
                     self.ilevel.pop()
@@ -894,11 +899,11 @@ class DFunction(DVMObj):
                     self.code.append(OpArg(opcode, self.near, self))
                 elif opcode >= 0xA0:
                     self.code.append(OpSys(opcode, self.near, self))
-                elif OpTable.has_key(opcode):
+                elif opcode in OpTable:
                     self.code.append(OpTable[opcode](opcode,self.near,self))
                 else:
-                    print "Bad opcode '0x%02X', offset 0x%X"%(opcode, 
-                                       self.near.tell())
+                    print("Bad opcode '0x%02X', offset 0x%X"%(opcode, 
+                                       self.near.tell()))
                     assert False, "Halting."
             if ps_after:
                 self.code.insert(-1,ps_after)

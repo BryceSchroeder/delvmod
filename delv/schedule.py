@@ -25,8 +25,10 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 
-import store
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import array
+from . import store
 
 class ScheduleList(store.Store):
     def __init__(self, src):
@@ -39,11 +41,11 @@ class ScheduleList(store.Store):
     def __iter__(self): return self.schedules.__iter__()
     def load_from_bfile(self):
         self.src.seek(0)
-        self.lengths = [self.src.read_uint16() for _ in xrange(0x100)]
+        self.lengths = [self.src.read_uint16() for _ in range(0x100)]
         
         for length in self.lengths:
             self.schedules.append([
-                self.read_entry(self.src) for _ in xrange(length)])
+                self.read_entry(self.src) for _ in range(length)])
     def read_entry(self, src):
         hour = src.read_uint8()
         mode = src.read_uint8()

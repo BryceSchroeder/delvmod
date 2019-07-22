@@ -18,6 +18,8 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import delv
 import delv.archive
 import sys
@@ -54,7 +56,7 @@ for res in arch.resource_ids(series):
     print (" 0x%04X%s: %5d bytes, %d fields "%(res,' ("%s")'%name if name else '', len(rfile),items)
         ).center(60,"-")
     
-    for n in xrange(items):
+    for n in range(items):
         value = rfile.read_uint32()
         key = rfile.read_uint16()
         occurances = field_occurances.get(key,{})

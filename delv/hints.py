@@ -25,7 +25,9 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 
-import graphics, sound, store, level, script, dscript, schedule
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+from . import graphics, sound, store, level, script, dscript, schedule
 GRAPHICS_LANDSCAPE = 131
 GRAPHICS_PORTRAIT = 135
 GRAPHICS_TILESHEET = 141
@@ -39,10 +41,10 @@ _OBJECT_SI_HINTS = {
    142: graphics.General,
    144: sound.Asnd,
 }
-for n in xrange(0,15): 
+for n in range(0,15): 
     if not n in _OBJECT_SI_HINTS:
         _OBJECT_SI_HINTS[n] = dscript.Direct
-for n in xrange(15,127): 
+for n in range(15,127): 
     if not n in _OBJECT_SI_HINTS:
         _OBJECT_SI_HINTS[n] = dscript.Class
 

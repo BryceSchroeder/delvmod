@@ -25,6 +25,8 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import delv
 import delv.archive
 import sys
@@ -44,7 +46,7 @@ functional.)
 '''
 
 if len(sys.argv)<3:
-    print >> sys.stderr, USAGE
+    print(USAGE, file=sys.stderr)
     sys.exit(-1)
 
 delv.archive.Scenario(sys.argv[1]).to_path(sys.argv[2])

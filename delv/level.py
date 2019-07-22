@@ -25,9 +25,11 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 # Maps and prop lists. Convenience utilities for map visualization.
-import delv.util
-import store
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import array
+from . import store, util
 
 def textual_location(flags, raw_location):
     loc = raw_location>>12,raw_location&0x000FFF
@@ -88,12 +90,12 @@ class PropListEntry(object):
     def get_d1(self):
         return self.d3>>8
     def set_d1(self,v):
-        if v > 255: raise ValueError, "d1 is an 8-bit quantity"
+        if v > 255: raise ValueError("d1 is an 8-bit quantity")
         self.d3 = (self.d3&0x00FF)|(v<<8)
     def get_d2(self):
         return self.d3&0xFF
     def set_d2(self,v):
-        if v > 255: raise ValueError, "d2 is an 8-bit quantity"
+        if v > 255: raise ValueError("d2 is an 8-bit quantity")
         self.d3 = (self.d3&0xFF00)|v
     def set_d3(self,v):
         self.d3 = v
@@ -196,7 +198,7 @@ class Map(store.Store):
         """Return base tile at this location."""
         return self.map_data[x+y*self.width]
     def load_from_bfile(self):
-        print "map loading"
+        print("map loading")
         self.src.seek(0)
         self.width = self.src.read_uint16()
         self.height = self.src.read_uint16()
@@ -226,10 +228,10 @@ class Map(store.Store):
 
         roof_length = 0x40*self.roof_layer_size+0x40*self.roof_underlayer_size
         self.roof_data = array.array('H')
-        for _ in xrange(roof_length/2): 
+        for _ in range(roof_length/2): 
             self.roof_data.append(self.src.read_uint16())
         self.map_data = array.array('H')
-        for _ in xrange(self.width*self.height):
+        for _ in range(self.width*self.height):
             self.map_data.append(self.src.read_uint16())
     
 

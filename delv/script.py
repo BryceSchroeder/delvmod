@@ -24,9 +24,17 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import store, util
-from util import dref
-import sys, StringIO
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+from . import store, util
+from .util import dref
+import sys
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import BytesIO as StringIO
+
 def rstr(x):
     return '"%s"'%repr(str(x))[1:-1].replace('"','\\"')
 class FauxLibrary(object):
@@ -51,7 +59,7 @@ class _PrintOuter(object):
         self.stream.write(outstr)
         self.nl = '\n' in outstr
     def str_disassemble(self, indent):
-        p = StringIO.StringIO()
+        p = StringIO()
         self.disassemble(p, indent)
         return p.getvalue()
     def disassemble_atom(self, il, atom):
@@ -124,7 +132,7 @@ class Array(list, _PrintOuter):
         self.script = script
         typecode,count = src.read_fo16()
         assert typecode == 9
-        for n in xrange(count):
+        for n in range(count):
             v = src.read_atom()
             if self.override_dref is not None and isinstance(v,dref):
                 v.resid = self.override_dref
@@ -135,7 +143,7 @@ class Array(list, _PrintOuter):
             dst.write_atom(a)
     def load_from_library(self, library, only_local=False):
         if only_local: library = FauxLibrary(self.script.res)
-        for n in xrange(len(self)):
+        for n in range(len(self)):
             self.references[n] = self[n]
             if isinstance(self[n], dref):
                 if only_local and self.script.res.resid != self[n].resid:
@@ -148,7 +156,7 @@ class Array(list, _PrintOuter):
         self.set_stream(out)
         if len(self) < 2:
             self.pn(indent, "array [%s]"%(' '.join(map(
-                 lambda (n,a):self.str_disassemble_atom(0,a),
+                 lambda n,a:self.str_disassemble_atom(0,a),
                      enumerate(self)))))
             return
         self.pn(indent, "array [")
@@ -333,7 +341,7 @@ class DOPushData(DCVariableFieldOperation):
     def decode_length(self, data):
         return (data[1]<<8)|data[2]+3
     def decode(self):
-        s = util.BinaryHandler(StringIO.StringIO(self.data[3:]))
+        s = util.BinaryHandler(StringIO(self.data[3:]))
         self.contents = TypeFactory(self.script_context, s, 
              library=FauxLibrary(self.script_context.res),
              organic_offset=self.true_offset+3,only_local=True)
@@ -358,7 +366,7 @@ class DCExpressionContainer(DCVariableFieldOperation):
     mnemonic = 'ERR_EXPR'
     def __init__(self, data, i, toff):
         self.true_offset = toff
-        self.items = [[] for g in xrange(self.groups)]
+        self.items = [[] for g in range(self.groups)]
         self.flat_items = []
         inside = self.groups
         group = 0
@@ -747,8 +755,8 @@ class Code(list, _PrintOuter):
         assert typecode == 0x81
         self.argc = src.read_uint8()
         self.localc = src.read_uint8()
-        self.local_names = ["var_%d"%x for x in xrange(self.localc)]
-        self.arg_names = ["arg_%d"%x for x in xrange(self.argc)]
+        self.local_names = ["var_%d"%x for x in range(self.localc)]
+        self.arg_names = ["arg_%d"%x for x in range(self.argc)]
         data = src.readb()
         i = 0
         while i < len(data):
@@ -791,7 +799,7 @@ class DispatchTable(dict, _PrintOuter):
         assert typecode == 0xA
         assert not count & 0xFF00
         offsets = []
-        for n in xrange(count):
+        for n in range(count):
             atom = src.read_atom()
             signal = src.read_uint16()
             self[signal] = atom
@@ -962,7 +970,7 @@ class Script(store.Store):
         self.obj.disassemble(out, 1)
     def disassemble(self, target=None):
         if target is None: 
-             out = StringIO.StringIO()
+             out = StringIO()
         else:
              out = target
         try:
@@ -970,7 +978,7 @@ class Script(store.Store):
                 print >> out, self.str_disassemble_atom(self.obj)
             else:
                 self.obj.disassemble(out, 0)
-        except IndexError, e:
+        except IndexError as e:
             print >> out, '\n', ' DISASSEMBLY ERROR '.center(78,'*')
             print >> out, repr(e)
         self.disassemble_symtable_data(out)

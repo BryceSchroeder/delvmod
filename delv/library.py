@@ -24,6 +24,9 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import archive,hints,tile,prop,util,store
 import array
 class Library(object):
@@ -124,7 +127,7 @@ class Library(object):
     def objects(self,si=None,dense=False,rw=True):
         if dense:
             return [self.get_object((si,n),rw=rw
-                ) for n in xrange(256)]
+                ) for n in range(256)]
         else:
             return [self.get_object(resid,rw=rw
                 ) for resid in self.resource_ids(si)]
