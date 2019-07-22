@@ -82,7 +82,7 @@ class Opcode(object):
                              argname[-len(argclass):],argclass)])
         return p
     def finish(self, of, ctx, value):
-        #print "value", value, self
+        #print("value", value, self)
         of.write_uint16(value)
 
 ############################ OPCODE DEFINITIONS ###########################
@@ -131,7 +131,7 @@ class Op_load_word(Opcode):
     def generate(self, of, ctx, immediate='(atom|symbol):%s'):
         of.write_uint8(0x43)
         v = ctx.getlval(self.encod(immediate), self, of.tell())
-        #print "Got value", v
+        #print("Got value", v)
         if isinstance(v, LateLabel):
             v.form = (lambda x: 0x80000000|(ctx.context_resource<<16)|x)
             ctx.final_label(v, of.tell())
@@ -139,7 +139,7 @@ class Op_load_word(Opcode):
         else:
             of.write_uint32(self.encod(v))
     def finish(self, of, ctx, value):
-        #print "Finishing", value
+        #print("Finishing", value)
         of.write_uint32(self.encod(value))
     def encod(self, v):
         if v < 0:
@@ -503,7 +503,7 @@ for item in globals():
 #            "            <keyword>%s</keyword><keyword>%s</keyword>"%(
 #                             globals()[item].mnemonic,
 #                             globals()[item].true_name.replace('Op_','')))
-#print '\n'.join(oplistlist)
+#print('\n'.join(oplistlist))
 
 #def opcode(mnemonic, funclevel=True):
 #    def real_decorator(f):
@@ -564,7 +564,7 @@ def write_array_item(ofile, item, context, callbacks):
          callbacks.append((ofile.tell(), item))
          ofile.write_uint16(0xDEAD)
     else:
-         #print "***", item
+         #print("***", item)
          item.write_code(ofile,context)
 
 def varref(o, asm):
@@ -577,7 +577,7 @@ def direct_hex_to_bytearray(text):
     f = []
     for i in xrange(0,len(text),2):
         f.append(int(text[i:i+1],16))
-    #print f
+    #print(f)
     return bytearray(f)
 
 class SymbolList(list): 
@@ -651,7 +651,7 @@ def objref(c,o,asm):
     assert 0 <= c <= 0xFF
     return 0x40000000|(c<<16)|o
 def resref(r,o,asm):
-    #print r,o#,"%04X"%r, "%04X"%o
+    #print(r,o#,"%04X"%r, "%04X"%o)
     r = asm.getval(r)
     o = asm.getval_offs(o)
     assert 0 <= r <= 0x7FFF
@@ -697,7 +697,7 @@ class Function(object):
                 obj.finish(ofile, context, labval)
             ofile.seek(t)
             if labval is None:
-                #print "Long-callback", obj,label,position
+                #print("Long-callback", obj,label,position)
                 new_callbacks.append((obj,label,position))
 
         context.end_function_context()
@@ -712,7 +712,7 @@ class Function(object):
 import struct
 class FItem(object):
     def __init__(self, lb, op):
-        #print "FBODYITEM", lb, op
+        #print("FBODYITEM", lb, op)
         self.label = lb
         self.op = op
     def write_code(self, of, ctx):
@@ -720,7 +720,7 @@ class FItem(object):
         if isinstance(self.op, bytearray):
             of.write(self.op)
         elif self.op:
-            #print ">>>>", self.op, self.op.kwargs
+            #print(">>>>", self.op, self.op.kwargs)
             try:
                 self.op.generate(of, ctx, **self.op.kwargs)
             except struct.error:
@@ -743,7 +743,7 @@ RDASM_Opcodes += "\noperation = " + ' | '.join(RDASM_opcode_names) + '\n'
 #for name, op in All_Operations.items():
 #    RDAll.append("opcode_%s = '%s' %s"%(name, name, ' ws '+op.__doc__ if op.__doc__ else ''))
 #RDASM_Opcodes += '\n'.join(RDAll)
-#print RDASM_Opcodes
+#print(RDASM_Opcodes)
 
 class DDict(dict):
     def __init__(self, contents):
@@ -891,9 +891,12 @@ class LateLabel(object):
         ofile.write_uint32(self.form(labval))
 
 import parsley
-import cStringIO
-import delv.util
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import BytesIO as StringIO
 import sys,os.path
+from . import util
 class Assembler(object):
     def __init__(self,message_stream=sys.stderr,filename="<stream>",path=None):
         if path is None: path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'rdasm_include')
@@ -917,7 +920,7 @@ class Assembler(object):
     def set_field_order(self, order): 
         self.field_order = order
     def class_field(self,value,field):
-        #print "defining", SymbolList(["Field%04X"%field]), value
+        #print("defining", SymbolList(["Field%04X"%field]), value)
         self.define_symbol(SymbolList(["Field%04X"%field]), value)
         self.class_fields.append((value,field))
         
@@ -941,26 +944,26 @@ class Assembler(object):
         f = self.assemble(open(pth).read())
     def use(self, usesym):
         for sym,val in self.symtab.items():
-            #print "*",sym, usesym
+            #print("*",sym, usesym)
             if sym[0] == usesym[0]:
                 self.define_symbol(SymbolList(sym[1:]), self.lookup_symbol(sym))
     def set_fieldnames(self, fn):
         if self.output_file.tell(): self.error("Code generation began before `class` was seen.")
         #self.output_file.write_uint16(0xFFFF)
-        #print "SET FIELDNAMES", self.output_file.tell()
+        #print("SET FIELDNAMES", self.output_file.tell())
         self.fieldnames = {}
         for sym in self.symtab:
             if sym[0] == fn[0]:
                 self.fieldnames[SymbolList(sym[1:])] = self.lookup_symbol(sym)
-        #print self.fieldnames
+        #print(self.fieldnames)
         return bytearray('\xFF\xFF')
         
     def define_symbols(self, base, syms):
         for k,v in syms:
-            #print "dss",base,k,v
+            #print("dss",base,k,v)
             self.define_symbol(SymbolList(base+k), v)
     def define_symbol(self, sym, e):
-        #print >> self.mstream, "DEFINE", sym, e
+        #print("DEFINE", sym, e, file=self.mstream)
         self.symtab[sym] = e
     def getval(self,thing,create=None):
         if isinstance(thing, SymbolList):
@@ -983,17 +986,17 @@ class Assembler(object):
         fn,fc,cb = self.get_function_context()
         fc[SymbolList(argname)]=argop
     def getlval(self,thing, caller, loc, output=0xDEAD):
-        #print "LVAL", thing, caller, loc
+        #print("LVAL", thing, caller, loc)
         if not isinstance(thing, SymbolList): return thing
         fn,fc,cb = self.get_function_context()
-        #print "--> got fc"
+        #print("--> got fc")
         if isinstance(thing, VarRef):
             return 0x10000000 | (fc[SymbolList(thing)] + 1)
         if thing in fc: return fc[thing]
-        #print "--> not in fc"
-        #print self.symtab.get(thing, "NOT IN SYMTAB")
+        #print("--> not in fc")
+        #print(self.symtab.get(thing, "NOT IN SYMTAB"))
         if thing in self.symtab: return self.symtab[thing]
-        #print "-->", thing, "appended"
+        #print("-->", thing, "appended")
         cb.append((caller, thing, loc))
         return output
     def define_local_label(self, label, position):
@@ -1002,20 +1005,20 @@ class Assembler(object):
         fc[label] = position
             
     def getfval(self,thing,warn_new=True,loopvar=1):
-        #print "getfval", thing, warn_new
+        #print("getfval", thing, warn_new)
         if not isinstance(thing,SymbolList): return thing
         fn,fc,cb = self.get_function_context()
         if thing in fc: 
-            #print "    Local -> ", fc[thing]
+            #print("    Local -> ", fc[thing])
             return fc[thing]
         if thing in self.symtab: 
-            #print "    Global -> ", lookup_symbol[thing]
+            #print("    Global -> ", lookup_symbol[thing])
             return lookup_symbol(thing)
         if warn_new is None:
-            #print "    Unbound -> None"
+            #print("    Unbound -> None")
             return None
         if warn_new:
-            #print "    Unbound."
+            #print("    Unbound.")
             self.error("Local variable %s used before assignment"%thing[0], warn=True)
         rv = fn.local_vars
         fc[thing] = rv 
@@ -1028,8 +1031,8 @@ class Assembler(object):
             self.error("undefined symbol %s"%'.'.join(sym))
             return 0x5000FFFF
     def error(self,msg,warn=False):
-        print >> self.mstream, "%s %s:%d:"%("Warning:" if warn else "Error:",
-            self.filename, self.linenumber), msg
+        print("%s %s:%d:"%("Warning:" if warn else "Error:",
+            self.filename, self.linenumber), msg, file=self.mstream)
     
     def write_code(self, item, ofile):
         if item is None:
@@ -1080,25 +1083,25 @@ class Assembler(object):
                     except KeyError:
                         s= self.symtab.items()
                         s.sort()
-                        for l,v in s: print l,':',v
-                        print "---> Field%04X"%k
+                        for l,v in s: print(l,':',v)
+                        print("---> Field%04X"%k)
                         assert False
         dict_write_code(table, of, self, force_order=order)
          
     def assemble(self,source):
         source = source.strip()
 
-        binfile = delv.util.BinaryHandler(cStringIO.StringIO())
+        binfile = delv.util.BinaryHandler(StringIO())
         self.output_file = binfile
         callbacks = []
         parsed = self.Parser(source).program()
         for item in parsed:
             rv = self.write_code(item, binfile)
-            #print binfile.tell()
+            #print(binfile.tell())
             if rv: callbacks.extend(rv)
 
         for obj, label, position in callbacks:
-             #print "Resolving long callback", obj, label, position
+             #print("Resolving long callback", obj, label, position)
              t = binfile.tell()
              binfile.seek(position)
              labval = self.getval(label,None)
@@ -1108,7 +1111,7 @@ class Assembler(object):
              obj.finish(binfile, self, labval)
              binfile.seek(t)
 
-        #print "CLASS", self.field_names 
+        #print("CLASS", self.field_names)
         if self.fieldnames:
              cstart = binfile.tell()
              self.write_class_table(binfile)

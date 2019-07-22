@@ -28,8 +28,13 @@
 def encode_int28(i):
     return i if i >= 0 else (0x0FFFFFFF+i+1)
 
-import cStringIO as StringIO, struct
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import BytesIO as StringIO
+import struct
 from sys import stderr
+
 class dref(object):
     def __init__(self,resid,offset,length=None):
         self.resid = resid
@@ -78,7 +83,7 @@ def bitstruct_pack(target, pairs):
     b = bytes_to_bits(target)
     for value, fieldspec in pairs:
         for size, index in fieldspec[::-1]:
-            fieldbits = value & (0xFFFFFFFFFFFFFFFFL >> (64-size))
+            fieldbits = value & (0xFFFFFFFFFFFFFFFF >> (64-size))
             b[index:index+size] = int_to_bits(value,size)
             value >>= size
     t =  bits_to_bytes(b)
@@ -110,7 +115,7 @@ def ncbits_pack(target, value, *fields):
     # but why bother, it's only used compressing graphics, which is an
     # infrequent operation (whereas decompression happens a lot.)
     for size,index in fields[::-1]:
-        fieldbits = value & (0xFFFFFFFFFFFFFFFFL >> (64-size))
+        fieldbits = value & (0xFFFFFFFFFFFFFFFF >> (64-size))
         bits_pack(target, fieldbits, size, index)
         value >>= size
     
@@ -217,7 +222,7 @@ class BinaryHandler(object):
         if hasattr(file, 'read') and hasattr(file, 'write'):
             self.file = file
         elif hasattr(file, '__getitem__'):
-            self.file = StringIO.StringIO(file)
+            self.file = StringIO(file)
         self._read = self.read
         if coverage_map:
             self.coverage_map = [0]*len(self)
