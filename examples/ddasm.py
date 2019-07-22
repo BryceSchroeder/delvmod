@@ -44,7 +44,7 @@ disassembler = delv.ddasm.Disassembler(context_resid)
 
 source = str(disassembler.disassemble(machinecode))
 
-output = open(argv[3] if len(argv) > 3 else 'dda.rdasm','wb')
+output = open(argv[3] if len(argv) > 3 else 'dda.rdasm','w')
 
 output.write(source)
 

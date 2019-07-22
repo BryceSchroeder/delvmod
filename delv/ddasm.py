@@ -29,7 +29,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 try:
     from cStringIO import StringIO
 except ImportError:
-    from io import BytesIO as StringIO
+    from io import StringIO
 from . import util, version
 from . import rdasm_symbolics as symbolics
 INDENT = '    '
@@ -162,16 +162,16 @@ class DArray(list, DVMObj):
                                                          anonymous=True)
     def show(self, i, of):
         name = None if not self.dd else self.dd.get_label(self.offset, False)
-        print(INDENT*i+'array %s('%(name if name else ''), end='', file=of)
-        if len(self)> 6: print('\n'+INDENT*(i+1), end='', file=of)
+        print(INDENT*i+'array %s('%(name if name else ''), end=' ', file=of)
+        if len(self)> 6: print('\n'+INDENT*(i+1), end=' ', file=of)
         for item in self:
             if isinstance(item, str):
-                print(json.dumps(item), end='', file=of)
+                print(json.dumps(item), end=' ', file=of)
             elif hasattr(item, 'show'):
                 item.show(i+1, of)
             else:
-                print(word2str(item,self.dd), end='', file=of)
-            if len(self) > 6: print('\n'+INDENT*(i+1), end='', file=of)
+                print(word2str(item,self.dd), end=' ', file=of)
+            if len(self) > 6: print('\n'+INDENT*(i+1), end=' ', file=of)
         print(')', end='', file=of)
         if len(self)> 6: print('', file=of)
 
@@ -209,21 +209,21 @@ class DTable(dict, DVMObj):
                  self.ovals.append(v)
     def show(self, i, of):
         name = None if not self.dd else self.dd.get_label(self.offset, False)
-        print(INDENT*i+'table (', end='', file=of) #%s('%(name if name else ''),
-        if len(self)> 3: print('\n'+INDENT*(i+1), end='', file=of)
+        print(INDENT*i+'table (', end=' ', file=of) #%s('%(name if name else ''),
+        if len(self)> 3: print('\n'+INDENT*(i+1), end=' ', file=of)
         
         for key,item in zip(self.field_ordering, self.ovals):
         #for key,item in self.items():
-            print('0x%04X ='%key, end='', file=of)
+            print('0x%04X ='%key, end=' ', file=of)
             if isinstance(item, str):
-                print(json.dumps(item), end='', file=of)
+                print(json.dumps(item), end=' ', file=of)
             elif hasattr(item, 'show'):
                 item.show(0, of)
             else:
-                print(word2str(item, self.dd), end='', file=of)
+                print(word2str(item, self.dd), end=' ', file=of)
             if len(self) > 3:
-                print('\n'+INDENT*(i+1), end='', file=of)
-        print(')', end='', file=of)
+                print('\n'+INDENT*(i+1), end=' ', file=of)
+        print(')', end=' ', file=of)
         if len(self)> 3: print('', file=of)
 
 class DClass(DTable):
@@ -279,9 +279,9 @@ class DClass(DTable):
         print('field_order ('+', '.join(
             ['0x%04X'%x for x in self.field_ordering])+')', file=of)
         print("// Standard Symbol  Key     Value or Offset", file=of)
-        for k, v in self.items():
+        for k, v in sorted(self.items()):
             print('// %-16s 0x%04X:'%(
-                    symbolics.DASM_OBJECT_HINTS.get(k,'????'), k), end='', file=of)
+                    symbolics.DASM_OBJECT_HINTS.get(k,'????'), k), end=' ', file=of)
             if not isinstance(v,int):
                 print('0x%04X'%self.method_locs[k], file=of)
             else:
@@ -326,7 +326,7 @@ class DClass(DTable):
             else:
                 print('class_field %s %s'%(
                     symbolics.DASM_OBJECT_HINTS['_name']
-                    +'.'+symbolics.DASM_OBJECT_HINTS[k] if symbolics.DASM_OBJECT_HINTS.has_key(k) else word2str(k,self.dd),
+                    +'.'+symbolics.DASM_OBJECT_HINTS[k] if k in symbolics.DASM_OBJECT_HINTS else word2str(k,self.dd),
                      word2str(item,self.dd)), file=of)
 
 import json
@@ -388,7 +388,7 @@ class Opcode(object):
         if self.fixed_field is str:
             return json.dumps(self.field)
         if isinstance(self.fixed_field,dict):
-            if self.fixed_field.has_key(self.field):
+            if self.field in self.fixed_field:
                 return self.prefix+self.fixed_field[self.field]
             else:
                 return "0x%X"%self.field
@@ -459,7 +459,7 @@ def word2str(i,dd):
             return '<%08X>'%i
         elif i < 0x40000000: 
             resid = i&0xFFFF
-            if symbolics.DASM_RESOURCE_NAME_HINTS.has_key(resid):
+            if resid in symbolics.DASM_RESOURCE_NAME_HINTS:
                 respart = (symbolics.DASM_RESOURCE_NAME_HINTS['_name']
                           +'.'+symbolics.DASM_RESOURCE_NAME_HINTS[resid])
             else:
@@ -469,11 +469,11 @@ def word2str(i,dd):
             assert i&0xFF000000 == 0x40000000
             classpart = (i & 0xFF0000)>>16
             whichpart = i& 0xFFFF
-            if classpart == 0x40 and symbolics.DASM_CYTHERA_CHARACTERS.has_key(whichpart):
+            if classpart == 0x40 and whichpart in symbolics.DASM_CYTHERA_CHARACTERS:
                 whichpart = 'Characters.'+symbolics.DASM_CYTHERA_CHARACTERS[whichpart]
             else:
                 whichpart = '0x%04X'%whichpart
-            if symbolics.DASM_OBJ_NAME_HINTS.has_key(classpart):
+            if classpart in symbolics.DASM_OBJ_NAME_HINTS:
                 classpart = (symbolics.DASM_OBJ_NAME_HINTS['_name']+'.'
                      +symbolics.DASM_OBJ_NAME_HINTS[classpart])
             else:
@@ -495,7 +495,7 @@ def word2str(i,dd):
             offset = i&0xFFFF 
             if resid == dd.context_resource:
                 respart = 'here'
-            elif symbolics.DASM_RESOURCE_NAME_HINTS.has_key(resid):
+            elif resid in symbolics.DASM_RESOURCE_NAME_HINTS:
                 respart = (symbolics.DASM_RESOURCE_NAME_HINTS['_name']
                           +'.'+symbolics.DASM_RESOURCE_NAME_HINTS[resid])
             else:
@@ -571,7 +571,7 @@ class OpClassVariable(Opcode):
         self.classfield=bfile.read_uint8()
         self.tidx = bfile.read_uint8()
     def parameters(self):
-        if symbolics.DASM_OBJECT_HINTS.has_key(self.classfield):
+        if self.classfield in symbolics.DASM_OBJECT_HINTS:
             return 'Object.%s %d'%(symbolics.DASM_OBJECT_HINTS[self.classfield],
                            self.tidx)
         else:
@@ -741,13 +741,13 @@ class DDirect(DVMObj):
     def load(self, dd, *argv):
         self.dd = dd
     def show(self,i=0, ost=sys.stdout):
-        print(i*INDENT+'{', end='', file=ost)
-        print(' '.join(['%02X'%x for x in self.data]), end='', file=ost)
+        print(i*INDENT+'{', end=' ', file=ost)
+        print(' '.join(['%02X'%x for x in self.data]), end=' ', file=ost)
         print('}', file=ost)
 
 class DFunction(DVMObj):
     def get_local(self, idx, hint=None):
-        if not self.local.has_key(idx):
+        if idx not in self.local:
             self.local[idx] = (hint if hint else 'Var')+"%02X"%idx
         return self.local[idx]
     def expectation(self, cb):

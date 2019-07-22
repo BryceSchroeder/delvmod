@@ -398,9 +398,9 @@ class BinaryHandler(object):
         buf = bytearray()
         while True:
             b = self.read(1)
-            if b == '\0' or not b: break
+            if b == b'\0' or not b: break
             buf += b
-        return str(buf)
+        return buf.decode("macroman")
 
 class UnimplementedFeature (Exception): pass
 
