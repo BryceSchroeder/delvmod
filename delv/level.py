@@ -225,10 +225,10 @@ class Map(store.Store):
 
         roof_length = 0x40*self.roof_layer_size+0x40*self.roof_underlayer_size
         self.roof_data = array.array('H')
-        for _ in xrange(roof_length/2): 
+        for _ in range(roof_length/2): 
             self.roof_data.append(self.src.read_uint16())
         self.map_data = array.array('H')
-        for _ in xrange(self.width*self.height):
+        for _ in range(self.width*self.height):
             self.map_data.append(self.src.read_uint16())
     
 

@@ -213,7 +213,7 @@ class TileCompositionList(Store):
     def load_from_bfile(self):
         while not self.src.eof():
             self.contents.append(self.parse([
-                self.src.read_uint16() for _ in xrange(0x10)]))
+                self.src.read_uint16() for _ in range(0x10)]))
     def parse(self, tw):
         return ((0x8E00|((t>>4)&0x00FF),t&0x000F,(t&0xF000)>>12) for t in tw)
 

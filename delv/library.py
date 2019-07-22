@@ -124,7 +124,7 @@ class Library(object):
     def objects(self,si=None,dense=False,rw=True):
         if dense:
             return [self.get_object((si,n),rw=rw
-                ) for n in xrange(256)]
+                ) for n in range(256)]
         else:
             return [self.get_object(resid,rw=rw
                 ) for resid in self.resource_ids(si)]

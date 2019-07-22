@@ -575,7 +575,7 @@ def varref(o, asm):
 
 def direct_hex_to_bytearray(text):
     f = []
-    for i in xrange(0,len(text),2):
+    for i in range(0,len(text),2):
         f.append(int(text[i:i+1],16))
     #print(f)
     return bytearray(f)

@@ -52,7 +52,7 @@ class Tile(object):
             return self.image
     def rotate(self):
         rotated = bytearray(32*32)
-        for y in xrange(32):
+        for y in range(32):
             rotated[y*32:y*32+32] = self.image[y::32]
         return str(rotated)
     def get_pixmap_mask(self,gtk,rotated=False):
@@ -85,6 +85,6 @@ class CompoundTile(Tile):
         for n,(resid, tile, segment) in enumerate(composition):
             chunk = library.get_object(resid).get_subtile(tile,segment)
             i = (n%4)*8 + (n//4)*8*32
-            for r in xrange(8):
+            for r in range(8):
                  image[i+32*r:i+32*r+8] = chunk[8*r:8*r+8]
         Tile.__init__(self, index, namecode, attributes, fauxprop, image)

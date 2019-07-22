@@ -129,7 +129,7 @@ class Array(list, _PrintOuter):
         self.script = script
         typecode,count = src.read_fo16()
         assert typecode == 9
-        for n in xrange(count):
+        for n in range(count):
             v = src.read_atom()
             if self.override_dref is not None and isinstance(v,dref):
                 v.resid = self.override_dref
@@ -140,7 +140,7 @@ class Array(list, _PrintOuter):
             dst.write_atom(a)
     def load_from_library(self, library, only_local=False):
         if only_local: library = FauxLibrary(self.script.res)
-        for n in xrange(len(self)):
+        for n in range(len(self)):
             self.references[n] = self[n]
             if isinstance(self[n], dref):
                 if only_local and self.script.res.resid != self[n].resid:
@@ -363,7 +363,7 @@ class DCExpressionContainer(DCVariableFieldOperation):
     mnemonic = 'ERR_EXPR'
     def __init__(self, data, i, toff):
         self.true_offset = toff
-        self.items = [[] for g in xrange(self.groups)]
+        self.items = [[] for g in range(self.groups)]
         self.flat_items = []
         inside = self.groups
         group = 0
@@ -752,8 +752,8 @@ class Code(list, _PrintOuter):
         assert typecode == 0x81
         self.argc = src.read_uint8()
         self.localc = src.read_uint8()
-        self.local_names = ["var_%d"%x for x in xrange(self.localc)]
-        self.arg_names = ["arg_%d"%x for x in xrange(self.argc)]
+        self.local_names = ["var_%d"%x for x in range(self.localc)]
+        self.arg_names = ["arg_%d"%x for x in range(self.argc)]
         data = src.readb()
         i = 0
         while i < len(data):
@@ -796,7 +796,7 @@ class DispatchTable(dict, _PrintOuter):
         assert typecode == 0xA
         assert not count & 0xFF00
         offsets = []
-        for n in xrange(count):
+        for n in range(count):
             atom = src.read_atom()
             signal = src.read_uint16()
             self[signal] = atom

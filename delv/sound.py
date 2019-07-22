@@ -283,7 +283,7 @@ class Music(Sound):
         musi = self.src.read(4)
         if musi != MUSIC_COMPONENT_TYPE: 
             raise ValueError("%s is not a music resource"%src)
-        self.flags = [self.src.read_uint32() for _ in xrange(3)]
+        self.flags = [self.src.read_uint32() for _ in range(3)]
  
         # while self.src.tell() < body_offset:
         while not self.src.eof():

@@ -141,13 +141,13 @@ class DArray(list, DVMObj):
         self.dd=None
         self.offset = ifile.tell()
         size = ifile.read_uint16() & 0x0FFF
-        for _ in xrange(size):
+        for _ in range(size):
             self.append(ifile.read_uint32())
     def load(self, dd, anonymous=False):
         self.dd = dd
         #print ">>> Loading the array at 0x%04X"%self.offset
         if not anonymous: self.name = dd.get_label(self.offset, "Array")
-        for i in xrange(len(self)):
+        for i in range(len(self)):
             if self[i] & 0x80000000:
                 addr = self[i]&0xFFFF
                 self.near.seek(addr)
@@ -184,7 +184,7 @@ class DTable(dict, DVMObj):
         self.dd=None
         self.ovals = []
         size = ifile.read_uint16() & 0x0FFF
-        for _ in xrange(size):
+        for _ in range(size):
             value = ifile.read_uint32()
             key = ifile.read_uint16()
             self.field_ordering.append(key)
@@ -367,7 +367,7 @@ class Opcode(object):
                  self.field = bfile.read_uint16()
         self.expectation()
     def expectation(self):
-        for n in xrange(self.expect):
+        for n in range(self.expect):
             self.func.expectation(self.expect_cb)
         if self.expect: self.func.iseg(self.expect)
     def expect_cb(self, op, bfile):
@@ -598,7 +598,7 @@ class OpSwitch(Opcode):
         n = bfile.read_uint16()
         f = OpCases(op, bfile, self.func)
         f.labels = [
-            self.dd.get_label(bfile.read_uint16(),'Case') for _ in xrange(n)
+            self.dd.get_label(bfile.read_uint16(),'Case') for _ in range(n)
             ]
         return f
 class OpCases(OpEnd):
@@ -761,19 +761,19 @@ class DFunction(DVMObj):
         assert self.arg_count < 0x10
         self.local_count = ifile.read_uint8()
         assert self.local_count < 0x30
-        for n in xrange(self.local_count): self.get_local(n,hint="Local")
+        for n in range(self.local_count): self.get_local(n,hint="Local")
         self.body = ifile.read() if length_hint is None else ifile.read(
             length_hint-3) 
         self.size = len(self.body)
     def arglist(self):
-        return ', '.join([self.get_local(x|0x30) for x in xrange(
+        return ', '.join([self.get_local(x|0x30) for x in range(
             self.arg_count)])
     def show(self, i=0, ost=sys.stdout):
         print >> ost, i*INDENT+'function %s(%s) ('%(
              self.name, self.arglist())
         #print "***",self.bi,self.name
         i += self.bi
-        for n in xrange(self.local_count):
+        for n in range(self.local_count):
             print >> ost, (1+i)*INDENT+'var Local%02X'%n 
             #print >> ost, (1+i)*INDENT+"// %d local vars"%self.local_count
         for il,line in zip(self.ilevel,self.code):

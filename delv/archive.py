@@ -45,7 +45,7 @@ def decrypt(data, prokey):
     m = ((prokey & 0x3f) <<2) + 1
     b = prokey >> 6
 
-    for i in xrange(len(data)):
+    for i in range(len(data)):
         key = (key*m + b) & 0xFFFF
         cleartext[i] = (data[i]^key)&0xFF
 
@@ -64,7 +64,7 @@ def entropy(data):
     # in exchange for a numpy dependency
     for c in data: counts[c] += 1
     base = len(data)/256.0
-    for i in xrange(256):
+    for i in range(256):
          counts[i] -= base
          counts[i] *= counts[i]
     #counts -= len(data)/256.0
@@ -524,7 +524,7 @@ class Archive(object):
                 [self.resource_ids(si) for si in self.subindices()])
     def subindices(self):
         """Return a list of valid subindices for this archive."""
-        return [n for n in xrange(len(self.master_index)
+        return [n for n in range(len(self.master_index)
             ) if self.master_index[n]]
 
 
@@ -559,7 +559,7 @@ class Archive(object):
     def create_index(self, size=256):
         self.master_index = [None]*size
         self.all_subindices = []
-        for _ in xrange(size): self.all_subindices.append([])
+        for _ in range(size): self.all_subindices.append([])
         self.master_index_length = 8*size
     def load_header(self):
         self.scenario_title = self.arcfile.read_pstring(0)
@@ -580,7 +580,7 @@ class Archive(object):
     def load_index(self):
         self.arcfile.seek(self.master_index_offset+8)
         self.master_index = [None]*(self.master_index_length//8 - 1)
-        for n in xrange(len(self.master_index)):
+        for n in range(len(self.master_index)):
              self.master_index[n] = self.arcfile.read_offlen()
         self.all_subindices = []
         for subn,(offset, length) in enumerate(self.master_index):
@@ -592,7 +592,7 @@ class Archive(object):
             self.arcfile.seek(offset)
             size = length / 8
             rescount = 0
-            for n in xrange(size):
+            for n in range(size):
                 res_offset, res_length = self.arcfile.read_offlen()
                 if res_offset:
                     subindex.append(Resource(res_offset, res_length, 

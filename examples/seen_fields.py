@@ -54,7 +54,7 @@ for res in arch.resource_ids(series):
     print (" 0x%04X%s: %5d bytes, %d fields "%(res,' ("%s")'%name if name else '', len(rfile),items)
         ).center(60,"-")
     
-    for n in xrange(items):
+    for n in range(items):
         value = rfile.read_uint32()
         key = rfile.read_uint16()
         occurances = field_occurances.get(key,{})

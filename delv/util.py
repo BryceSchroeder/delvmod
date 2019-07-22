@@ -53,7 +53,7 @@ class dref(object):
 def int_to_bits(value,size):
     result = bytearray(size)
     j =0 
-    for i in xrange(size-1,-1,-1):
+    for i in range(size-1,-1,-1):
         result[j] = (value >> i)&1
         j += 1
     return result
@@ -64,7 +64,7 @@ def bytes_to_bits(src):
     result = bytearray(len(src)*8)
     ri = 0
     for byte in src:
-        for bi in xrange(7,-1,-1): 
+        for bi in range(7,-1,-1): 
             result[ri] = (byte>>bi)&1
             ri += 1
     return result
@@ -87,7 +87,7 @@ def bitstruct_pack(target, pairs):
             b[index:index+size] = int_to_bits(value,size)
             value >>= size
     t =  bits_to_bytes(b)
-    for x in xrange(len(t)): target[x]=t[x]
+    for x in range(len(t)): target[x]=t[x]
 
 
 def bits_pack(target, value, size, index,debug=False):
