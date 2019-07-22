@@ -70,10 +70,10 @@ class Disassembler(object):
             c = self.infile.readb(usln)
             postscript.append((usof, "{"+' '.join(['%02X'%x for x in c])+"}"))
         if us and not isinstance(self.content[0], DClass):
-            print >> of, "// WARNING: Disassembly skipped %d area(s):"%len(us)
-            print >> of, "//      Offset       Length"
+            print("// WARNING: Disassembly skipped %d area(s):"%len(us), file=of)
+            print("//      Offset       Length", file=of)
             for usof,usln in us:
-                print >> of, "//      0x%04X       %d"%(usof,usln)
+                print("//      0x%04X       %d"%(usof,usln), file=of)
         else:
             p = self.infile.tell()
             for usof, usln in us:
@@ -86,23 +86,23 @@ class Disassembler(object):
                     obj.load(self) 
             self.infile.seek(p)
         if self.context_resource:
-            print >> of, 'resource 0x%04X\n'%self.context_resource
-        #print >> of, '// Class Data:'
+            print('resource 0x%04X\n'%self.context_resource, file=of)
+        #print('// Class Data:', file=of)
         #for k,v in self.class_data_labels.items():
-        #    print >> of, '// Class Data: ', k, v
+        #    print('// Class Data: ', k, v, file=of)
         postscript.sort(reverse=True)
         skipped = None
         for content in self.content:
-            print >> of, '\n// 0x%04X:'%content.offset
+            print('\n// 0x%04X:'%content.offset, file=of)
             skipped = postscript.pop() if (postscript and not skipped) else None
             if skipped and content.offset > skipped[0]:
-                print >> of, '\n// Skipped region at 0x%04X'%skipped[0]
-                print >> of, skipped[1]
+                print('\n// Skipped region at 0x%04X'%skipped[0], file=of)
+                print(skipped[1], file=of)
                 skipped = None
             content.show(0, of)
         if skipped:
-            print >> of, '\n// Skipped ending at 0x%04X:'%skipped[0]
-            print >> of, skipped[1]
+            print('\n// Skipped ending at 0x%04X:'%skipped[0], file=of)
+            print(skipped[1], file=of)
         return of.getvalue()
     def register_class_data(self, label, field):
         self.class_data_labels[label] = (field.offset, field)
@@ -134,9 +134,9 @@ class DData(DVMObj):
         if not anonymous: self.name = dd.get_label(self.offset, "ClassData")
     def show(self, i, of):
         name = None if not self.dd else self.dd.get_label(self.offset, False)
-        print >> of, INDENT*i+'class_data %s ( %s )'%(name if name else '', word2str(self.value,self.dd))
+        print(INDENT*i+'class_data %s ( %s )'%(name if name else '', word2str(self.value,self.dd)), file=of)
         # if you prefer this style...
-        # print >> of, INDENT*i+'%s: {%08X}'%(name, self.value)
+        # print(INDENT*i+'%s: {%08X}'%(name, self.value), file=of)
 
 class DArray(list, DVMObj):
     def __init__(self, ifile):
@@ -162,18 +162,18 @@ class DArray(list, DVMObj):
                                                          anonymous=True)
     def show(self, i, of):
         name = None if not self.dd else self.dd.get_label(self.offset, False)
-        print >> of, INDENT*i+'array %s('%(name if name else ''),
-        if len(self)> 6: print >> of, '\n'+INDENT*(i+1),
+        print(INDENT*i+'array %s('%(name if name else ''), end='', file=of)
+        if len(self)> 6: print('\n'+INDENT*(i+1), end='', file=of)
         for item in self:
             if isinstance(item, str):
-                print >> of, json.dumps(item),
+                print(json.dumps(item), end='', file=of)
             elif hasattr(item, 'show'):
                 item.show(i+1, of)
             else:
-                print >> of, word2str(item,self.dd),
-            if len(self) > 6: print >> of, '\n'+INDENT*(i+1),
-        print >> of, ')',
-        if len(self)> 6: print >> of, ''
+                print(word2str(item,self.dd), end='', file=of)
+            if len(self) > 6: print('\n'+INDENT*(i+1), end='', file=of)
+        print(')', end='', file=of)
+        if len(self)> 6: print('', file=of)
 
     
 
@@ -209,22 +209,22 @@ class DTable(dict, DVMObj):
                  self.ovals.append(v)
     def show(self, i, of):
         name = None if not self.dd else self.dd.get_label(self.offset, False)
-        print >> of, INDENT*i+'table (',#%s('%(name if name else ''),
-        if len(self)> 3: print >> of, '\n'+INDENT*(i+1),
+        print(INDENT*i+'table (', end='', file=of) #%s('%(name if name else ''),
+        if len(self)> 3: print('\n'+INDENT*(i+1), end='', file=of)
         
         for key,item in zip(self.field_ordering, self.ovals):
         #for key,item in self.items():
-            print >> of, '0x%04X ='%key,
+            print('0x%04X ='%key, end='', file=of)
             if isinstance(item, str):
-                print >> of, json.dumps(item),
+                print(json.dumps(item), end='', file=of)
             elif hasattr(item, 'show'):
                 item.show(0, of)
             else:
-                print >> of, word2str(item, self.dd),
+                print(word2str(item, self.dd), end='', file=of)
             if len(self) > 3:
-                print >> of, '\n'+INDENT*(i+1),
-        print >> of, ')',
-        if len(self)> 3: print >> of, ''
+                print('\n'+INDENT*(i+1), end='', file=of)
+        print(')', end='', file=of)
+        if len(self)> 3: print('', file=of)
 
 class DClass(DTable):
     def __init__(self, ifile, class_name='Object'):
@@ -245,7 +245,7 @@ class DClass(DTable):
          valids = []
          for k,v in self.items():
              if v & 0x80000000: 
-                 #print "CTXR", dd.context_resource, 
+                 #print("CTXR", dd.context_resource)
                  if (v&0x7FFF0000)>>16 != dd.context_resource: continue
                  valids.append((v&0xFFFF,k))
                  self.dd.inhibit_subs.append(v&0xFFFF)
@@ -255,8 +255,8 @@ class DClass(DTable):
              self.content_order.append(k)
              self.order_offsets.append(st)
              self.near.seek(st)
-             #print "%20s (0x%04X): 0x%04X-0x%04X"%(
-             #    symbolics.DASM_OBJECT_HINTS.get(k,'????'),k,st,en)
+             #print("%20s (0x%04X): 0x%04X-0x%04X"%(
+             #    symbolics.DASM_OBJECT_HINTS.get(k,'????'),k,st,en))
              self.dd.get_label(st, 
                  hint=symbolics.DASM_OBJECT_HINTS.get(k,"Field%04X"%k),
                  unique=False)
@@ -265,28 +265,28 @@ class DClass(DTable):
              self.near.seek(st)
              self[k] = read_DVMObj(self.near, en-st)
              if hasattr(self[k],'load'): 
-                 #print '%x'%st, en-st, k, self[k]
+                 #print('%x'%st, en-st, k, self[k])
                  self[k].load(dd)
              self.near.seek(p)
     def show(self, i, of):
         #for k, v in symbolics.ASM_OBJECT_HINTS.items():
-        #    print >> of,k,v
+        #    print(k,v, file=of)
         showcd = self.dd.class_data_labels.items()
         showcd = [(v[0], k, v[1]) for k,v in showcd]
         showcd.sort()
-        print >> of, '//', showcd
+        print('//', showcd, file=of)
 
-        print >> of, 'field_order ('+', '.join(
-            ['0x%04X'%x for x in self.field_ordering])+')'
-        print >> of, "// Standard Symbol  Key     Value or Offset"
+        print('field_order ('+', '.join(
+            ['0x%04X'%x for x in self.field_ordering])+')', file=of)
+        print("// Standard Symbol  Key     Value or Offset", file=of)
         for k, v in self.items():
-            print >> of, '// %-16s 0x%04X:'%(
-                    symbolics.DASM_OBJECT_HINTS.get(k,'????'), k),
+            print('// %-16s 0x%04X:'%(
+                    symbolics.DASM_OBJECT_HINTS.get(k,'????'), k), end='', file=of)
             if not isinstance(v,int):
-                print >> of, '0x%04X'%self.method_locs[k]
+                print('0x%04X'%self.method_locs[k], file=of)
             else:
-                print >> of, '0x%08X'%(v)
-        print >> of, (INDENT*i)+'class', self.class_name 
+                print('0x%08X'%(v), file=of)
+        print((INDENT*i)+'class', self.class_name , file=of)
         if self.content_order:
             for item in self:
                 if not item in self.content_order:
@@ -319,15 +319,15 @@ class DClass(DTable):
         for k,item in order:
                 
             #item = self[k]
-            print >> of
-            #if k: print >> of, (' Field 0x%04X '%k).center(78,'/')
+            print(file=of)
+            #if k: print((' Field 0x%04X '%k).center(78,'/'), file=of)
             if hasattr(item, 'show'):
                 item.show(0, of)
             else:
-                print >> of, 'class_field %s %s'%(
+                print('class_field %s %s'%(
                     symbolics.DASM_OBJECT_HINTS['_name']
                     +'.'+symbolics.DASM_OBJECT_HINTS[k] if symbolics.DASM_OBJECT_HINTS.has_key(k) else word2str(k,self.dd),
-                     word2str(item,self.dd),)
+                     word2str(item,self.dd)), file=of)
 
 import json
 class Opcode(object):
@@ -337,7 +337,7 @@ class Opcode(object):
     fixed_field = None
     suppress_labels = False
     def __init__(self, opcode, bfile, func):
-        #print ">>> %02X"%opcode, bfile.tell()
+        #print(">>> %02X"%opcode, bfile.tell())
         self.func = func
         self.dd = func.dd
         self.offset = bfile.tell()-1
@@ -380,8 +380,8 @@ class Opcode(object):
         pass
     def show(self, idnt, strm):
         d = self.dd.get_label(self.offset, False)
-        if d and not self.suppress_labels: print >> strm, (INDENT*idnt)+d+':'
-        print >> strm, (INDENT*idnt)+self.mnemonic + ' ' + self.parameters()
+        if d and not self.suppress_labels: print((INDENT*idnt)+d+':', file=strm)
+        print((INDENT*idnt)+self.mnemonic + ' ' + self.parameters(), file=strm)
     def parameters(self):
         if isinstance(self.fixed_field, str):
             return self.label
@@ -412,8 +412,8 @@ class OpArg(OpLocal):
 class OpEnd(Opcode):
     mnemonic = 'end'
     def show(self, idnt, strm):
-        print >> strm, (INDENT*(idnt-1)
-            ) + self.mnemonic + ' ' + self.parameters()
+        print((INDENT*(idnt-1)
+            ) + self.mnemonic + ' ' + self.parameters(), file=strm)
 class OpSeti(Opcode):
     mnemonic = 'set_index'
     expect = 3
@@ -425,9 +425,9 @@ class OpData(Opcode):
     def parse(self, bfile):
         self.size = bfile.read_uint16()
         self.startpos = bfile.tell()
-        #print "> Data opcode, offset 0x%04X"%self.offset, "size", self.size, "start 0x%04X"%self.startpos
+        #print("> Data opcode, offset 0x%04X"%self.offset, "size", self.size, "start 0x%04X"%self.startpos)
         self.content = read_DVMObj(bfile, self.size)
-        #print ">> Loaded", ','.join(['%08X'%x for x in self.content])
+        #print(">> Loaded", ','.join(['%08X'%x for x in self.content]))
         if hasattr(self.content,'load'):self.content.load(self.dd,
                                                           anonymous=True)
         bfile.seek(self.size+self.startpos)
@@ -741,9 +741,9 @@ class DDirect(DVMObj):
     def load(self, dd, *argv):
         self.dd = dd
     def show(self,i=0, ost=sys.stdout):
-        print >> ost, i*INDENT+'{',
-        print >> ost, ' '.join(['%02X'%x for x in self.data]),
-        print >> ost, '}'
+        print(i*INDENT+'{', end='', file=ost)
+        print(' '.join(['%02X'%x for x in self.data]), end='', file=ost)
+        print('}', file=ost)
 
 class DFunction(DVMObj):
     def get_local(self, idx, hint=None):
@@ -772,13 +772,13 @@ class DFunction(DVMObj):
         return ', '.join([self.get_local(x|0x30) for x in range(
             self.arg_count)])
     def show(self, i=0, ost=sys.stdout):
-        print >> ost, i*INDENT+'function %s(%s) ('%(
-             self.name, self.arglist())
+        print(i*INDENT+'function %s(%s) ('%(
+             self.name, self.arglist()), file=ost)
         #print "***",self.bi,self.name
         i += self.bi
         for n in range(self.local_count):
-            print >> ost, (1+i)*INDENT+'var Local%02X'%n 
-            #print >> ost, (1+i)*INDENT+"// %d local vars"%self.local_count
+            print((1+i)*INDENT+'var Local%02X'%n , file=ost)
+            #print((1+i)*INDENT+"// %d local vars"%self.local_count, file=ost)
         for il,line in zip(self.ilevel,self.code):
             il += self.bi
             if isinstance(line, tuple):
@@ -786,9 +786,9 @@ class DFunction(DVMObj):
                 if offs < 0: continue
                 lb = self.dd.get_label(offs, False)
                 if lb: 
-                    print >> ost, (il)*INDENT+lb+':'
+                    print((il)*INDENT+lb+':', file=ost)
                 #else:
-                #    print >> ost, (il)*INDENT+'// 0x%04X'%offs
+                #    print((il)*INDENT+'// 0x%04X'%offs, file=ost)
                 if not dat: continue
                 ost.write((il)*INDENT+"'")
                 for cn, ch in enumerate(dat):
@@ -805,10 +805,10 @@ class DFunction(DVMObj):
                 ost.write("'\n")
                     
                          
-                #print >> ost, (il)*INDENT+"'"+repr(dat+'"')[1:-2]+"'"
+                #print((il)*INDENT+"'"+repr(dat+'"')[1:-2]+"'", file=ost)
             else:
                 line.show(il, ost)
-        print >> ost, i*INDENT+')'
+        print(i*INDENT+')', file=ost)
     def load(self, dd, anonymous=False, namehint="Function"):
         self.dd = dd
         self.name = dd.get_label(self.offset, namehint)
