@@ -31,7 +31,7 @@ import sys
 from sys import argv
 
 if len (argv) < 2:
-    print >> sys.stderr, "Usage: ddasm.py binfile.out resid [output.rdasm]"
+    print("Usage: ddasm.py binfile.out resid [output.rdasm]", file=sys.stderr)
     sys.exit(0)
 
 

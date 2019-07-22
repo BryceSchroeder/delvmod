@@ -27,7 +27,7 @@ try:
     from cStringIO import StringIO
 except ImportError:
     from io import BytesIO as StringIO
-from . import util
+from . import util, version
 from . import rdasm_symbolics as symbolics
 INDENT = '    '
 INCLUDES = """
@@ -44,7 +44,7 @@ class Disassembler(object):
         self.pseudo_ops = {}
         self.context_resource=context_resource
     def disassemble(self, code, force_classmode=False, preamble=None):
-        self.infile = delv.util.BinaryHandler(code, coverage_map=True)
+        self.infile = util.BinaryHandler(code, coverage_map=True)
         if force_classmode:
             self.content = [DClass(self.infile)]
         else:
@@ -57,7 +57,7 @@ class Disassembler(object):
             #    another = self.content[-1].load(self)
         postscript = []
         of = StringIO()
-        print(preamble if preamble else "// DDASM %s"%delv.version, file=of)
+        print(preamble if preamble else "// DDASM %s"%version, file=of)
         print(INCLUDES, file=of)
         us = self.infile.cm_unseen()
         content = self.content[0]
@@ -104,7 +104,7 @@ class Disassembler(object):
     def register_class_data(self, label, field):
         self.class_data_labels[label] = (field.offset, field)
     def get_label(self, position, hint=None, pseudo_op=None, unique=True):
-        if not self.labels.has_key(position):
+        if position not in self.labels:
             if hint is False: return False
             self.labels[position]=(hint if hint else 'Label')+(
                 "%04X"%position if unique else '')
@@ -189,7 +189,7 @@ class DTable(dict, DVMObj):
             key = ifile.read_uint16()
             self.field_ordering.append(key)
             self.subvals.append(value)
-            if not self.has_key(key) or value != 0x5000FFFF:
+            if key not in self or value != 0x5000FFFF:
                 self[key] = value
     def load(self, dd, anonymous=False):
          self.dd = dd
@@ -896,7 +896,7 @@ class DFunction(DVMObj):
                     self.code.append(OpArg(opcode, self.near, self))
                 elif opcode >= 0xA0:
                     self.code.append(OpSys(opcode, self.near, self))
-                elif OpTable.has_key(opcode):
+                elif opcode in OpTable:
                     self.code.append(OpTable[opcode](opcode,self.near,self))
                 else:
                     print("Bad opcode '0x%02X', offset 0x%X"%(opcode, 
