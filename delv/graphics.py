@@ -24,12 +24,10 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import colormap
-import archive
-import util, store
+from . import colormap, util, archive, store
 
 # import the four horsemen of the bitpocalypse:
-from util import bits_pack, ncbits_pack, ncbits_of, bits_of, bitstruct_pack
+from .util import bits_pack, ncbits_pack, ncbits_of, bits_of, bitstruct_pack
 
 def DelvImageFactory(src, *args, **kwargs):
     """Return the appropriate kind of DelvImage subclass for the 
@@ -120,8 +118,8 @@ class DelvImage(store.Store):
         self.image = bytearray(self.logical_width * self.logical_height)
         try:
             if src: self.decompress(self.src.readb(), data_cursor)
-        except IndexError,e:
-            print "Cursor", self.cursor, repr(e)
+        except IndexError(e):
+            print("Cursor", self.cursor, repr(e))
         self.cached_visual = None
     def decompress(self, data, cursor):
         """Decompress the indexable-item data provided into this image.

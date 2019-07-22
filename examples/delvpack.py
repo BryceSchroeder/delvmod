@@ -44,7 +44,7 @@ functional.)
 '''
 
 if len(sys.argv)<3:
-    print >> sys.stderr, USAGE
+    print(USAGE, file=sys.stderr)
     sys.exit(-1)
 
 delv.archive.Scenario(sys.argv[1]).to_path(sys.argv[2])

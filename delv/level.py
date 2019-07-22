@@ -25,9 +25,8 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 # Maps and prop lists. Convenience utilities for map visualization.
-import delv.util
-import store
 import array
+from . import store, util
 
 def textual_location(flags, raw_location):
     loc = raw_location>>12,raw_location&0x000FFF
@@ -88,12 +87,12 @@ class PropListEntry(object):
     def get_d1(self):
         return self.d3>>8
     def set_d1(self,v):
-        if v > 255: raise ValueError, "d1 is an 8-bit quantity"
+        if v > 255: raise ValueError("d1 is an 8-bit quantity")
         self.d3 = (self.d3&0x00FF)|(v<<8)
     def get_d2(self):
         return self.d3&0xFF
     def set_d2(self,v):
-        if v > 255: raise ValueError, "d2 is an 8-bit quantity"
+        if v > 255: raise ValueError("d2 is an 8-bit quantity")
         self.d3 = (self.d3&0xFF00)|v
     def set_d3(self,v):
         self.d3 = v
@@ -196,7 +195,7 @@ class Map(store.Store):
         """Return base tile at this location."""
         return self.map_data[x+y*self.width]
     def load_from_bfile(self):
-        print "map loading"
+        print("map loading")
         self.src.seek(0)
         self.width = self.src.read_uint16()
         self.height = self.src.read_uint16()

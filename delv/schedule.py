@@ -25,8 +25,8 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 
-import store
 import array
+from . import store
 
 class ScheduleList(store.Store):
     def __init__(self, src):

@@ -24,7 +24,7 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import store
+from . import store
 
 
 class Tile(object):

@@ -26,11 +26,15 @@
 # Ambrosia Software, Inc. 
 
 import os
-import util
 #import numpy as np
 import operator
-import json, string, cStringIO as StringIO
-from hints import _RES_HINTS, _SCEN_HINTS
+import json, string
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import BytesIO as StringIO
+from . import util
+from .hints import _RES_HINTS, _SCEN_HINTS
 
 def decrypt(data, prokey):
     """Decrypt the data provided with the given pro-key. The prokey is
@@ -124,8 +128,8 @@ class ResourceFile(util.BinaryHandler):
         else:
             assert False, "Illegal seek whence: %d"%whence
         if self.position > self.length_limit:
-            raise IndexError, "Bad seek to 0x%08X, size 0x%08X"%(
-                offset, len(self))
+            raise IndexError("Bad seek to 0x%08X, size 0x%08X"%(
+                offset, len(self)))
     def eof(self):
         return self.position >= self.length_limit
     def truncate(self, size=None):
@@ -159,7 +163,7 @@ class Resource(object):
         self.offset = offset # 0 if never been on disk
         self.data = bytearray(size) # Data in memory
         self.resid = resid(subindex,n)
-	self.loaded = not offset
+        self.loaded = not offset
         self.dirty = True
         self.encrypted = None if not self.loaded else False
         self.canon_encryption = self.encrypted
@@ -302,7 +306,7 @@ class Resource(object):
         
         
     def decrypt_if_required(self):
-        print "Decrypt if required", repr(self), self.archive
+        print("Decrypt if required", repr(self), self.archive)
         presumptive = decrypt(self.data, resid(self.subindex, self.n))
         if entropy(self.data) > entropy(presumptive):
             self.encrypted = True
@@ -372,7 +376,7 @@ class Archive(object):
         self.source_string = "Loaded from file object %s"%src
     def from_string(self, src):
         """Load a delver archive from an indexable object."""
-        self.from_file(cStringIO.StringIO(src))
+        self.from_file(StringIO(src))
         self.source_string = "Loaded from string"
     def from_path(self, path):
         """Load a Delver archive from a file system path."""
@@ -405,7 +409,7 @@ class Archive(object):
     def to_file(self, dest):
         """Write a Delver archive to the destination file-like
            object (must be open for writing, obviously)"""
-        print "Writing out to", repr(dest)
+        print("Writing out to", repr(dest))
         dest = util.BinaryHandler(dest)
         self.save_header(dest)
         # Skip to just past the spot where we'll put the master index later
@@ -446,7 +450,7 @@ class Archive(object):
     def to_string(self):
         """Produces one (possibly very large) string with the 
            archive in it. Mainly here for front-end web stuff."""
-        stio = StringIO.StringIO()
+        stio = StringIO()
         self.to_file(stio)
         return stio.getvalue()
 
@@ -473,7 +477,7 @@ class Archive(object):
         if r is None and create_new:
             r = Resource(0,0,subindex,n,self)
             self.all_subindices[subindex][n] = r
-            print "creating new resource %04X"%idx,r
+            print("creating new resource %04X"%idx,r)
         return r
                 
 

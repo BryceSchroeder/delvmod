@@ -25,11 +25,14 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 # Maps and prop lists. Convenience utilities for map visualization.
-import util, archive, store
-from util import bitstruct_pack, bits_pack,bits_of
 import array
-import cStringIO as StringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import BytesIO as StringIO
 import binascii
+from . import util, archive, store
+from .util import bitstruct_pack, bits_pack,bits_of
 
 class SoundError(Exception): pass
 
@@ -62,7 +65,7 @@ class Asnd(Sound):
         
     def load_from_bfile(self):
         self.src.seek(0)
-        if self.src.read(4) != 'asnd': raise SoundError, "Bad magic number"
+        if self.src.read(4) != 'asnd': raise SoundError("Bad magic number")
         self.duration = self.src.read_uint32()
         self.rate = self.src.read_uint16()
         self.flags = self.src.read_uint16()
@@ -279,7 +282,7 @@ class Music(Sound):
         body_offset = self.src.read_uint32() # body_offset tells when the general commands stop and others begin; may not need it, just read through
         musi = self.src.read(4)
         if musi != MUSIC_COMPONENT_TYPE: 
-            raise ValueError, "%s is not a music resource"%src
+            raise ValueError("%s is not a music resource"%src)
         self.flags = [self.src.read_uint32() for _ in xrange(3)]
  
         # while self.src.tell() < body_offset:
@@ -297,7 +300,7 @@ class Music(Sound):
                 subtype = bits_of(footer, 14, 2)
                 event_length2 = bits_of(footer, 16,16)
                 if event_length != event_length2:
-                    raise MusicError, "Failed QTMA validity check: General Event at ",self.src.tell()
+                    raise MusicError("Failed QTMA validity check: General Event at ",self.src.tell())
                 # pass data length validity check, move cursor to read data
                 next_op = self.src.tell()
                 self.src.seek(data_offs)
@@ -329,14 +332,14 @@ class Music(Sound):
                     gm_number = self.src.read_uint32()
                     self.instruments[part] = gm_number # midi instrument num; really nothing else useful in midi, all qt synth controls
                 else:
-                    raise MusicError, "Unsupported General Event subtype %d for part %d at %d"%(subtype,part,self.src.tell())
+                    raise MusicError("Unsupported General Event subtype %d for part %d at %d"%(subtype,part,self.src.tell()))
                 # Restore cursor for next op after processing general event and data
                 self.src.seek(next_op)
             elif t4 == T4_ECONTROL: # Extended control, not needed for Cythera? not using
                 tail = self.src.readb(4)
                 part = bits_of(command, 12, 4)
                 if bits_of(tail, 2, 0) != 2:
-                    raise MusicError, "Failed QTMA validity check: Econtrol Event at ", self.src.tell()
+                    raise MusicError("Failed QTMA validity check: Econtrol Event at ", self.src.tell())
                 controller = bits_of(tail, 14, 2)
                 value = bits_of(tail, 16, 16)
                 # print "Extended Controller ", part, controller, value, self.src.tell()
@@ -345,7 +348,7 @@ class Music(Sound):
                 part = bits_of(command, 12, 4)
                 pitch = bits_of(command, 15, 17)
                 if bits_of(tail, 2, 0) != 2:
-                    raise MusicError, "Failed QTMA validity check: Enote Event at ", self.src.tell()
+                    raise MusicError("Failed QTMA validity check: Enote Event at ", self.src.tell())
                 velocity = bits_of(tail, 7, 3)
                 duration = bits_of(tail, 22, 10)
                 self.qtma_commands.append(["enote",part,pitch,velocity,duration])
@@ -405,7 +408,7 @@ class Music(Sound):
                     new_value = bits_of(command,8,16) # qtma appears to only use the upper 8 bits of the value; not clear from docs
                     self.qtma_commands.append(['reverb',part,new_value,0,0])
                 else:
-                    raise MusicError, "Unsupported Controller Event controller type %d for part %d with value %d at %d"%(controller,part,value,self.src.tell())
+                    raise MusicError("Unsupported Controller Event controller type %d for part %d with value %d at %d"%(controller,part,value,self.src.tell()))
             elif t3 == T3_NOTE:
                 part = bits_of(command, 5, 3)
                 pitch = bits_of(command, 6,8) + 32 # 32 bit offset in qtma
@@ -416,7 +419,7 @@ class Music(Sound):
                 duration = bits_of(command, 24, 8)
                 self.qtma_commands.append(["rest",0,0,0,duration])
             else:
-                raise MusicError, "Unknown event %s at %d"%(binascii.hexlify(command),self.src.tell())
+                raise MusicError("Unknown event %s at %d"%(binascii.hexlify(command),self.src.tell()))
         # self.src.seek(body_offset)
         # Before handling QTMA events, must ensure coherence of tracks for MIDI formatting; MIDI count needs to be consecutive
         # Find the max track value, and make sure there are at least empty tracks to avoid track count errors with MIDI

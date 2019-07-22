@@ -24,9 +24,14 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-import store, util
-from util import dref
-import sys, StringIO
+from . import store, util
+from .util import dref
+import sys
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import BytesIO as StringIO
+
 def rstr(x):
     return '"%s"'%repr(str(x))[1:-1].replace('"','\\"')
 class FauxLibrary(object):
@@ -51,7 +56,7 @@ class _PrintOuter(object):
         self.stream.write(outstr)
         self.nl = '\n' in outstr
     def str_disassemble(self, indent):
-        p = StringIO.StringIO()
+        p = StringIO()
         self.disassemble(p, indent)
         return p.getvalue()
     def disassemble_atom(self, il, atom):
@@ -148,7 +153,7 @@ class Array(list, _PrintOuter):
         self.set_stream(out)
         if len(self) < 2:
             self.pn(indent, "array [%s]"%(' '.join(map(
-                 lambda (n,a):self.str_disassemble_atom(0,a),
+                 lambda n,a:self.str_disassemble_atom(0,a),
                      enumerate(self)))))
             return
         self.pn(indent, "array [")
@@ -333,7 +338,7 @@ class DOPushData(DCVariableFieldOperation):
     def decode_length(self, data):
         return (data[1]<<8)|data[2]+3
     def decode(self):
-        s = util.BinaryHandler(StringIO.StringIO(self.data[3:]))
+        s = util.BinaryHandler(StringIO(self.data[3:]))
         self.contents = TypeFactory(self.script_context, s, 
              library=FauxLibrary(self.script_context.res),
              organic_offset=self.true_offset+3,only_local=True)
@@ -962,7 +967,7 @@ class Script(store.Store):
         self.obj.disassemble(out, 1)
     def disassemble(self, target=None):
         if target is None: 
-             out = StringIO.StringIO()
+             out = StringIO()
         else:
              out = target
         try:
@@ -970,7 +975,7 @@ class Script(store.Store):
                 print >> out, self.str_disassemble_atom(self.obj)
             else:
                 self.obj.disassemble(out, 0)
-        except IndexError, e:
+        except IndexError as e:
             print >> out, '\n', ' DISASSEMBLY ERROR '.center(78,'*')
             print >> out, repr(e)
         self.disassemble_symtable_data(out)

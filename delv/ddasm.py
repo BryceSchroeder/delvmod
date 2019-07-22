@@ -23,10 +23,12 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 	
 # Ambrosia Software, Inc. 
-from cStringIO import StringIO
-import delv
-import delv.util
-import delv.rdasm_symbolics as symbolics
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import BytesIO as StringIO
+from . import util
+from . import rdasm_symbolics as symbolics
 INDENT = '    '
 INCLUDES = """
 include Delver.Model
@@ -55,8 +57,8 @@ class Disassembler(object):
             #    another = self.content[-1].load(self)
         postscript = []
         of = StringIO()
-        print >> of, preamble if preamble else "// DDASM %s"%delv.version
-        print >> of, INCLUDES
+        print(preamble if preamble else "// DDASM %s"%delv.version, file=of)
+        print(INCLUDES, file=of)
         us = self.infile.cm_unseen()
         content = self.content[0]
         if len(us)==1 and not isinstance(self.content[0], DClass) and us[0][0]+us[0][1] == len(self.infile):
@@ -836,47 +838,47 @@ class DFunction(DVMObj):
             #print "%02X"%opcode, len(self.expect_close)
             if opcode == 0x81:  # oh joy a function within a function.
                 subroutinefound = self.near.tell()-1
-                print "Subroutine discovered at 0x%04X"%(subroutinefound)
+                print("Subroutine discovered at 0x%04X"%(subroutinefound))
                 if subroutinefound in dd.inhibit_subs:
-                    print "    Ah, it's actually a method. Nevermind."
+                    print("    Ah, it's actually a method. Nevermind.")
                     self.near.seek(t)
                     return
                 # We're going to assume it's always preceeded by a branch
                 self.near.seek(self.near.tell()-4)
                 if self.near.read_uint8() == 0x88:
                     skipaddr = self.near.read_uint16()
-                    print "    Goes from 0x%04X to 0x%04X (length 0x%04X)"%(
-                        subroutinefound, skipaddr, skipaddr-subroutinefound)
+                    print("    Goes from 0x%04X to 0x%04X (length 0x%04X)"%(
+                        subroutinefound, skipaddr, skipaddr-subroutinefound))
 
                     sub = DFunction(self.near,  
                                     length_hint=skipaddr-subroutinefound, bonus_indents=1)
                     sub.load(self.dd, namehint = "Subroutine")
                     self.code.append(sub)
                     self.ilevel.append(len(self.indent_segments)+1)
-                    print "    Right, then, moving along."
+                    print("    Right, then, moving along.")
                     self.near.seek(skipaddr)
                     continue
                 else:
-                    print "    Couldn't identify the ending of the subroutine." 
+                    print("    Couldn't identify the ending of the subroutine." )
                     self.dd.get_label(subroutinefound, "Subroutine")
                     self.near.seek(subroutinefound+1)
             if opcode < 0x80 and mode is 'direct':
-                #print "staying direct"
+                #print("staying direct")
                 if not textbuf: lastoffset = self.near.tell()-1
                 textbuf.append(opcode)
             elif opcode >= 0x80 and mode is 'direct':
-                #print "changing to code",
-                #print "ADDR", self.near.tell()-1
+                #print("changing to code",)
+                #print("ADDR", self.near.tell()-1)
                 mode = 'code'
                 self.code.append((''.join(map(chr,textbuf)),lastoffset))
                 self.ilevel.append(len(self.indent_segments)+1)
                 textbuf = []; lastoffset=-1
             if mode is 'code':
-                #print "code mode"
+                #print("code mode")
                 self.ilevel.append(len(self.indent_segments)+1)
                 if opcode < 0x80 and not self.expect_close: 
                     mode = 'direct'
-                    #print "Abandoning code mode", self.indent_segments
+                    #print("Abandoning code mode", self.indent_segments)
                     lastoffset = self.near.tell()-1
                     textbuf =[opcode]
                     self.ilevel.pop()
@@ -897,8 +899,8 @@ class DFunction(DVMObj):
                 elif OpTable.has_key(opcode):
                     self.code.append(OpTable[opcode](opcode,self.near,self))
                 else:
-                    print "Bad opcode '0x%02X', offset 0x%X"%(opcode, 
-                                       self.near.tell())
+                    print("Bad opcode '0x%02X', offset 0x%X"%(opcode, 
+                                       self.near.tell()))
                     assert False, "Halting."
             if ps_after:
                 self.code.insert(-1,ps_after)

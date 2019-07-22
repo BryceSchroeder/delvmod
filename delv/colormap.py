@@ -27,7 +27,7 @@ def _pclr(pal,n,f):
 def panimate(pal):
     """ Generate a sequence of palette-animated colors from the given
         256-item sequence (pal) provided."""
-    return [[_pclr(pal,n,f) for n in xrange(256)] for f in xrange(8)]
+    return [[_pclr(pal,n,f) for n in range(256)] for f in range(8)]
 
 
 

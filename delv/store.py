@@ -31,10 +31,12 @@
 # it needs a more object-oriented refactoring
 
 
-import util, archive
-import cStringIO as StringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import BytesIO as StringIO
 import array, bisect
-import tile
+from . import util, archive, tile
 
 class Store(object):
     def __init__(self, src): 
@@ -55,7 +57,7 @@ class Store(object):
             self.src = util.BinaryHandler(src)
             self.res = None
         else:
-            print dir(src), hasattr(src, 'resid')
+            print(dir(src), hasattr(src, 'resid'))
             assert False, "Invalid source %s"%repr(src)
         #print "final", repr(self.src), repr(self.res)
     def is_checked_out(self):
