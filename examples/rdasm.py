@@ -34,9 +34,9 @@ from sys import argv
 
 assembler = delv.rdasm.Assembler()
 
-source = open(argv[1],'rb').read()
+source = open(argv[1],'r').read()
 
-code = str(assembler.assemble(source))
+code = bytes(assembler.assemble(source))
 
 output = open(argv[2] if len(argv) > 2 else 'rda.out','wb')
 

@@ -27,6 +27,8 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from . import util
+
 # Documentation of the assembly language can be found at:
 # http://www.ferazelhosting.net/wiki/RDASM
 All_Operations = {}
@@ -144,7 +146,7 @@ class Op_load_word(Opcode):
         #print("Finishing", value)
         of.write_uint32(self.encod(value))
     def encod(self, v):
-        if v < 0:
+        if isinstance(v,int) and (v < 0):
             v = v&0x0FFFFFFF
         return v
 
@@ -784,7 +786,7 @@ integer = bin_int|hex_int|dec_int
 required_space = (comment|'\t'|' ')+ -> None
 bin_int = '0b' <bin_digit+>:x -> int(x,2)
 hex_int = '0x' <hex_digit+>:x -> int(x,16)
-dec_int = <sign? dec_digit+>:x -> delv.util.encode_int28(int(x))
+dec_int = <sign? dec_digit+>:x -> util.encode_int28(int(x))
 
 bin_digit = anything:x ?(x in "01") -> x
 dec_digit = anything:x ?(x in "0123456789") -> x
@@ -808,10 +810,10 @@ escaped  = '\\' (
 escaped_hex = 'x' <hex_digit{2}>:hs -> chr(int(hs,16))
 escaped_unicode = 'u00' <hex_digit{2}>:hs -> chr(int(hs,16))
 #
-terminated_string = '"' (escaped| ~'"' anything)*:x '"' -> bytearray(''.join(x)+'\0')
-direct_string = '\'' (escaped| ~'\'' anything)*:x  '\'' -> bytearray(''.join(x))
+terminated_string = '"' (escaped| ~'"' anything)*:x '"' -> bytearray(''.join(x).encode('macroman')+b'\0')
+direct_string = '\'' (escaped| ~'\'' anything)*:x  '\'' -> bytearray(''.join(x).encode('macroman'))
 hex_pair = <hex_digit hex_digit>:x (ws|'.')? -> int(x,16)
-direct_hex = '{' ws hex_pair*:x ws '}' -> bytearray(x)
+direct_hex = '{' ws hex_pair*:x ws '}' -> bytearray(x.encode('macroman'))
 #
 symbol_ch0 = anything:x ?(x in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_') -> x
 symbol_chn = anything:x ?(x in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-0123456789') -> x
@@ -945,7 +947,7 @@ class Assembler(object):
         pth = os.path.join(self.path, os.path.join(*ifil)+'.rdasm')
         f = self.assemble(open(pth).read())
     def use(self, usesym):
-        for sym,val in self.symtab.items():
+        for sym,val in list(self.symtab.items()):
             #print("*",sym, usesym)
             if sym[0] == usesym[0]:
                 self.define_symbol(SymbolList(sym[1:]), self.lookup_symbol(sym))
@@ -958,7 +960,7 @@ class Assembler(object):
             if sym[0] == fn[0]:
                 self.fieldnames[SymbolList(sym[1:])] = self.lookup_symbol(sym)
         #print(self.fieldnames)
-        return bytearray('\xFF\xFF')
+        return bytearray(b'\xFF\xFF')
         
     def define_symbols(self, base, syms):
         for k,v in syms:
@@ -1057,9 +1059,9 @@ class Assembler(object):
         for k,v in self.class_fields:
             table[k] = v
         for sym,field in self.fieldnames.items():
-            #if table.has_key(field):
+            #if field in table:
             #    self.error("Redefinition of class field 0x%04X (%s)"%(field,sym),warn=True)
-            if self.symtab.has_key(sym): 
+            if sym in self.symtab: 
                 sv = self.getval(sym)
                 if sv < 0x10000:
                     table[field] = (
@@ -1093,7 +1095,7 @@ class Assembler(object):
     def assemble(self,source):
         source = source.strip()
 
-        binfile = delv.util.BinaryHandler(StringIO())
+        binfile = util.BinaryHandler(StringIO())
         self.output_file = binfile
         callbacks = []
         parsed = self.Parser(source).program()
