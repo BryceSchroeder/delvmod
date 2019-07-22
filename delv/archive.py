@@ -25,6 +25,7 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 
+import functools
 import os
 #import numpy as np
 import operator
@@ -393,12 +394,12 @@ class Archive(object):
         assert os.path.isdir(path)
         metadata = {'source': self.source(), 
             'creator': 'delv (www.ferazelhosting.net/wiki/delv)',
-            'scenario_title': self.scenario_title,
-            'player_name': self.player_name}
+            'scenario_title': self.scenario_title.decode("macroman"),
+            'player_name': self.player_name.decode("macroman")}
         encrypt = {}
         for resource in self.resources():
             if not resource: continue # don't preserve empties
-            outf = open(os.path.join(path, "%04X.data"%resid(resource)), 'w')
+            outf = open(os.path.join(path, "%04X.data"%resid(resource)), 'wb')
             resource.save_to_file(outf)
             encrypt["%04X"%resid(resource)] = resource.get_metadata()
             outf.close()
@@ -444,7 +445,7 @@ class Archive(object):
             dest.write_offlen(offset,length)
                 
     def canon_encryption_of(self, subindex, resid=None):
-        if resid and self.single_known.has_key(resid): return self.single_known[resid]
+        if resid and resid in self.single_known: return self.single_known[resid]
         return self.encryption_knowledge.get(subindex, None)
 
     def to_string(self):
@@ -520,7 +521,7 @@ class Archive(object):
             sx = self.all_subindices[subindex]
             return [resid(subindex,n) for n,r in enumerate(sx) if r]
         else:
-            return reduce(operator.add, 
+            return functools.reduce(operator.add, 
                 [self.resource_ids(si) for si in self.subindices()])
     def subindices(self):
         """Return a list of valid subindices for this archive."""
@@ -536,7 +537,7 @@ class Archive(object):
             sx = self.all_subindices[subindex]
             return [r for r in sx if r]
         else:
-            return reduce(operator.add, 
+            return functools.reduce(operator.add, 
                 [self.resources(si) for si in self.subindices()])
     def __iter__(self):
         """This iterator is over all extant resources in the archive. That
@@ -590,7 +591,7 @@ class Archive(object):
                 continue
             subindex = []
             self.arcfile.seek(offset)
-            size = length / 8
+            size = length // 8
             rescount = 0
             for n in range(size):
                 res_offset, res_length = self.arcfile.read_offlen()
