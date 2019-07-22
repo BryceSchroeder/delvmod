@@ -24,7 +24,10 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
-from . import colormap, util, archive, store
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+from . import colormap, util, store
 
 # import the four horsemen of the bitpocalypse:
 from .util import bits_pack, ncbits_pack, ncbits_of, bits_of, bitstruct_pack

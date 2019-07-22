@@ -25,6 +25,8 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 def encode_int28(i):
     return i if i >= 0 else (0x0FFFFFFF+i+1)
 

@@ -27,6 +27,9 @@
 #
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 ABOUT = """This file created by the Python module delv, written by 
 Bryce Schroeder as part of the Technical Documentation Project; more
 information can be found at http://www.ferazelhosting.net/wiki/delv

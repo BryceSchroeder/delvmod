@@ -18,6 +18,8 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 def _pclr(pal,n,f):
     if n < 0xE0: return pal[n]
     elif n < 0xF0: return pal[(n&0xF8)|((n+f)&7)]

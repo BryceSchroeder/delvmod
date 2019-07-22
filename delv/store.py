@@ -27,6 +27,8 @@
 # This file addresses sundry storage types used within Delver Archives,
 # and as such is mostly a helper for other parts of delv. 
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 # FIXME this file has gotten seriously out of hand with copy-pasted junk;
 # it needs a more object-oriented refactoring
 
@@ -36,7 +38,7 @@ try:
 except ImportError:
     from io import BytesIO as StringIO
 import array, bisect
-from . import util, archive, tile
+from . import util
 
 class Store(object):
     def __init__(self, src): 
@@ -45,6 +47,7 @@ class Store(object):
         self.checked_out = 0
         self.set_source(src)
     def set_source(self, src):
+        from . import archive
         #print "setsource", repr(src)
         self.src = None
         if issubclass(src.__class__, util.BinaryHandler):

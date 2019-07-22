@@ -25,13 +25,16 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 # Maps and prop lists. Convenience utilities for map visualization.
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import array
 try:
     from cStringIO import StringIO
 except ImportError:
     from io import BytesIO as StringIO
 import binascii
-from . import util, archive, store
+from . import util, store
 from .util import bitstruct_pack, bits_pack,bits_of
 
 class SoundError(Exception): pass

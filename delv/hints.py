@@ -25,6 +25,8 @@
 # "Cythera" and "Delver" are trademarks of either Glenn Andreas or 
 # Ambrosia Software, Inc. 
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 from . import graphics, sound, store, level, script, dscript, schedule
 GRAPHICS_LANDSCAPE = 131
 GRAPHICS_PORTRAIT = 135
