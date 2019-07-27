@@ -42,7 +42,7 @@ Using delv Version: %s
 '''%delv.version
 
 if len(sys.argv)<3:
-    print >> sys.stderr, USAGE
+    print(USAGE, file=sys.stderr)
     sys.exit(-1)
 
 source = Image.open(sys.argv[1])

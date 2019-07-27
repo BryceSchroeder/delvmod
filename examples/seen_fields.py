@@ -37,7 +37,7 @@ Using delv Version: %s
 
 
 if len(sys.argv)<2:
-    print >> sys.stderr, USAGE
+    print(USAGE, file=sys.stderr)
     sys.exit(-1)
 
 seen_fields = {}
@@ -53,8 +53,8 @@ for res in arch.resource_ids(series):
     rfile = arch.get(res).as_file()
     rfile.seek(rfile.read_uint16())
     items = rfile.read_uint16()&0x0FFF
-    print (" 0x%04X%s: %5d bytes, %d fields "%(res,' ("%s")'%name if name else '', len(rfile),items)
-        ).center(60,"-")
+    print((" 0x%04X%s: %5d bytes, %d fields "%(res,' ("%s")'%name if name else '', len(rfile),items)
+        ).center(60,"-"))
     
     for n in range(items):
         value = rfile.read_uint32()
@@ -84,17 +84,17 @@ for res in arch.resource_ids(series):
         seen_fields[key] = counts
         singletons[key] = res
         field_occurances[key] = occurances
-        print " 0x%04X: 0x%08X  |  %s"%(key,value,preview)
-print " STATISTICS ".center(70,'=')
+        print(" 0x%04X: 0x%08X  |  %s"%(key,value,preview))
+print(" STATISTICS ".center(70,'='))
 fieldorder = [(v,k) for k,v in fieldcounts.items()]
 fieldorder.sort()
 for count, key in fieldorder:
     value = seen_fields[key]
-    print (" FIELD 0x%04X - %d occurance%s"%(
+    print((" FIELD 0x%04X - %d occurance%s"%(
        key,fieldcounts[key], 
        's' if fieldcounts[key] > 1 else ' in 0x%04X'%singletons[key]
-       )).center(70,'-')
+       )).center(70,'-'))
     for val,count in value.items():
-        print "\t%3d:  %s"%(count,val)
+        print("\t%3d:  %s"%(count,val))
         if res >= 0x1000 and res <= 0x13ff:
-            print '\t', ', '.join(['%s'%lib.get_prop(rid&0x03FF).get_name() for rid in field_occurances[key][val]])
+            print('\t', ', '.join(['%s'%lib.get_prop(rid&0x03FF).get_name() for rid in field_occurances[key][val]]))

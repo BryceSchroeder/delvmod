@@ -70,19 +70,19 @@ import itertools
 
 if len(argv) < 2:
     # GUI mode
-    print >> stderr, "GUI not implemented yet; use CLI mode"
-    print >> stderr, MAGPY_HELP
+    print("GUI not implemented yet; use CLI mode", file=stderr)
+    print(MAGPY_HELP, file=stderr)
     exit(-1)
 command = argv[1]
 if command == 'info':
     patcharch = delv.archive.Patch(argv[2])
-    print " ----- PATCH INFO FOR '%s' ----- "%os.path.basename(argv[2])
+    print(" ----- PATCH INFO FOR '%s' ----- "%os.path.basename(argv[2]))
     pinfo = patcharch.get_patch_info()
     if not pinfo:
-        print "This doesn't appear to contain a patch resource (0xFFFF);"
-        print "It's probably not a patch."
+        print("This doesn't appear to contain a patch resource (0xFFFF);")
+        print("It's probably not a patch.")
     else: # Print it out nicely formatted to the terminal width
-        print textwrap.fill(str(pinfo),79)
+        print(textwrap.fill(str(pinfo),79))
 elif command == 'compatible':
     combos = itertools.combinations(
         [(delv.archive.Patch(path),
@@ -90,15 +90,15 @@ elif command == 'compatible':
     conflicts = False
     for (a,aname),(b,bname) in combos:
         if not a.compatible(b): 
-            print aname, "conflicts with", bname
+            print(aname, "conflicts with", bname)
             conflicts = True
             break
     if conflicts:
-        print "This combination of patches may result in undefined behavior."
+        print("This combination of patches may result in undefined behavior.")
         exit(-3)
     else:
-        print "This combination of patches seems to be compatible."
-        print "(Of course, this is not certain to be the case.)"
+        print("This combination of patches seems to be compatible.")
+        print("(Of course, this is not certain to be the case.)")
         exit(0)
 elif command == 'diff':
     info = open(argv[5]).read() if len(argv)>5 else DEFAULT_INFO
@@ -108,7 +108,7 @@ elif command == 'diff':
     base = delv.archive.Scenario(argv[2])
     newversion = delv.archive.Scenario(argv[3])
     newpatch.diff(base, newversion)
-    print "New patch will modify %d resources."%len(newpatch.resources())
+    print("New patch will modify %d resources."%len(newpatch.resources()))
     newpatch.to_path(destination)
 elif command == 'patch':
     base = delv.archive.Scenario(argv[2])
@@ -116,9 +116,9 @@ elif command == 'patch':
     destination = argv[-1]
     for patch in patches:
         patch.patch(base)
-    print "Applied."
+    print("Applied.")
     base.to_path(destination)
 else:
-    print >> stderr, "Unrecognized command", command
-    print >> stderr, MAGPY_HELP
+    print("Unrecognized command", command, file=stderr)
+    print(MAGPY_HELP, file=stderr)
     exit(-2)

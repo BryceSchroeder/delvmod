@@ -43,7 +43,7 @@ Using delv Version: %s
 modes = 'tiles portrait landscape sized'.split()
 
 if len(sys.argv)<3:
-    print >> sys.stderr, USAGE
+    print(USAGE, file=sys.stderr)
     sys.exit(-1)
 
 source = open(sys.argv[1],'rb')
@@ -54,7 +54,7 @@ if sys.argv[2] in modes: # individual file
 else: # archive
     resource = delv.archive.Scenario(source).get(int(sys.argv[2],16))
     if not resource:
-        print >> sys.stderr, "No resource", sys.argv[2], "found in that archive."
+        print("No resource", sys.argv[2], "found in that archive.", file=sys.stderr)
         sys.exit(-1)
     image = delv.graphics.DelvImageFactory(resource)
 
@@ -70,4 +70,4 @@ if len(sys.argv)>3:
 else:
     pil_img.show()
 
-print "Size:", image.logical_width,image.width, image.height
+print("Size:", image.logical_width,image.width, image.height)

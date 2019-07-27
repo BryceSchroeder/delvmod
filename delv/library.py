@@ -27,7 +27,7 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import archive,hints,tile,prop,util,store
+from . import archive,hints,tile,prop,util,store
 import array
 class Library(object):
     """This class is a wrapper around one or more Delver archives, and 
@@ -150,13 +150,13 @@ class Library(object):
         r = self.get_resource(resid)
         if self.cache.has_key(r):
             if self.cache[r].is_checked_out():
-                print "WARNING: Someone using %04X, and cache was purged."%(
-                    resid)
-                print "Going to try to reload it instead..."
+                print("WARNING: Someone using %04X, and cache was purged."%(
+                    resid))
+                print("Going to try to reload it instead...")
                 self.cache[r].src.seek(0)
                 self.cache[r].load_from_bfile()
             else:
-                print "purging", resid
+                print("purging", resid)
                 del self.cache[r]
     def get_object(self, resid, rw=True):
         """Get the appropriate kind of object for a specified resource."""

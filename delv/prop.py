@@ -27,7 +27,7 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import store
+from . import store
 
 class Prop(object):
     def __init__(self, pid, tile, offset_by_aspect, scripts, library):
