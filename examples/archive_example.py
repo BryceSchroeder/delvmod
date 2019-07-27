@@ -60,7 +60,7 @@ import delv.archive
 import sys
 
 if len(sys.argv) < 2:
-    print 'Usage: ./archive_example.py "Cythera Data" ["Modded Cythera Data"]'
+    print('Usage: ./archive_example.py "Cythera Data" ["Modded Cythera Data"]')
     sys.exit(-1)
 
 # open a Delver Archive - specifically as a Scenario (greatly speeds this
@@ -68,14 +68,14 @@ if len(sys.argv) < 2:
 # be encrypted, sparing delv the difficulty of guessing for each one.)
 archive = delv.archive.Scenario(sys.argv[1])
 
-print "Loaded archive '%s'"%archive.scenario_title
+print("Loaded archive '%s'"%archive.scenario_title)
 
 # Go through all the possible subindex pages and print out the ones that
 # actually have stuff in them
 for idx in archive.subindices():
     resids = archive.resource_ids(idx)
     if not resids: continue
-    print idx, "has", len(archive.resource_ids(idx)), "resources"
+    print(idx, "has", len(archive.resource_ids(idx)), "resources")
 
 # Modify a resource, as an array: 
 # (This changes the text of the Sapphire Book of Wisdom)
@@ -94,7 +94,7 @@ rfile = about_resource.as_file()
 rfile.write(ABOUT)
 
 if len(sys.argv)>2:
-    print "Writing modified scenario to %s"%sys.argv[2]
+    print("Writing modified scenario to %s"%sys.argv[2])
     archive.to_path(sys.argv[2])
 
 # Functionality remaining to be added for Archive objects -

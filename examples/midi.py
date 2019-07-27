@@ -41,7 +41,7 @@ Using delv Version: %s
 
 
 if len(sys.argv)<2:
-    print >> sys.stderr, USAGE
+    print(USAGE, file=sys.stderr)
     sys.exit(-1)
 
 filename = sys.argv[1]
@@ -53,7 +53,7 @@ if len(sys.argv)<3: # individual file
 else: # archive
     resource = delv.archive.Scenario(source).get(int(sys.argv[2],16))
     if not resource:
-        print >> sys.stderr, "No resource", sys.argv[2], "found in that archive."
+        print("No resource", sys.argv[2], "found in that archive.", file=sys.stderr)
         sys.exit(-1)
     musi = delv.sound.Music(resource.get_data())
 

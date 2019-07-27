@@ -39,7 +39,7 @@ Using delv Version: %s
 
 
 if len(sys.argv)<3:
-    print >> sys.stderr, USAGE
+    print(USAGE, file=sys.stderr)
     sys.exit(-1)
 
 source = open(sys.argv[1],'rb')
@@ -47,11 +47,11 @@ tid = int(sys.argv[2],16)
 
 resid = 0x8E00|((tid & 0xFF0)>>4)
 tilen = tid & 0x00F
-print "Resource: %04X"%resid, "tile:", tilen
+print("Resource: %04X"%resid, "tile:", tilen)
 scenario = delv.archive.Scenario(source)
 resource = scenario.get(resid)
 if not resource:
-    print >> sys.stderr, "No resource", sys.argv[2], "found in that archive."
+    print("No resource", sys.argv[2], "found in that archive.", file=sys.stderr)
     sys.exit(-1)
 image = delv.graphics.DelvImageFactory(resource)
 
@@ -68,7 +68,7 @@ if len(sys.argv)>3:
 else:
     pil_img.show()
 
-print "Size:", image.logical_width,image.width, image.height
-print "Name of tile:", tilenames[tid] 
-print "Singular:", tilenames.get_name(tid, plural=False)
-print "Plural:", tilenames.get_name(tid, plural=True)
+print("Size:", image.logical_width,image.width, image.height)
+print("Name of tile:", tilenames[tid])
+print("Singular:", tilenames.get_name(tid, plural=False))
+print("Plural:", tilenames.get_name(tid, plural=True))
