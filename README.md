@@ -58,8 +58,10 @@ Several examples and utilties are provided to showcase the usage of delv.
 
 WHAT CAN I DO WITH delv?
 
-Anything permitted by the GPL version 3, but we ask you to please not attempt 
-to use it to circumvent Cythera's shareware restrictions, and not to distribute
+Anything permitted by the GPL version 3, ~but we ask you to please not attempt 
+to use it to circumvent Cythera's shareware restrictions~ (Update: Ambrosia is 
+apparently defunct now. I can't give you permission to do this, of course, but 
+I am no longer making this polite requestion.), and not to distribute
 any modified versions of "Cythera Data" (i.e. the scenario file). This latter 
 action at least would violate Ambrosia Software's copyright (and the Cythera 
 EULA, as it permits only redistribution of the unmodified and complete game.)
