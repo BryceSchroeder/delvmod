@@ -66,6 +66,9 @@ any modified versions of "Cythera Data" (i.e. the scenario file). This latter
 action at least would violate Ambrosia Software's copyright (and the Cythera 
 EULA, as it permits only redistribution of the unmodified and complete game.)
 
+Speaking of which, here is the unmodified and complete game: 
+https://www.bryce.pw/Cythera.bin
+
 Here's an example of something to do with delv: Custom player character
 portraits in Cythera: 
 http://ferazelhosting.net/~bryce/making_a_custom_portrait_with_redelv/tutorial.html
